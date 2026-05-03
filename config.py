@@ -17,3 +17,13 @@ $$
 # r = r' + \lambda_P \tilde{Y} + \lambda_I \pi \text{ with } r' > 0, \lambda_P \ge 0, \lambda_I \ge 0.
 
 tabs_options = ['🏠 Home', '📊 Data', '🧾 Explanations']
+
+
+
+# "solid"
+# "dot"
+# "dash"
+# "longdash"
+# "dashdot"
+# "longdashdot"
+# '5px,2px'

@@ -33,7 +33,7 @@ st.sidebar.markdown("<hr style='margin: 2px 0; border: none; border-top: 1px sol
 
 Y_potential = st.sidebar.number_input(r'$\bar{Y} :$', min_value=0, step=1, value=10, help=r"MP Curve: $r = r' + \lambda_P (Y - \bar{Y}) + \lambda_I \pi$")
 const_suggested = 1.1 * Y_potential
-const = st.sidebar.number_input('Y borders', min_value=1.0, step=5.0, value=const_suggested, help="The length of the Y sown on the graph from the both sides of the potential output")
+# const = st.sidebar.number_input('Y borders', min_value=1.0, step=5.0, value=const_suggested, help="The length of the Y sown on the graph from the both sides of the potential output")
 
 # ―――― IS Curve
 
@@ -45,41 +45,57 @@ with tabs[0]:
     # ―――――――――――――――― Short term r Y graph ――――――――――――――――――――――――――――――――――――――――――――――――
     r_Y_fig = h.create_linear_plot(x_label="Y", y_label="r")
 
-    # ―――― IS Curve ――――――――――――――――
+    # ―――― Parameters ――――――――――――――――
     is_slope = -1 / phi
     is_intercept = omega/phi
-    h.add_line_to_plot(r_Y_fig, slope=is_slope, intercept=is_intercept, x_min=Y_potential - const, color="#4C78A8",
-                       x_max=Y_potential + const, name=f'IS')
-
-    # ―――― MP Curve ――――――――――――――――
     mp_intercept = r_init - lambda_p * Y_potential + lambda_i * pi
     mp_slope = lambda_p
-    h.add_line_to_plot(r_Y_fig, slope=mp_slope, intercept=mp_intercept, x_min=Y_potential - const, color="#F58518",
-    x_max=Y_potential + const, name=f'MP')
+    Y_is_mp_intersection, r_is_mp_intersection = h.find_line_intersection(slope_1=is_slope, intercept_1=is_intercept, slope_2=mp_slope, intercept_2=mp_intercept)
+    const = max(abs(Y_is_mp_intersection), abs(Y_potential), abs(Y_potential - Y_is_mp_intersection)) * 1.3
 
-    h.add_vertical_line(r_Y_fig, x_value=Y_potential, name='Y')
+    # ―――― IS Curve ――――――――――――――――
+    h.add_line_to_plot(r_Y_fig, slope=is_slope, intercept=is_intercept, x_min=Y_potential - const, color="#4C78A8",x_max=Y_potential + const, name=f'IS')
+
+    # ―――― MP Curve ――――――――――――――――
+    h.add_line_to_plot(r_Y_fig, slope=mp_slope, intercept=mp_intercept, x_min=Y_potential - const, color="#F58518",x_max=Y_potential + const, name=f'MP')
+
+    # find intersection point
+    h.add_vertical_line(r_Y_fig, x_value= Y_is_mp_intersection, y_max=r_is_mp_intersection, name=f"Y ({Y_is_mp_intersection: .1f})", name_position='bottom', color='#B0B0B0', dash='dot')
+
+    # ―――― Plot ――――――――――――――――
+    h.add_vertical_line(r_Y_fig, x_value=Y_potential, name=f'Ȳ({Y_potential})', color='#555555', dash='8px,5px')
     h.show_plotly_fig(r_Y_fig, column_to_plot=cols[0])
-    cols[1].write(f'MP Curve: `r = {mp_slope} * Y + {mp_intercept}`')
-    cols[1].write(f'IS Curve: `r = {is_slope} * Y + {is_intercept}`')
+    cols[1].write(f'MP Curve: `r = {mp_slope:.1f}Y + {mp_intercept:.1f}`')
+    cols[1].write(f'IS Curve: `r = {is_slope:.1f}Y + {is_intercept:.1f}`')
+    output_gap = Y_is_mp_intersection - Y_potential
+    cols[1].write(f'Output Gap(Y - Ȳ): `{output_gap:.1f}`')
 
 
 
     # ―――――――――――――――― Short term Pi Y Graph ――――――――――――――――――――――――――――――――――――――――――――――――
     pi_Y_fig = h.create_linear_plot(x_label="Y", y_label="pi")
-    h.add_line_to_plot(pi_Y_fig, slope=0, intercept=pi, x_min=Y_potential - const, color="#54A24B",
-                       x_max=Y_potential + const, name=f'IA')
 
-    # ―――― AD curve ――――――――――――――――
+    # ―――― Parameters ――――――――――――――――
     ad_slope = (is_slope - lambda_p) / lambda_i
     ad_intercept = (is_intercept - r_init + lambda_p * Y_potential) / lambda_i
-    h.add_line_to_plot(pi_Y_fig, slope=ad_slope, intercept=ad_intercept, x_min=Y_potential - const, color="#B279A2",
-                       x_max=Y_potential + const, name=f'AD')
+    Y_ia_ad_intersection, pi_ia_ad_intersection = h.find_line_intersection(slope_1=0, intercept_1=pi, slope_2=ad_slope, intercept_2=ad_intercept)
 
-    h.add_vertical_line(pi_Y_fig, x_value=Y_potential, name='Y')
+    # ―――― IA Curve ――――――――――――――――
+    h.add_line_to_plot(pi_Y_fig, slope=0, intercept=pi, x_min=Y_potential - const, color="#54A24B",x_max=Y_potential + const, name=f'IA')
+
+    # ―――― AD curve ――――――――――――――――
+    h.add_line_to_plot(pi_Y_fig, slope=ad_slope, intercept=ad_intercept, x_min=Y_potential - const, color="#B279A2",x_max=Y_potential + const, name=f'AD')
+
+    # find intersection point
+    h.add_vertical_line(pi_Y_fig, x_value= Y_ia_ad_intersection, y_max=pi_ia_ad_intersection, name=f"Y ({Y_ia_ad_intersection: .1f})", name_position='bottom', color='#B0B0B0', dash='dot')
+
+    # ―――― Plot ――――――――――――――――
+    h.add_vertical_line(pi_Y_fig, x_value=Y_potential, name=f'Ȳ({Y_potential})', color='#555555', dash='8px,5px')
     h.show_plotly_fig(pi_Y_fig, column_to_plot=cols[0])
     cols[1].space(375)
-    cols[1].write(f'IA Curve: `pi = {pi}`')
-    cols[1].write(f'AD Curve: `pi = {ad_slope} * Y + {ad_intercept}`')
+    cols[1].write(f'IA Curve: `pi = {pi:.1f}`')
+    cols[1].write(f'AD Curve: `pi = {ad_slope:.1f}Y + {ad_intercept:.1f}`')
+
 
 
 
