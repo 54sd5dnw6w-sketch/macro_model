@@ -5,20 +5,7 @@ import config as c
 import helpers as h
 
 
-st.set_page_config(
-    #page_title="Ex-stream-ly Cool App",
-    #page_icon="🧊",
-    layout="wide",
-    initial_sidebar_state="expanded",
-    menu_items={
-        'Get Help': 'https://www.extremelycoolapp.com/help',
-        'Report a bug': "https://www.extremelycoolapp.com/bug",
-        'About': "# This is a header. This is an *extremely* cool app!"
-    }
-)
-
-
-
+st.set_page_config(layout="wide",initial_sidebar_state="expanded",)
 
 
 st.sidebar.header("Closed Economy")
@@ -26,21 +13,16 @@ phi = st.sidebar.number_input(r'$\phi :$', min_value=-5, max_value=10, step=1, v
 omega = st.sidebar.number_input(r'$\omega :$', min_value=5, max_value=20, step=1, value=8, help=r"IS Curve: $Y = \omega - \phi r$")
 r_init = st.sidebar.number_input(r"$r' (\%) :$", min_value=1, max_value=10, step=1, value=2, help=r"MP Curve: $r = r' + \lambda_P \tilde{Y} + \lambda_I \pi$")
 pi = st.sidebar.number_input(r"$\pi (\%) :$",  step=1, value=3, help=r"MP Curve: $r = r' + \lambda_P \tilde{Y} + \lambda_I \pi$")
-lambda_p = st.sidebar.number_input(r'$\lambda_P :$', min_value=0.0, max_value=10.0, step=0.1, value=0.1, help=r"MP Curve: $r = r' + \lambda_P \tilde{Y} + \lambda_I \pi$")
-lambda_i = st.sidebar.number_input(r'$\lambda_I :$', min_value=0.0, max_value=10.0, step=0.1, value=0.1, help=r"MP Curve: $r = r' + \lambda_P \tilde{Y} + \lambda_I \pi$")
+lambda_p = st.sidebar.number_input(r'$\lambda_P :$', min_value=0.0, max_value=10.0, step=0.1, value=0.5, help=r"MP Curve: $r = r' + \lambda_P \tilde{Y} + \lambda_I \pi$")
+lambda_i = st.sidebar.number_input(r'$\lambda_I :$', min_value=0.0, max_value=10.0, step=0.1, value=0.5, help=r"MP Curve: $r = r' + \lambda_P \tilde{Y} + \lambda_I \pi$")
 
 st.sidebar.markdown("<hr style='margin: 2px 0; border: none; border-top: 1px solid #ccc;'>", unsafe_allow_html=True)
-
 Y_potential = st.sidebar.number_input(r'$\bar{Y} :$', min_value=0, step=1, value=10, help=r"MP Curve: $r = r' + \lambda_P (Y - \bar{Y}) + \lambda_I \pi$")
-const_suggested = 1.1 * Y_potential
-# const = st.sidebar.number_input('Y borders', min_value=1.0, step=5.0, value=const_suggested, help="The length of the Y sown on the graph from the both sides of the potential output")
-
 
 
 tabs = st.tabs(c.tabs_options)
 with tabs[0]:
     seg_control = st.segmented_control('no', label_visibility='collapsed', options=['📉 Short Term', '📈 Long Term'], width='stretch', default='📉 Short Term')
-
 
     if seg_control == '📉 Short Term':
         STMP_color = "#F58518"
@@ -62,7 +44,6 @@ with tabs[0]:
         STIA_line_width = c.thin_line_width
         LTIA_color = "#54A24B"
         LTIA_name = 'LTIA'
-
 
 
     cols = st.columns([3,1])
@@ -149,6 +130,6 @@ with tabs[0]:
 
 
 
-with tabs[2]:
+with tabs[1]:
     st.markdown(c.markdown_text)
 
