@@ -18,7 +18,8 @@ $$
 
 tabs_options = ['🏠 Home', '📊 Data', '🧾 Explanations']
 
-
+standard_line_width = 3
+thin_line_width = 2
 
 # "solid"
 # "dot"

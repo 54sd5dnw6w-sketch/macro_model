@@ -2,7 +2,7 @@ import numpy as np
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
-
+import config as c
 
 
 # ―――― Linear Math ――――――――――――――――
@@ -24,7 +24,7 @@ def create_linear_plot(x_label="Y", y_label="r"):
 
     return fig
 
-def add_line_to_plot(plotly_fig, slope, intercept, x_min=0, x_max=10, n_points=100, name='Name', color='blue', width=3, dash='solid'):
+def add_line_to_plot(plotly_fig, slope, intercept, x_min=0, x_max=10, n_points=100, name='Name', color='blue', line_width=c.standard_line_width, dash='solid'):
     x = np.linspace(x_min, x_max, n_points)
     y = slope * x + intercept
     df = pd.DataFrame({"x": x, "y": y})
@@ -35,7 +35,7 @@ def add_line_to_plot(plotly_fig, slope, intercept, x_min=0, x_max=10, n_points=1
             y=df["y"],
             mode="lines",
             name=name,
-            line=dict(color=color, width=width, dash=dash)
+            line=dict(color=color, width=line_width, dash=dash)
         )
     )
 
@@ -114,6 +114,30 @@ def add_vertical_line(plotly_fig, x_value, y_min=None, y_max=None, color="#00000
     )
 
     return plotly_fig
+
+
+def add_arrow(fig, x_start, y_start, x_end, y_end):
+    fig.add_annotation(
+        x=x_end,
+        y=y_end,
+        ax=x_start,
+        ay=y_start,
+        xref="x",
+        yref="y",
+        axref="x",
+        ayref="y",
+        text="",
+        showarrow=True,
+        arrowhead=5,
+        arrowsize=1,
+        arrowwidth=2,
+        arrowcolor="red",
+        standoff=0,
+        startstandoff=0,
+        xanchor="center",
+        yanchor="middle",
+    )
+    return fig
 
 
 
