@@ -4,6 +4,15 @@ import pandas as pd
 import plotly.graph_objects as go
 import config as c
 
+# ―――― Streamlit Helpers ――――――――――――――――
+def session_init(**kwargs):
+    """ Initiates the session state for several variables at once"""
+    for key, value in kwargs.items():
+        if key not in st.session_state:
+            st.session_state[key] = value
+
+
+
 
 # ―――― Linear Math ――――――――――――――――
 def find_line_intersection(slope_1, intercept_1, slope_2, intercept_2):
@@ -21,7 +30,6 @@ def find_line_intersection(slope_1, intercept_1, slope_2, intercept_2):
 def create_linear_plot(x_label="Y", y_label="r"):
     fig = go.Figure()
     fig.update_layout(xaxis_title=x_label, yaxis_title=y_label,showlegend=False)
-
     return fig
 
 def add_line_to_plot(plotly_fig, slope, intercept, x_min=0, x_max=10, n_points=100, name='Name', color='blue', line_width=c.standard_line_width, dash='solid'):
@@ -50,7 +58,7 @@ def add_line_to_plot(plotly_fig, slope, intercept, x_min=0, x_max=10, n_points=1
 
     return df
 
-def add_vertical_line(plotly_fig, x_value, y_min=None, y_max=None, color="#000000", dash="dash", name="Vertical Line", name_position='bottom'):
+def add_vertical_line(plotly_fig, x_value, y_min=None, y_max=None, color="#000000", dash="dash", name="Vertical Line", name_position='top'):
     def _get_y_bounds(fig):
         yaxis = fig.layout.yaxis
 
@@ -141,6 +149,15 @@ def add_arrow(fig, x_start, y_start, x_end, y_end):
 
 
 
-def show_plotly_fig(fig, column_to_plot = st):
-    fig.update_layout(margin=dict(t=20, b=40, l=40, r=10))
-    column_to_plot.plotly_chart(fig,  config={"displayModeBar": True})
+def show_plotly_fig(fig, height=300, column_to_plot=st):
+    fig.update_layout(
+        height=height,
+        margin=dict(t=0, b=0, l=0, r=0),
+        hovermode="x unified",
+        font=dict(size=12)
+    )
+    column_to_plot.plotly_chart(
+        fig,
+        config={"displayModeBar": False,"staticPlot": False,
+        },
+    )
