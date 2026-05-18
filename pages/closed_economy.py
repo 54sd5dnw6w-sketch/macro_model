@@ -33,7 +33,6 @@ st.sidebar.header("Closed Economy")
 text_to_show = ''
 
 with st.sidebar:
-    st.write(st.session_state.first_iteration)
     btn_label = '⏹ Stop' if st.session_state.running else '⏵ Start'
     btn_type = 'secondary' if st.session_state.running else 'primary'
     start_btn = st.button(btn_label, type = btn_type, on_click=btn_play_clicked, width='stretch')
