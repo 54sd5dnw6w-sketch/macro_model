@@ -131,7 +131,7 @@ placeholder_shock = """
 # ---------- Fiscal Policy (omega) ----------
 omega_text_exp = """
 <div style="font-size:17px; font-weight:700; color:#222;">
-    Positive Supply Shock 🏛️
+    Positive Supply Shock (ω > 5) 🏛️
 </div>
 
 <div style="font-size:13px; color:gray;">
@@ -141,7 +141,7 @@ omega_text_exp = """
 
 omega_text_res = """
 <div style="font-size:17px; font-weight:700; color:#222;">
-    Negative Supply Shock 🏛️
+    Negative Supply Shock (ω < 4) 🏛️
 </div>
 
 <div style="font-size:13px; color:gray;">
@@ -153,7 +153,7 @@ omega_text_res = """
 # ---------- Monetary Policy (r) ----------
 r_text_con = """
 <div style="font-size:17px; font-weight:700; color:#222;">
-    Contractionary Monetary Policy 💰
+    Contractionary Monetary Policy (r > 2.3) 💰
 </div>
 
 <div style="font-size:13px; color:gray;">
@@ -164,7 +164,7 @@ r_text_con = """
 
 r_text_exp = """
 <div style="font-size:17px; font-weight:700; color:#222;">
-    Expansionary Monetary Policy 💰
+    Expansionary Monetary Policy (r < 1.7) 💰
 </div>
 
 <div style="font-size:13px; color:gray;">
@@ -177,7 +177,7 @@ r_text_exp = """
 # ---------- Inflation Shock (pi) ----------
 pi_text_inf = """
 <div style="font-size:17px; font-weight:700; color:#222;">
-    Inflationary Shock 📈
+    Inflationary Shock (𝜋 > 5) 📈
 </div>
 
 <div style="font-size:13px; color:gray;">
@@ -188,7 +188,7 @@ pi_text_inf = """
 
 pi_text_def = """
 <div style="font-size:17px; font-weight:700; color:#222;">
-    Deflationary Shock 📉
+    Deflationary Shock (𝜋 < 0) 📉
 </div>
 
 <div style="font-size:13px; color:gray;">
@@ -197,7 +197,19 @@ pi_text_def = """
 </div>
 """
 
-
+empty_placeholder_moderate_level_shock = """
+<div style="
+    height: 140px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    font-size: 17px;
+    color: #999999;
+">
+    Use the sliders to bring the system out of equilibrium
+</div>
+"""
 
 
 # \frac{\omega}{\phi} - \frac{1}{\phi} Y = r' - \lambda_P \bar{Y} + \lambda_I \pi + \lambda_P Y  \\

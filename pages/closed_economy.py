@@ -87,24 +87,39 @@ with st.sidebar:
         eta = 0
 
 
+        empty_text_counter = 0
         # ---------- Fiscal Policy (omega) ----------
-        if omega > 4.5:
+        if omega > 5.0:
             omega_text = c.omega_text_exp
-        else:
+        elif omega <4.0:
             omega_text = c.omega_text_res
+        else:
+            omega_text =''
+            empty_text_counter += 1
 
         # ---------- Monetary Policy (r) ----------
-        if r_init > 2:
+        if r_init > 2.3:
             r_text = c.r_text_con
-        else:
+        elif r_init < 1.7:
             r_text = c.r_text_exp
-        # ---------- Inflation Shock (pi) ----------
-        if pi > 0:
-            pi_text = c.pi_text_inf
         else:
+            r_text = ''
+            empty_text_counter += 1
+
+        # ---------- Inflation Shock (pi) ----------
+        if pi > 5:
+            pi_text = c.pi_text_inf
+        elif pi < 0:
             pi_text = c.pi_text_def
+        else:
+            pi_text = ''
+            empty_text_counter += 1
+
         # ---------- Final Combined Output ----------
-        text_to_show = omega_text + r_text + pi_text
+        if empty_text_counter < 3:
+            text_to_show = omega_text + r_text + pi_text
+        else:
+            text_to_show = c.empty_placeholder_moderate_level_shock
 
 
     elif level == 'Advanced':
