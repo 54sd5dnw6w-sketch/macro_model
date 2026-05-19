@@ -282,7 +282,7 @@ with st.container():
             last_row = st.session_state.iteration_df.iloc[-1]
             output_fig.add_annotation( x=last_row["Iteration"], y=last_row["Output"], text=f"Y = {last_row['Output']:.2f}", showarrow=False, xanchor="left", xshift=0, yshift=12, )
 
-        output_fig.update_layout( xaxis_title=None, yaxis_title="Y - Output", showlegend=False, )
+        output_fig.update_layout( xaxis_title="Iterations", yaxis_title="Y - Output", showlegend=False, )
 
         output_fig.update_traces(mode="lines")
         h.add_line_to_plot(output_fig,slope=0,intercept=c.Y_potential,x_min=0,x_max=c.iteration_count,name=f"Ȳ ({c.Y_potential:.2f})",line_width=2,color="#999999",dash='dot',)
