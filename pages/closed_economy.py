@@ -142,7 +142,7 @@ with st.sidebar:
 
 
 
-if not st.session_state.pi_prev:
+if st.session_state.pi_prev is None:
     st.session_state.pi_prev = pi
 
 
@@ -196,6 +196,7 @@ with st.container():
 
     if level != 'Easy':
         const = max(abs(Y_IS_MP_intersection_0), abs(c.Y_potential), abs(c.Y_potential - Y_IS_MP_intersection_0)) * 1.3
+        const = max(const, 0.5)
     else:
         const = 1
 
@@ -314,7 +315,7 @@ with st.container():
             st.session_state.running = False
             st.session_state.first_iteration = False
 
-        time.sleep(c.spead)
+        time.sleep(c.speed)
         st.rerun()
 
 

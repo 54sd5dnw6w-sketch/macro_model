@@ -1,8 +1,4 @@
 import streamlit as st
-import importlib
-import pages
-
-importlib.reload(pages)
 
 
 pages_ = {

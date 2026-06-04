@@ -71,7 +71,7 @@ thin_line_width = 2
 
 
 Y_potential = 1
-spead = 0.15
+speed = 0.15
 
 iteration_count = 30
 

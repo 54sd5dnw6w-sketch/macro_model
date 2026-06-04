@@ -23,7 +23,7 @@ def fetch_series(series_key: str) -> pd.DataFrame:
     r.raise_for_status()
 
     df = pd.read_csv(io.StringIO(r.text), sep=None, engine="python")
-    df.columns = [c.strip().upper() for c in df.columns]
+    df.columns = [col.strip().upper() for col in df.columns]
 
     date_col = next((c for c in df.columns if "TIME_PERIOD" in c or c in {"TIME", "DATE"}), df.columns[0])
     value_col = next((c for c in df.columns if "OBS_VALUE" in c or c in {"VALUE"}), df.columns[1])
@@ -74,6 +74,6 @@ fig.update_layout(
     hovermode="x unified"
     )
 
-st.plotly_chart(fig, width='stretch')
+st.plotly_chart(fig, use_container_width=True)
 
 st.caption("Data source: ECB Data Portal API")
