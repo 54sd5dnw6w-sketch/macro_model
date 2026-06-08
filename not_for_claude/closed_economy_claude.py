@@ -71,29 +71,18 @@ with st.sidebar:
     if level == 'Easy':
         st.markdown('##### Please Select the shock:')
         shock_type = st.pills('shock', label_visibility='collapsed',
-                              options=['Neg. Inflation shock', 'Pos. Inflation shock',
-                                       'Pos. Monetary Shock', 'Neg. Monetary Shock',
-                                       'Pos. Demand shock', 'Neg. Demand shock'],
+                              options=['Inflation shock', 'Monetary Shock', 'Demand shock'],
                               disabled=is_running or is_paused, on_change=reset)
         phi = 1.0; lambda_p = 0.5; lambda_i = 0.5; gamma = 0.5; eta = 0.0
-        if shock_type == 'Neg. Inflation shock':
+        if shock_type == 'Inflation shock':
             omega = 4.5; r_init = 2.0; pi_0_override = 4.0
             text_to_show = c.neg_inflation_shock
-        elif shock_type == 'Pos. Inflation shock':
-            omega = 4.5; r_init = 2.0; pi_0_override = 2.0
-            text_to_show = c.pos_inflation_shock
-        elif shock_type == 'Pos. Monetary Shock':
+        elif shock_type == 'Monetary Shock':
             omega = 4.5; r_init = 1.3; pi_0_override = 3.0
             text_to_show = c.pos_monetary_shock
-        elif shock_type == 'Neg. Monetary Shock':
-            omega = 4.5; r_init = 2.7; pi_0_override = 3.0
-            text_to_show = c.neg_monetary_shock
-        elif shock_type == 'Pos. Demand shock':
+        elif shock_type == 'Demand shock':
             omega = 6.1; r_init = 2.0; pi_0_override = 3.0
             text_to_show = c.pos_demand_shock
-        elif shock_type == 'Neg. Demand shock':
-            omega = 2.9; r_init = 2.0; pi_0_override = 3.0
-            text_to_show = c.neg_demand_shock
         else:
             omega = 4.5; r_init = 2.0; pi_0_override = None
             text_to_show = c.placeholder_shock
@@ -104,11 +93,9 @@ with st.sidebar:
                           help=r"IS Curve: $Y = \omega - \phi r$")
         r_init = st.slider(r"$r' (\%) :$", on_change=reset, min_value=0.1, max_value=3.5, step=0.1, value=2.0,
                            help=r"MP Curve: $r = r' + \lambda_P \tilde{Y} + \lambda_I \pi$")
-        # eta = st.slider(r"$\eta$ (inflation shock):", on_change=reset, min_value=-3.0, max_value=5.0, step=0.25, value=0.0,
-        #                 help=r"One-time inflation shock applied in period 1")
-        pi = st.slider(r"$\pi (\%) :$", on_change=reset, min_value=-5.0, max_value=10.0, step=0.25, value=3.0,
-                       help=r"Initial inflation level (IA curve position at period 1)")
-        pi_0_override = pi
+        eta = st.slider(r"$\eta$ (inflation shock):", on_change=reset, min_value=-3.0, max_value=5.0, step=0.25, value=0.0,
+                        help=r"One-time inflation shock applied in period 1")
+        pi_0_override = None
 
         empty_text_counter = 0
         if omega > 5.0:   omega_text = c.omega_text_exp
@@ -119,8 +106,8 @@ with st.sidebar:
         elif r_init < 1.7: r_text = c.r_text_exp
         else:              r_text = ''; empty_text_counter += 1
 
-        if pi > 5.0:   pi_text = c.pi_text_inf
-        elif pi < 1.0: pi_text = c.pi_text_def
+        if eta > 2:    pi_text = c.pi_text_inf
+        elif eta < -1: pi_text = c.pi_text_def
         else:          pi_text = ''; empty_text_counter += 1
 
         text_to_show = (omega_text + r_text + pi_text) if empty_text_counter < 3 \
@@ -143,8 +130,8 @@ with st.sidebar:
         st.markdown("<hr style='margin: 2px 0; border: none; border-top: 1px solid #ccc;'>", unsafe_allow_html=True)
         st.markdown('##### For IA Curve')
         gamma = st.number_input(r'$\gamma :$', on_change=reset, min_value=0.0, step=0.1, value=0.5)
-        pi = st.number_input(r'$\pi$ (initial inflation):', on_change=reset, step=0.1, value=3.0)
-        pi_0_override = pi
+        eta = st.number_input(r'$\eta$ (inflation shock):', on_change=reset, step=0.1, value=0.0)
+        pi_0_override = None
 
 
 # ―――― Derived Model Parameters ――――――――――――――――
@@ -155,8 +142,11 @@ AD_slope = (IS_slope - lambda_p / c.Y_potential) / lambda_i
 AD_intercept = (IS_intercept - r_init + lambda_p) / lambda_i
 pi_eq = AD_slope * c.Y_potential + AD_intercept   # long-run equilibrium inflation
 
-# pi_0: the IA level at period 1 (immediate post-shock) — always set directly by the user
-pi_0 = pi_0_override
+# pi_0: the IA level at period 1 (immediate post-shock)
+if pi_0_override is not None:
+    pi_0 = pi_0_override
+else:
+    pi_0 = pi_eq + eta   # eta is a one-time shock; for Easy eta=0 so pi_0=pi_eq
 
 # pi_cur: current IA level during animation (or pi_0 if not started)
 if st.session_state.pi_prev is None:

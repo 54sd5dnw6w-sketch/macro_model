@@ -114,6 +114,42 @@ pos_demand_shock = """
 </div>
 """
 
+pos_inflation_shock = """
+<div style="text-align:center; font-size:17px; font-weight:700;">
+    Positive Inflation Shock 📉
+</div>
+
+<div style="font-size:13px; color:gray;">
+    A favourable supply-side development — falling commodity prices, a technological improvement, or easing supply-chain pressures — pushes inflation below its equilibrium level while output rises above potential.
+    <br><br>
+    The central bank, seeing inflation below target, typically lowers interest rates to support demand. Over time, rising demand gradually brings inflation back to the equilibrium level.
+</div>
+"""
+
+neg_monetary_shock = """
+<div style="text-align:center; font-size:17px; font-weight:700;">
+    Negative Monetary Shock 🏦
+</div>
+
+<div style="font-size:13px; color:gray;">
+    An unexpected contractionary monetary policy shock — the central bank raises the nominal interest rate. Borrowing becomes more expensive, and in the short run the real interest rate also increases. Investment and consumption fall, pushing output below potential.
+    <br><br>
+    In the long run, weaker demand reduces inflation, which gradually lowers the real interest rate again and brings output back to the potential level.
+</div>
+"""
+
+neg_demand_shock = """
+<div style="text-align:center; font-size:17px; font-weight:700;">
+    Negative Demand Shock 🛒
+</div>
+
+<div style="font-size:13px; color:gray;">
+    A sudden fall in aggregate demand caused by lower consumer confidence, reduced investment, fiscal austerity, or a drop in exports.
+    <br><br>
+    In the short run, output falls below potential. As demand weakens, inflation also falls. The central bank responds by cutting interest rates, stimulating economic activity and gradually bringing output back to its potential level.
+</div>
+"""
+
 placeholder_shock = """
 <div style="
     height: 140px;
