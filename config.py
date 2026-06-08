@@ -2,62 +2,102 @@
 
 
 markdown_text = r"""
-### Definition of Curves
+## Model Overview
 
-- IS (Investments-Savings) curve:     
-$$
-Y = \omega - \phi r
-$$
-- MP (Monetary Policy) curve with $r' > 0, \lambda_P \ge 0, \lambda_I \ge 0$:    
-$$
-r = r' + \lambda_P \tilde{Y} + \lambda_I \pi 
-$$
-- IA (Inflation Adjustment) curve - horizontal line:
-$$
-\pi = const
-$$
-- AD (Aggregate Demand) curve - derived from IS and MP curves
+This model describes a closed economy through four curves that jointly determine output $Y$ and inflation $\pi$ in each period. The economy starts at a long-run equilibrium, is hit by a shock in period 1, and then adjusts back to equilibrium over time.
 
+---
+
+### Curve Definitions
+
+**IS curve** — *Investment–Savings*
+
+Describes the goods market: output $Y$ is a decreasing function of the real interest rate $r$. Higher rates discourage investment and consumption, reducing output.
+$$
+Y = \omega - \phi \, r \qquad \phi > 0
+$$
+
+| Parameter | Meaning |
+|-----------|---------|
+| $\omega$ | Autonomous demand (shifts IS right/left) |
+| $\phi$ | Sensitivity of output to the interest rate |
+
+---
+
+**MP curve** — *Monetary Policy*
+
+The central bank sets the real interest rate in response to the output gap $\tilde{Y} = \frac{Y - \bar{Y}}{\bar{Y}}$ and inflation $\pi$. Higher output or higher inflation leads to a higher rate.
+$$
+r = r' + \lambda_P \tilde{Y} + \lambda_I \pi \qquad r' > 0,\ \lambda_P \ge 0,\ \lambda_I \ge 0
+$$
+
+| Parameter | Meaning |
+|-----------|---------|
+| $r'$ | Baseline (neutral) real interest rate |
+| $\lambda_P$ | Response to output gap |
+| $\lambda_I$ | Response to inflation |
+
+---
+
+**IA curve** — *Inflation Adjustment*
+
+The IA curve captures the current level of inflation expectations and price stickiness. In the **short run** (period 1), it is a horizontal line at the shocked inflation level $\pi_0$ — prices do not immediately adjust to the new economic conditions:
+$$
+\pi_t = \pi_0 \qquad \text{(short run, } t = 1\text{)}
+$$
+
+In the **long run**, the IA curve shifts each period based on the output gap — if output exceeds potential, firms raise prices and inflation increases; if output is below potential, inflation falls:
+$$
+\boxed{\pi_{t+1} = \pi_t + \gamma \cdot \tilde{Y}_t = \pi_t + \gamma \cdot \frac{Y_t - \bar{Y}}{\bar{Y}}}
+$$
+
+| Parameter | Meaning |
+|-----------|---------|
+| $\gamma$ | Speed of inflation adjustment (higher $\gamma$ → faster convergence) |
+| $\tilde{Y}_t$ | Output gap in period $t$ |
+
+The IA curve shifts **upward** when $Y_t > \bar{Y}$ (positive output gap) and **downward** when $Y_t < \bar{Y}$. It stops moving only when $Y_t = \bar{Y}$, which defines the long-run equilibrium.
+
+---
+
+**AD curve** — *Aggregate Demand*
+
+Derived by combining the IS and MP curves, the AD curve expresses inflation as a function of output. It captures how monetary policy transmits demand conditions into inflationary pressure, and has a **negative slope** — higher output is associated with lower inflation (the central bank raises rates to cool demand).
+
+---
 
 ### Coefficient Derivation
 
-- IS:     
+**IS** (solved for $r$):
 $$
-Y = \omega - \phi r \\
-\phi r = \omega -Y \\
-r = \frac{\omega}{\phi} - \frac{1}{\phi} Y \\
+Y = \omega - \phi r \implies
 r = \underbrace{\frac{\omega}{\phi}}_{\text{intercept}}
 + \underbrace{\left(-\frac{1}{\phi}\right)}_{\text{slope}} \cdot Y
 $$
 
-- MP:
+**MP** (expanded in $Y$):
 $$
-r = r' + \lambda_P \tilde{Y} + \lambda_I \pi \\
-r = r' + \lambda_P \frac{(Y - \bar{Y})}{\bar{Y}} + \lambda_I \pi \\
-r = r' + \frac{\lambda_P}{\bar{Y}} Y - \lambda_P + \lambda_I \pi \\
-r = r' - \lambda_P + \lambda_I \pi  + \frac{\lambda_P}{\bar{Y}} Y  \\
-
-r = \underbrace{\left(r' - \lambda_P + \lambda_I \pi\right)}_{\text{intercept}} + \underbrace{\left(\frac{\lambda_P}{\bar{Y}}\right)}_{\text{slope}} \cdot Y
-
-$$  
-- IA:
-$$
-\pi = const \\
-\pi = \underbrace{\text{const}}_{\text{intercept}} 
-+ \underbrace{0}_{\text{slope}} \cdot Y
+r = r' + \lambda_P \frac{Y - \bar{Y}}{\bar{Y}} + \lambda_I \pi
+= \underbrace{\left(r' - \lambda_P + \lambda_I \pi\right)}_{\text{intercept}}
++ \underbrace{\left(\frac{\lambda_P}{\bar{Y}}\right)}_{\text{slope}} \cdot Y
 $$
 
-- AD - Derived from IS and MP curves as dependence  𝜋(Y):
+**AD** (set $r_{IS} = r_{MP}$ and solve for $\pi$):
 $$
-r_{IS} (Y) = r_{MP} (Y) \\
-\frac{\omega}{\phi} - \frac{1}{\phi} Y = r' - \lambda_P + \lambda_I \pi  + \frac{\lambda_P}{\bar{Y}} Y  \\
-\lambda_I \pi = - r' + \lambda_P  - \frac{\lambda_P}{\bar{Y}} Y + \frac{\omega}{\phi} - \frac{1}{\phi} Y \\
-\pi = - \frac{r'}{\lambda_I} + \frac{\lambda_P}{\lambda_I} - \frac{\lambda_P}{\lambda_I \bar{Y}} Y
-               + \frac{\omega}{\phi \lambda_I} - \frac{1}{\phi \lambda_I} Y \\
-\pi = - \frac{r'}{\lambda_I} + \frac{\lambda_P}{\lambda_I} + \frac{\omega}{\phi \lambda_I} - \frac{\lambda_P}{\lambda_I \bar{Y}} Y - \frac{1}{\phi \lambda_I} Y \\
-\pi = - \frac{r'}{\lambda_I} + \frac{\lambda_P}{\lambda_I} + \frac{\omega}{\phi \lambda_I} + (- \frac{\lambda_P}{\lambda_I \bar{Y}} - \frac{1}{\phi \lambda_I}) Y\\
-\pi =\underbrace{\left(- \frac{r'}{\lambda_I} + \frac{\lambda_P}{\lambda_I} + \frac{\omega}{\phi \lambda_I}\right)}_{\text{intercept}} +
-\underbrace{\left( - \frac{\lambda_P}{\lambda_I \bar{Y}} - \frac{1}{\phi \lambda_I}\right)}_{\text{slope}} \cdot Y
+\frac{\omega}{\phi} - \frac{1}{\phi} Y = r' - \lambda_P + \lambda_I \pi + \frac{\lambda_P}{\bar{Y}} Y \\[6pt]
+\lambda_I \pi = \frac{\omega}{\phi} - \frac{1}{\phi} Y - r' + \lambda_P - \frac{\lambda_P}{\bar{Y}} Y \\[6pt]
+\pi = \underbrace{\left(\frac{\omega}{\phi\lambda_I} + \frac{\lambda_P}{\lambda_I} - \frac{r'}{\lambda_I}\right)}_{\text{intercept}}
++ \underbrace{\left(- \frac{1}{\phi\lambda_I} - \frac{\lambda_P}{\lambda_I\bar{Y}}\right)}_{\text{slope}} \cdot Y
+$$
+
+---
+
+### Long-Run Equilibrium
+
+The economy returns to equilibrium when $\pi_{t+1} = \pi_t$, which requires $Y_t = \bar{Y}$. The long-run equilibrium inflation $\pi^*$ is the value at which the AD curve crosses the potential output line $Y = \bar{Y}$:
+$$
+\pi^* = \frac{\omega}{\phi\lambda_I} + \frac{\lambda_P}{\lambda_I} - \frac{r'}{\lambda_I}
++ \left(- \frac{1}{\phi\lambda_I} - \frac{\lambda_P}{\lambda_I\bar{Y}}\right)\bar{Y}
 $$
 """
 
