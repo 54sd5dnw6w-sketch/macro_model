@@ -59,6 +59,24 @@ $$
 
 The IA curve shifts **upward** when $Y_t > \bar{Y}$ or $\eta > 0$, and **downward** when $Y_t < \bar{Y}$ or $\eta < 0$. It stops moving only when both $Y_t = \bar{Y}$ and $\eta = 0$, which defines the long-run equilibrium.
 
+**Phillips Curve** — *IA with current output gap*
+
+The IA equation uses the *previous* period's output gap — by the time we draw the diagram, next-period inflation is already determined, so the IA appears as a **horizontal line**. The Phillips curve is the same equation, but asks: *if current output were $Y$, what would next-period inflation be?*
+
+$$
+\pi_{t+1} = \pi_t + \gamma \cdot \frac{Y - \bar{Y}}{\bar{Y}}
+$$
+
+Rearranging as a function of $Y$:
+
+$$
+\pi_{t+1} = \underbrace{\frac{\gamma}{\bar{Y}}}_{\text{slope}} \cdot Y + \underbrace{(\pi_t - \gamma)}_{\text{intercept}}
+$$
+
+This is an **upward-sloping line** in $\pi$–$Y$ space, anchored at $(\bar{Y},\, \pi_t)$: when output equals potential there is no gap, so inflation is unchanged. The IA curve is simply the Phillips curve *evaluated at last period's $Y$* and then frozen — the horizontal line shows the value the Phillips curve delivered one period ago.
+
+Toggling the Phillips curve in the diagram lets you see both: the sloped curve shows the full relationship between current output and future inflation, while the horizontal IA shows the single point on that curve that the economy actually delivered.
+
 ---
 
 **AD curve** — *Aggregate Demand*
