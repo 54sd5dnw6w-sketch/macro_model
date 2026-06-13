@@ -52,12 +52,16 @@ with st.sidebar:
             st.button("⏸ Running…", disabled=True, width="stretch")
         elif is_paused:
             play_clicked = False
-            # Continue shown in main area
             st.button("▶▶ Paused", disabled=True, width="stretch")
         else:
             play_clicked = st.button("⏵ Play", type="primary", width="stretch")
     with bcol2:
         reset_clicked = st.button("↺ Reset", on_click=reset, width="stretch", disabled=is_running)
+
+    continue_clicked = False
+    if is_paused:
+        st.info("**Period 1:** Short-run impact shown. Click **Continue** to run the adjustment.")
+        continue_clicked = st.button("▶▶ Continue", type="primary", width="stretch")
 
     level = st.selectbox('Control Level', options=['Easy', 'Medium', 'Advanced'],
                          disabled=is_running or is_paused, on_change=reset)
@@ -177,6 +181,11 @@ Y_shock, r_shock = h.find_line_intersection(IS_slope, IS_intercept, MP_slope, MP
 # Convergence check: stable if γ < 2·Ȳ·|AD_slope|
 convergence_ok = (gamma < 2 * c.Y_potential * abs(AD_slope)) if AD_slope != 0 else True
 
+# ―――― Continue: advance from short_term_paused to adjusting ――――――――――――――――
+if continue_clicked and phase == "short_term_paused":
+    st.session_state.phase = "adjusting"
+    st.rerun()
+
 # ―――― Play: initialize period 0 and period 1 ――――――――――――――――
 if play_clicked and phase == "idle":
     st.session_state.phase = "short_term_paused"
@@ -256,13 +265,6 @@ with tab1:
 
     h.add_vertical_line(pi_Y_fig, c.Y_potential, name=f'Ȳ ({c.Y_potential})', color='#555555', dash='8px,5px')
     h.show_plotly_fig(pi_Y_fig, column_to_plot=cols[0])
-
-    if phase == "short_term_paused":
-        with cols[0]:
-            st.info("**Period 1:** Short-run impact shown. Click **Continue** to run the adjustment.")
-            if st.button("▶▶ Continue", type="primary"):
-                st.session_state.phase = "adjusting"
-                st.rerun()
 
     # ―――― Advanced: equation display ――――――――――――――――
     if level == 'Advanced':
