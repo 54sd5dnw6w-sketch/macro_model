@@ -257,11 +257,10 @@ with tab1:
     h.add_vertical_line(pi_Y_fig, c.Y_potential, name=f'Ȳ ({c.Y_potential})', color='#555555', dash='8px,5px')
     h.show_plotly_fig(pi_Y_fig, column_to_plot=cols[0])
 
-    # Continue button shown between diagrams and right panel when paused
     if phase == "short_term_paused":
         with cols[0]:
             st.info("**Period 1:** Short-run impact shown. Click **Continue** to run the adjustment.")
-            if st.button("▶▶ Continue →", type="primary"):
+            if st.button("▶▶ Continue", type="primary"):
                 st.session_state.phase = "adjusting"
                 st.rerun()
 
@@ -284,7 +283,7 @@ with tab1:
         st.markdown(text_to_show, unsafe_allow_html=True)
 
         # Lock / clear comparison run — only available once the run is complete
-        lc1, lc2 = st.columns(2)
+        lc1, lc2 = st.columns([1.2,0.8])
         with lc1:
             st.button("🔖 Remember this run", on_click=lock_run, width="stretch",
                       help="Save this run in gray so you can compare it with the next one",
