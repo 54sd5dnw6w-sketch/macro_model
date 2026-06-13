@@ -46,17 +46,18 @@ $$
 \pi_t = \pi_0 \qquad \text{(short run, } t = 1\text{)}
 $$
 
-In the **long run**, the IA curve shifts each period based on the output gap — if output exceeds potential, firms raise prices and inflation increases; if output is below potential, inflation falls:
+In the **long run**, the IA curve shifts each period based on the output gap and any persistent exogenous price shock — if output exceeds potential, firms raise prices and inflation increases; if output is below potential, inflation falls:
 $$
-\boxed{\pi_{t+1} = \pi_t + \gamma \cdot \tilde{Y}_t = \pi_t + \gamma \cdot \frac{Y_t - \bar{Y}}{\bar{Y}}}
+\boxed{\pi_{t+1} = \pi_t + \gamma \cdot \tilde{Y}_t + \eta = \pi_t + \gamma \cdot \frac{Y_t - \bar{Y}}{\bar{Y}} + \eta}
 $$
 
 | Parameter | Meaning |
 |-----------|---------|
 | $\gamma$ | Speed of inflation adjustment (higher $\gamma$ → faster convergence) |
 | $\tilde{Y}_t$ | Output gap in period $t$ |
+| $\eta$ | Exogenous price shock — price changes not driven by producer or worker behaviour (e.g. crop failures, raw material shortages, VAT changes). Applied persistently each period. |
 
-The IA curve shifts **upward** when $Y_t > \bar{Y}$ (positive output gap) and **downward** when $Y_t < \bar{Y}$. It stops moving only when $Y_t = \bar{Y}$, which defines the long-run equilibrium.
+The IA curve shifts **upward** when $Y_t > \bar{Y}$ or $\eta > 0$, and **downward** when $Y_t < \bar{Y}$ or $\eta < 0$. It stops moving only when both $Y_t = \bar{Y}$ and $\eta = 0$, which defines the long-run equilibrium.
 
 ---
 

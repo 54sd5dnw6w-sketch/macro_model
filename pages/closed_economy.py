@@ -75,7 +75,7 @@ with st.sidebar:
                                        'Pos. Monetary Shock', 'Neg. Monetary Shock',
                                        'Pos. Demand shock', 'Neg. Demand shock'],
                               disabled=is_running or is_paused, on_change=reset)
-        phi = 1.0; lambda_p = 0.5; lambda_i = 0.5; gamma = 0.5
+        phi = 1.0; lambda_p = 0.5; lambda_i = 0.5; gamma = 0.5; eta = 0.0
         if shock_type == 'Neg. Inflation shock':
             omega = 4.5; r_init = 2.0; pi_0_override = 4.0
             text_to_show = c.neg_inflation_shock
@@ -89,10 +89,10 @@ with st.sidebar:
             omega = 4.5; r_init = 2.7; pi_0_override = 3.0
             text_to_show = c.neg_monetary_shock
         elif shock_type == 'Pos. Demand shock':
-            omega = 6.1; r_init = 2.0; pi_0_override = 3.0
+            omega = 5.0; r_init = 2.0; pi_0_override = 3.0
             text_to_show = c.pos_demand_shock
         elif shock_type == 'Neg. Demand shock':
-            omega = 2.9; r_init = 2.0; pi_0_override = 3.0
+            omega = 4.0; r_init = 2.0; pi_0_override = 3.0
             text_to_show = c.neg_demand_shock
         else:
             omega = 4.5; r_init = 2.0; pi_0_override = None
@@ -106,6 +106,8 @@ with st.sidebar:
                            help=r"MP Curve: $r = r' + \lambda_P \tilde{Y} + \lambda_I \pi$")
         pi = st.slider(r"$\pi (\%) :$", on_change=reset, min_value=-5.0, max_value=10.0, step=0.25, value=3.0,
                        help=r"Initial inflation level (IA curve position at period 1)")
+        eta = st.slider(r"$\eta$ (exogenous shock):", on_change=reset, min_value=-2.0, max_value=2.0, step=0.1, value=0.0,
+                        help=r"IA curve: $\pi_{t+1} = \pi_t + \gamma\tilde{Y}_t + \eta$. Persistent price-level shock each period (e.g. supply disruption, VAT change).")
         pi_0_override = pi
 
         empty_text_counter = 0
@@ -138,11 +140,14 @@ with st.sidebar:
                                    help=r"MP Curve: $r = r' + \lambda_P \tilde{Y} + \lambda_I \pi$")
         lambda_i = st.number_input(r'$\lambda_I :$', on_change=reset, min_value=0.1, max_value=10.0, step=0.1, value=0.5,
                                    help=r"MP Curve: $r = r' + \lambda_P \tilde{Y} + \lambda_I \pi$")
+        pi = st.number_input(r'$\pi$ (initial inflation):', on_change=reset, step=0.1, value=3.0)
+        pi_0_override = pi
         st.markdown("<hr style='margin: 2px 0; border: none; border-top: 1px solid #ccc;'>", unsafe_allow_html=True)
         st.markdown('##### For IA Curve')
         gamma = st.number_input(r'$\gamma :$', on_change=reset, min_value=0.0, step=0.1, value=0.5)
-        pi = st.number_input(r'$\pi$ (initial inflation):', on_change=reset, step=0.1, value=3.0)
-        pi_0_override = pi
+        eta = st.number_input(r'$\eta$ (exogenous shock):', on_change=reset, step=0.1, value=0.0,
+                              help=r"IA curve: π_{t+1} = π_t + γỸ_t + η. Persistent exogenous price shock each period.")
+
 
 
 # ―――― Derived Model Parameters ――――――――――――――――
@@ -278,15 +283,15 @@ with tab1:
 
         st.markdown(text_to_show, unsafe_allow_html=True)
 
-        # Lock / clear comparison run
-        if phase in ("done", "short_term_paused") or (phase != "idle" and not st.session_state.iteration_df.empty):
-            lc1, lc2 = st.columns(2)
-            with lc1:
-                st.button("📌 Lock run", on_click=lock_run, width="stretch",
-                          help="Save this run in gray for comparison")
-            with lc2:
-                if st.session_state.locked_df is not None:
-                    st.button("✕ Clear", on_click=clear_lock, width="stretch")
+        # Lock / clear comparison run — only available once the run is complete
+        lc1, lc2 = st.columns(2)
+        with lc1:
+            st.button("🔖 Remember this run", on_click=lock_run, width="stretch",
+                      help="Save this run in gray so you can compare it with the next one",
+                      disabled=phase != "done")
+        with lc2:
+            if st.session_state.locked_df is not None:
+                st.button("✕ Forget", on_click=clear_lock, width="stretch")
 
         # ―――― Y / Periods chart ――――――――――――――――
         output_fig = px.scatter(st.session_state.iteration_df, x="Iteration", y="Output")
@@ -338,7 +343,7 @@ with tab1:
         st.session_state.iteration_df.loc[new_row_idx] = [
             st.session_state.iter_counter, Y_cur, pi_cur
         ]
-        st.session_state.pi_prev = pi_cur + gamma * (Y_cur - c.Y_potential) / c.Y_potential
+        st.session_state.pi_prev = pi_cur + gamma * (Y_cur - c.Y_potential) / c.Y_potential + eta
         st.session_state.iter_counter += 1
 
         if st.session_state.iter_counter >= c.iteration_count:
