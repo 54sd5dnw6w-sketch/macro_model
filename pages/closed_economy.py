@@ -45,7 +45,7 @@ with st.sidebar:
     is_paused = phase == "short_term_paused"
 
     # Play / Reset buttons
-    bcol1, bcol2 = st.columns(2)
+    bcol1, bcol2 = st.columns([1.2,0.8])
     with bcol1:
         if is_running:
             play_clicked = False
@@ -60,7 +60,7 @@ with st.sidebar:
 
     continue_clicked = False
     if is_paused:
-        st.info("**Period 1:** Short-run impact shown. Click **Continue** to run the adjustment.")
+        st.info("**Period 1:** Initial shock, short-run impact shown. Click **Continue** to see the long-run adjustment.")
         continue_clicked = st.button("▶▶ Continue", type="primary", width="stretch")
 
     level = st.selectbox('Control Level', options=['Easy', 'Medium', 'Advanced'],
@@ -110,8 +110,9 @@ with st.sidebar:
                            help=r"MP Curve: $r = r' + \lambda_P \tilde{Y} + \lambda_I \pi$")
         pi = st.slider(r"$\pi (\%) :$", on_change=reset, min_value=-5.0, max_value=10.0, step=0.25, value=3.0,
                        help=r"Initial inflation level (IA curve position at period 1)")
-        eta = st.slider(r"$\eta$ (exogenous shock):", on_change=reset, min_value=-2.0, max_value=2.0, step=0.1, value=0.0,
-                        help=r"IA curve: $\pi_{t+1} = \pi_t + \gamma\tilde{Y}_t + \eta$. Persistent price-level shock each period (e.g. supply disruption, VAT change).")
+        # eta = st.slider(r"$\eta$ (exogenous shock):", on_change=reset, min_value=-2.0, max_value=2.0, step=0.1, value=0.0,
+        #                 help=r"IA curve: $\pi_{t+1} = \pi_t + \gamma\tilde{Y}_t + \eta$. Persistent price-level shock each period (e.g. supply disruption, VAT change).")
+        eta = 0
         pi_0_override = pi
 
         empty_text_counter = 0
