@@ -75,15 +75,15 @@ with st.sidebar:
     if level == 'Easy':
         st.markdown('##### Please Select the shock:')
         shock_type = st.pills('shock', label_visibility='collapsed',
-                              options=['Neg. Inflation shock', 'Pos. Inflation shock',
+                              options=['Upward Inflation Shock', 'Downward Inflation Shock',
                                        'Pos. Monetary Shock', 'Neg. Monetary Shock',
                                        'Pos. Demand shock', 'Neg. Demand shock'],
                               disabled=is_running or is_paused, on_change=reset)
         phi = 1.0; lambda_p = 0.5; lambda_i = 0.5; gamma = 0.5; eta = 0.0
-        if shock_type == 'Neg. Inflation shock':
+        if shock_type == 'Upward Inflation Shock':
             omega = 4.5; r_init = 2.0; pi_0_override = 4.0
             text_to_show = c.neg_inflation_shock
-        elif shock_type == 'Pos. Inflation shock':
+        elif shock_type == 'Downward Inflation Shock':
             omega = 4.5; r_init = 2.0; pi_0_override = 2.0
             text_to_show = c.pos_inflation_shock
         elif shock_type == 'Pos. Monetary Shock':
@@ -280,12 +280,17 @@ with tab1:
 
     # ―――― Advanced: equation display ――――――――――――――――
     if level == 'Advanced':
+        shock_size = pi_0 - pi_eq
+        shock_label = f"+{shock_size:.1f}" if shock_size >= 0 else f"{shock_size:.1f}"
         text_to_show = f"""
-            <b style="color:black;">IA:</b> 𝜋 = {pi_0:.2f} &nbsp;&nbsp;
-            <b style="color:black;">AD:</b> 𝜋 = {AD_slope:.2f}·Y + {AD_intercept:.2f}<br>
-            <b style="color:black;">MP:</b> r = {MP_slope:.2f}·Y + {MP_intercept_cur:.2f} &nbsp;&nbsp;
-            <b style="color:black;">IS:</b> r = {IS_slope:.2f}·Y + {IS_intercept:.2f}<br>
-            <b style="color:black;">Output Gap (Y − Ȳ):</b> {output_gap:.2f}
+            <b style="color:#4C78A8;">IS:</b> Y = {omega:.1f} − {phi:.1f}·r &nbsp;→&nbsp; r = {IS_slope:.1f}·Y + {IS_intercept:.1f}<br>
+            <b style="color:#F58518;">MP:</b> r = {MP_slope:.1f}·Y + {MP_intercept_cur:.1f}<br>
+            <b style="color:#B279A2;">AD:</b> 𝜋 = {AD_slope:.1f}·Y + {AD_intercept:.1f}<br>
+            <b style="color:#54A24B;">IA:</b> 𝜋₀ = {pi_0:.1f} &nbsp;<span style="color:gray;">(shock: {shock_label})</span><br>
+            <hr style="margin:4px 0; border:none; border-top:1px solid #ddd;">
+            <b style="color:black;">π* (LR eq.):</b> {pi_eq:.1f}<br>
+            <b style="color:black;">Output gap (Y − Ȳ):</b> {output_gap:.1f}<br>
+            <b style="color:black;">r:</b> {r_cur:.1f}
         """
 
     # ―――― Right column ――――――――――――――――
