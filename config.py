@@ -272,23 +272,25 @@ r_text_exp = """
 # ---------- Inflation Shock (pi) ----------
 pi_text_inf = """
 <div style="font-size:17px; font-weight:700; color:#222;">
-    Inflationary Shock (𝜋 > 5) 📈
+    Upward Inflation Shock (η > 0) 📈
 </div>
 
 <div style="font-size:13px; color:gray;">
-    A sudden increase in prices caused by supply disruptions, rising production costs,
-    or commodity price increases. Inflation accelerates while real purchasing power declines.
+    Inflation starts above its long-run equilibrium — caused by supply disruptions, rising
+    production costs, or commodity price increases. Inflation accelerates while real
+    purchasing power declines. The economy adjusts back as the central bank tightens policy.
 </div>
 """
 
 pi_text_def = """
 <div style="font-size:17px; font-weight:700; color:#222;">
-    Deflationary Shock (𝜋 < 0) 📉
+    Downward Inflation Shock (η < 0) 📉
 </div>
 
 <div style="font-size:13px; color:gray;">
-    A decline in inflation or overall price levels caused by weak demand or falling costs.
+    Inflation starts below its long-run equilibrium — caused by weak demand or falling costs.
     Economic activity may weaken as firms reduce production and investment.
+    The economy adjusts back as monetary policy eases.
 </div>
 """
 
