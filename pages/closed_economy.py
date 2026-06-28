@@ -184,6 +184,7 @@ convergence_ok = (gamma < 2 * c.Y_potential * abs(AD_slope)) if AD_slope != 0 el
 
 # ―――― Continue: advance from short_term_paused to adjusting ――――――――――――――――
 if continue_clicked and phase == "short_term_paused":
+    st.session_state.pi_prev = pi_0 + gamma * (Y_shock - c.Y_potential) / c.Y_potential + eta
     st.session_state.phase = "adjusting"
     st.rerun()
 
