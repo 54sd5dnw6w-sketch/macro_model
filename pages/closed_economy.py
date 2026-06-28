@@ -12,7 +12,7 @@ h.session_init(
     phase="idle",        # idle | short_term_paused | adjusting | done
     pi_prev=None,
     iter_counter=0,
-    iteration_df=pd.DataFrame(columns=["Iteration", "Output", "Inflation"]),
+    iteration_df=pd.DataFrame(columns=["Iteration", "Output", "Inflation", "Interest Rate"]),
     locked_df=None,
 )
 
@@ -21,7 +21,7 @@ def reset():
     st.session_state.phase = "idle"
     st.session_state.pi_prev = None
     st.session_state.iter_counter = 0
-    st.session_state.iteration_df = pd.DataFrame(columns=["Iteration", "Output", "Inflation"])
+    st.session_state.iteration_df = pd.DataFrame(columns=["Iteration", "Output", "Inflation", "Interest Rate"])
 
 
 def lock_run():
@@ -192,9 +192,10 @@ if play_clicked and phase == "idle":
     st.session_state.phase = "short_term_paused"
     st.session_state.pi_prev = pi_0
     st.session_state.iter_counter = 2
-    df = pd.DataFrame(columns=["Iteration", "Output", "Inflation"])
-    df.loc[0] = [0, c.Y_potential, pi_eq]   # period 0: pre-shock equilibrium
-    df.loc[1] = [1, Y_shock, pi_0]           # period 1: short-run jump
+    df = pd.DataFrame(columns=["Iteration", "Output", "Inflation", "Interest Rate"])
+    r_eq = MP_slope * c.Y_potential + (r_init - lambda_p + lambda_i * pi_eq)
+    df.loc[0] = [0, c.Y_potential, pi_eq, r_eq]   # period 0: pre-shock equilibrium
+    df.loc[1] = [1, Y_shock, pi_0, r_shock]        # period 1: short-run jump
     st.session_state.iteration_df = df
     st.rerun()
 
@@ -348,11 +349,34 @@ with tab1:
                            name=f"𝜋* ({pi_eq:.2f})", line_width=2, color="#999999", dash='dot')
         h.show_plotly_fig(inflation_fig, height=200)
 
+        # ―――― r / Periods chart ――――――――――――――――
+        rate_fig = px.scatter(st.session_state.iteration_df, x="Iteration", y="Interest Rate")
+        rate_fig.update_traces(mode="lines+markers", marker=dict(size=5))
+
+        if st.session_state.locked_df is not None:
+            rate_fig.add_scatter(
+                x=st.session_state.locked_df["Iteration"],
+                y=st.session_state.locked_df["Interest Rate"],
+                mode="lines", line=dict(color="#BBBBBB", dash="dot"), name="Previous run",
+            )
+
+        if not st.session_state.iteration_df.empty:
+            last = st.session_state.iteration_df.iloc[-1]
+            rate_fig.add_annotation(x=last["Iteration"], y=last["Interest Rate"],
+                                    text=f"r={last['Interest Rate']:.2f}", showarrow=False,
+                                    xanchor="left", yshift=12)
+
+        r_eq_display = MP_slope * c.Y_potential + (r_init - lambda_p + lambda_i * pi_eq)
+        rate_fig.update_layout(xaxis_title="Period", yaxis_title="r - interest rate", showlegend=False)
+        h.add_line_to_plot(rate_fig, 0, r_eq_display, 0, c.iteration_count,
+                           name=f"r* ({r_eq_display:.2f})", line_width=2, color="#999999", dash='dot')
+        h.show_plotly_fig(rate_fig, height=200)
+
     # ―――― Animation step ――――――――――――――――
     if phase == "adjusting":
         new_row_idx = len(st.session_state.iteration_df)
         st.session_state.iteration_df.loc[new_row_idx] = [
-            st.session_state.iter_counter, Y_cur, pi_cur
+            st.session_state.iter_counter, Y_cur, pi_cur, r_cur
         ]
         st.session_state.pi_prev = pi_cur + gamma * (Y_cur - c.Y_potential) / c.Y_potential + eta
         st.session_state.iter_counter += 1
