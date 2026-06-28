@@ -69,7 +69,7 @@ with st.sidebar:
     st.sidebar.markdown("<hr style='margin: 2px 0; border: none; border-top: 1px solid #ccc;'>",
                         unsafe_allow_html=True)
 
-    show_phillips = st.toggle("Show Phillips Curve", value=False, disabled=is_running or is_paused)
+    show_phillips = st.toggle("Show Phillips Curve", value=False, disabled=is_running or is_paused) if level == 'Advanced' else False
 
     # ―――― Parameter Inputs ――――――――――――――――
     if level == 'Easy':
@@ -250,24 +250,17 @@ with tab1:
     # ―――― π–Y diagram ――――――――――――――――
     pi_Y_fig = h.create_linear_plot(x_label="Y - Output", y_label="𝜋 - inflation")
 
-    PC_slope = gamma / c.Y_potential
-
     h.add_line_to_plot(pi_Y_fig, 0, pi_0, x_lo, x_hi,
                        name=STIA_name, color=STIA_color, line_width=STIA_lw)
     h.add_line_to_plot(pi_Y_fig, AD_slope, AD_intercept, x_lo, x_hi, name='AD', color="#B279A2")
 
-    if show_phillips and phase == "idle":
-        PC_intercept = pi_eq - gamma
-        h.add_line_to_plot(pi_Y_fig, PC_slope, PC_intercept, x_lo, x_hi, dash = 'dash',
-                           name="PC", color="#E45756", line_width=c.thin_line_width)
+    if show_phillips:
+        h.add_line_to_plot(pi_Y_fig, 0, pi_0, x_lo, x_hi, dash='dash',
+                           name="PC (t₁)", color="#E45756", line_width=c.thin_line_width)
 
     if phase != "idle":
         h.add_line_to_plot(pi_Y_fig, 0, pi_cur, x_lo, x_hi,
                            name="LTIA", color="#54A24B", line_width=c.thin_line_width)
-        if show_phillips:
-            PC_intercept = pi_cur - gamma
-            h.add_line_to_plot(pi_Y_fig, PC_slope, PC_intercept, x_lo, x_hi, dash = 'dash',
-                               name="PC", color="#E45756", line_width=c.thin_line_width)
         h.add_vertical_line(pi_Y_fig, Y_cur, y_max=pi_cur,
                             name=f"Y ({Y_cur:.2f})", name_position='bottom', color='#B0B0B0', dash='dot')
     else:
