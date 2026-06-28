@@ -125,9 +125,7 @@ with st.sidebar:
         if inflation_shock > 0:   pi_text = c.pi_text_inf
         elif inflation_shock < 0: pi_text = c.pi_text_def
         else:                     pi_text = ''; empty_text_counter += 1
-
-        text_to_show = (omega_text + r_text + pi_text) if empty_text_counter < 3 \
-            else c.empty_placeholder_moderate_level_shock
+        # text_to_show resolved after derived params (needs Y_shock, pi_eq)
 
     elif level == 'Advanced':
         st.markdown('##### For IS Curve')
@@ -162,9 +160,13 @@ AD_slope = (IS_slope - lambda_p / c.Y_potential) / lambda_i
 AD_intercept = (IS_intercept - r_init + lambda_p) / lambda_i
 pi_eq = AD_slope * c.Y_potential + AD_intercept   # long-run equilibrium inflation
 
-# Medium mode: resolve pi_0_override as equilibrium + inflationary shock
+# Medium mode: anchor pi_0 to the baseline equilibrium (default omega=4.5, r_init=2.0)
+# so that moving omega/r_init sliders creates a real shock instead of re-equilibrating
 if level == 'Medium':
-    pi_0_override = pi_eq + inflation_shock
+    _ad_slope_base = (-1.0 - 0.5) / 0.5          # phi=1, lambda_p=0.5, lambda_i=0.5
+    _ad_int_base   = (4.5 - 2.0 + 0.5) / 0.5     # omega=4.5, r_init=2.0, lambda_p=0.5
+    pi_eq_baseline = _ad_slope_base * c.Y_potential + _ad_int_base
+    pi_0_override  = pi_eq_baseline + inflation_shock
 
 # pi_0: the IA level at period 1 (immediate post-shock) — falls back to equilibrium if not set
 pi_0 = pi_0_override if pi_0_override is not None else pi_eq
@@ -184,6 +186,64 @@ Y_shock, r_shock = h.find_line_intersection(IS_slope, IS_intercept, MP_slope, MP
 
 # Convergence check: stable if γ < 2·Ȳ·|AD_slope|
 convergence_ok = (gamma < 2 * c.Y_potential * abs(AD_slope)) if AD_slope != 0 else True
+
+# ―――― Medium: resolve combined text ――――――――――――――――
+if level == 'Medium':
+    demand_shifted  = omega > 4.6 or omega < 4.4
+    money_shifted   = r_init > 2.1 or r_init < 1.9
+    infl_shifted    = inflation_shock != 0.0
+    n_active = sum([demand_shifted, money_shifted, infl_shifted])
+
+    if n_active == 0:
+        text_to_show = c.empty_placeholder_moderate_level_shock
+    elif n_active == 1:
+        text_to_show = omega_text + r_text + pi_text
+    else:
+        # Characterise net outcome from model
+        output_above = Y_shock > c.Y_potential * 1.01
+        output_below = Y_shock < c.Y_potential * 0.99
+        pi_above     = pi_0 > pi_eq + 0.05
+        pi_below     = pi_0 < pi_eq - 0.05
+
+        # Label active forces
+        force_parts = []
+        if omega > 4.6:          force_parts.append("expansionary demand (↑ω)")
+        elif omega < 4.4:        force_parts.append("restrictive demand (↓ω)")
+        if r_init < 1.9:         force_parts.append("loose monetary policy (↓r')")
+        elif r_init > 2.1:       force_parts.append("tight monetary policy (↑r')")
+        if inflation_shock > 0:  force_parts.append("upward inflation shock (↑η)")
+        elif inflation_shock < 0: force_parts.append("downward inflation shock (↓η)")
+        forces_str = " + ".join(force_parts)
+
+        # Detect conflict: forces push in opposite directions on output
+        demand_exp   = omega > 4.6
+        demand_res   = omega < 4.4
+        money_loose  = r_init < 1.9
+        money_tight_ = r_init > 2.1
+        conflicting  = (demand_exp and money_tight_) or (demand_res and money_loose)
+
+        if output_above:   output_desc = "output <b>above potential</b>"
+        elif output_below: output_desc = "output <b>below potential</b>"
+        else:              output_desc = "output <b>near potential</b>"
+
+        if pi_above:   pi_desc = "inflation <b>above equilibrium</b>"
+        elif pi_below: pi_desc = "inflation <b>below equilibrium</b>"
+        else:          pi_desc = "inflation <b>near equilibrium</b>"
+
+        if conflicting:
+            if output_above:  dominant = "Expansionary demand dominates — the monetary tightening is not enough to offset the stimulus."
+            elif output_below: dominant = "Tight monetary policy dominates — it more than offsets the demand expansion."
+            else:             dominant = "The two forces roughly cancel out — output stays near potential."
+            conflict_note = f"<br><i style='color:#888;'>{dominant}</i>"
+        else:
+            conflict_note = "<br><i style='color:#888;'>The shocks reinforce each other, amplifying the effect on output and inflation.</i>"
+
+        text_to_show = f"""
+<div style="font-size:17px; font-weight:700; color:#222;">Combined Shock 🔀</div>
+<div style="font-size:13px; color:gray; margin-top:4px;">
+    <b>{forces_str}</b><br>
+    Net result: {output_desc} and {pi_desc}.{conflict_note}
+</div>"""
 
 # ―――― Continue: advance from short_term_paused to adjusting ――――――――――――――――
 if continue_clicked and phase == "short_term_paused":
