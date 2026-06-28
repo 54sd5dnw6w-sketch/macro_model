@@ -9,7 +9,7 @@ pages_ = {
     "ECB Data": [
         st.Page("pages/ecb_data.py", title="ECB Data"),
     ],
-    "": [
+    "Settings": [
         st.Page("pages/settings.py", title="⚙ Settings"),
     ],
 }

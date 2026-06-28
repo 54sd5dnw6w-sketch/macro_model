@@ -5,6 +5,7 @@ st.set_page_config(layout="wide", initial_sidebar_state="expanded")
 st.sidebar.header("Settings")
 
 st.header("Settings")
+st.info("Settings changes are active only at the current session. If the page is refreshed they return to default values")
 st.markdown("#### Simulation")
 
 speed_labels = {"Slow": 0.4, "Normal": 0.15, "Fast": 0.05, "Instant": 0.0}
