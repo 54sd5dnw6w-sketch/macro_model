@@ -152,6 +152,10 @@ with st.sidebar:
 
 
 
+# ―――― Settings (user-overridable via Settings page) ――――――――――――――――
+iteration_count = st.session_state.get("setting_iterations", c.iteration_count)
+sim_speed       = st.session_state.get("setting_speed", c.speed)
+
 # ―――― Derived Model Parameters ――――――――――――――――
 IS_slope = -1 / phi
 IS_intercept = omega / phi
@@ -387,7 +391,7 @@ with tab1:
                                       xanchor="left", yshift=12)
 
         output_fig.update_layout(xaxis_title="Period", yaxis_title="Y - Output", showlegend=False)
-        h.add_line_to_plot(output_fig, 0, c.Y_potential, 0, c.iteration_count,
+        h.add_line_to_plot(output_fig, 0, c.Y_potential, 0, iteration_count,
                            name=f"Ȳ ({c.Y_potential:.2f})", line_width=2, color="#999999", dash='dot')
         h.show_plotly_fig(output_fig, height=200)
 
@@ -409,7 +413,7 @@ with tab1:
                                          xanchor="left", yshift=12)
 
         inflation_fig.update_layout(xaxis_title="Period", yaxis_title="𝜋 - inflation", showlegend=False)
-        h.add_line_to_plot(inflation_fig, 0, pi_eq, 0, c.iteration_count,
+        h.add_line_to_plot(inflation_fig, 0, pi_eq, 0, iteration_count,
                            name=f"𝜋* ({pi_eq:.2f})", line_width=2, color="#999999", dash='dot')
         h.show_plotly_fig(inflation_fig, height=200)
 
@@ -432,7 +436,7 @@ with tab1:
 
         r_eq_display = MP_slope * c.Y_potential + (r_init - lambda_p + lambda_i * pi_eq)
         rate_fig.update_layout(xaxis_title="Period", yaxis_title="r - interest rate", showlegend=False)
-        h.add_line_to_plot(rate_fig, 0, r_eq_display, 0, c.iteration_count,
+        h.add_line_to_plot(rate_fig, 0, r_eq_display, 0, iteration_count,
                            name=f"r* ({r_eq_display:.2f})", line_width=2, color="#999999", dash='dot')
         h.show_plotly_fig(rate_fig, height=200)
 
@@ -445,8 +449,8 @@ with tab1:
         st.session_state.pi_prev = pi_cur + gamma * (Y_cur - c.Y_potential) / c.Y_potential + eta
         st.session_state.iter_counter += 1
 
-        if st.session_state.iter_counter >= c.iteration_count:
+        if st.session_state.iter_counter >= iteration_count:
             st.session_state.phase = "done"
 
-        time.sleep(c.speed)
+        time.sleep(sim_speed)
         st.rerun()
