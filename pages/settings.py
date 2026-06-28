@@ -8,7 +8,7 @@ st.header("Settings")
 st.info("Settings changes are active only at the current session. If the page is refreshed they return to default values")
 st.markdown("#### Simulation")
 
-speed_labels = {"Slow": 0.4, "Normal": 0.15, "Fast": 0.05, "Instant": 0.0}
+speed_labels = {"Slow": 0.3, "Normal": 0.1, "Fast": 0.05, "Instant": 0.0}
 current_speed = st.session_state.get("setting_speed", c.speed)
 current_label = min(speed_labels, key=lambda k: abs(speed_labels[k] - current_speed))
 
