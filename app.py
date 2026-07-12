@@ -6,9 +6,9 @@ pages_ = {
         st.Page("pages/closed_economy.py", title="Closed Economy"),
         st.Page("pages/open_economy.py", title="Open Economy"),
     ],
-    "ECB Data": [
-        st.Page("pages/ecb_data.py", title="ECB Data"),
-    ],
+    # "ECB Data": [
+    #     st.Page("pages/ecb_data.py", title="ECB Data"),
+    # ],
     "Settings": [
         st.Page("pages/settings.py", title="⚙ Settings"),
     ],

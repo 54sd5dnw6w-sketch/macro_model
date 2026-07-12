@@ -139,7 +139,7 @@ iteration_count = 30
 
 neg_inflation_shock = """
 <div style="text-align:center; font-size:17px; font-weight:700;">
-    Negative Inflation Shock 📈
+    Upward Inflation Shock 📈
 </div>
 
 <div style="font-size:13px; color:gray;">
@@ -175,7 +175,7 @@ pos_demand_shock = """
 
 pos_inflation_shock = """
 <div style="text-align:center; font-size:17px; font-weight:700;">
-    Positive Inflation Shock 📉
+    Downward Inflation Shock 📉
 </div>
 
 <div style="font-size:13px; color:gray;">
