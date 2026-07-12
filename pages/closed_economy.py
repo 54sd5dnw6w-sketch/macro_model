@@ -125,14 +125,14 @@ with st.sidebar:
                                    help=r"MP Curve: $r = r' + \lambda_P \tilde{Y} + \lambda_I \pi$")
         lambda_i = st.number_input(r'$\lambda_I :$', on_change=reset, min_value=0.1, max_value=10.0, step=0.1, value=0.5,
                                    help=r"MP Curve: $r = r' + \lambda_P \tilde{Y} + \lambda_I \pi$")
-        pi = st.number_input(r'$\pi$ (initial inflation):', on_change=reset, step=0.1, value=3.0)
-        pi_0_override = pi
+        inflation_shock = st.number_input(r"$\eta$ (inflation shock, %):", on_change=reset, min_value=-3.0, max_value=3.0, step=0.25, value=0.0,
+                                           help=r"Shifts initial inflation away from equilibrium. 0 = no shock.")
+        pi_0_override = None  # resolved after pi_eq is computed
         st.markdown("<hr style='margin: 2px 0; border: none; border-top: 1px solid #ccc;'>", unsafe_allow_html=True)
         st.markdown('##### For IA Curve')
         gamma = st.number_input(r'$\gamma :$', on_change=reset, min_value=0.0, step=0.1, value=0.5)
         eta = st.number_input(r'$\eta$ (exogenous shock):', on_change=reset, step=0.1, value=0.0,
                               help=r"IA curve: π_{t+1} = π_t + γỸ_t + η. Persistent exogenous price shock each period.")
-        inflation_shock = 0.0
 
 
     # Play / Reset buttons
@@ -163,9 +163,11 @@ AD_slope = (IS_slope - lambda_p / c.Y_potential) / lambda_i
 AD_intercept = (IS_intercept - r_init + lambda_p) / lambda_i
 pi_eq = AD_slope * c.Y_potential + AD_intercept   # long-run equilibrium inflation
 
-# Medium mode: anchor pi_0 to the baseline equilibrium (default omega=4.5, r_init=2.0)
-# so that moving omega/r_init sliders creates a real shock instead of re-equilibrating
-if level == 'Medium':
+# Medium & Advanced: anchor pi_0 to the FIXED baseline equilibrium (default
+# omega=4.5, r_init=2.0, lambda=0.5 → π=3.0) plus only the inflation shock, so
+# demand/monetary parameters never move the initial inflation — it stays
+# constant unless the user explicitly changes η (inflation shock).
+if level in ('Medium', 'Advanced'):
     _ad_slope_base = (-1.0 - 0.5) / 0.5          # phi=1, lambda_p=0.5, lambda_i=0.5
     _ad_int_base   = (4.5 - 2.0 + 0.5) / 0.5     # omega=4.5, r_init=2.0, lambda_p=0.5
     pi_eq_baseline = _ad_slope_base * c.Y_potential + _ad_int_base
