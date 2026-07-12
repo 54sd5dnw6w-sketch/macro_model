@@ -44,16 +44,11 @@ with st.sidebar:
     is_running = phase == "adjusting"
     is_paused = phase == "short_term_paused"
 
-    continue_clicked = False
-    if is_paused:
-        st.info("**Period 1:** Initial shock, short-run impact shown. Click **Continue** to see the long-run adjustment.")
-        continue_clicked = st.button("▶▶ Continue", type="primary", width="stretch")
-
     level = st.selectbox('Control Level', options=['Easy', 'Medium', 'Advanced'],
                          disabled=is_running or is_paused, on_change=reset)
 
 
-    show_phillips = st.toggle("Show Phillips Curve", value=False, disabled=is_running or is_paused) if level == 'Advanced' else False
+    show_phillips = st.toggle("Show the IA as a Phillips Curve", value=False, disabled=is_running or is_paused) if level == 'Advanced' else False
 
     # ―――― Parameter Inputs ――――――――――――――――
     if level == 'Easy':
@@ -150,6 +145,15 @@ with st.sidebar:
             play_clicked = st.button("⏵ Play", type="primary", width="stretch")
     with bcol2:
         reset_clicked = st.button("↺ Reset", on_click=reset, width="stretch", disabled=is_running)
+
+
+    continue_clicked = False
+    if is_paused:
+        st.info("**Period 1:** Initial shock, short-run impact shown. Click **Continue** to see the long-run adjustment.")
+        continue_clicked = st.button("▶▶ Continue", type="primary", width="stretch")
+
+
+
 
 # ―――― Settings (user-overridable via Settings page) ――――――――――――――――
 iteration_count = st.session_state.get("setting_iterations", c.iteration_count)
@@ -320,17 +324,22 @@ with tab1:
     # ―――― π–Y diagram ――――――――――――――――
     pi_Y_fig = h.create_linear_plot(x_label="Y - Output", y_label="𝜋 - inflation")
 
-    h.add_line_to_plot(pi_Y_fig, 0, pi_0, x_lo, x_hi,
-                       name=STIA_name, color=STIA_color, line_width=STIA_lw)
+    # When "Show the IA as a Phillips Curve" is on, the IA is drawn taking THIS
+    # period's output gap (π = π^e + γ·Ỹ) → a positively sloped line pivoting on
+    # the operating point, instead of the horizontal (last-period-gap) IA. It
+    # therefore still meets AD exactly at the marked output and crosses Ȳ at π^e.
+    pc_slope = gamma / c.Y_potential
+    STIA_slope = pc_slope if show_phillips else 0.0
+    STIA_int   = (pi_0 - pc_slope * Y_shock) if show_phillips else pi_0
+    h.add_line_to_plot(pi_Y_fig, STIA_slope, STIA_int, x_lo, x_hi,
+                       name=("LTIA(PC)" if show_phillips else STIA_name), color=STIA_color, line_width=STIA_lw)
     h.add_line_to_plot(pi_Y_fig, AD_slope, AD_intercept, x_lo, x_hi, name='AD', color="#B279A2")
 
-    if show_phillips:
-        h.add_line_to_plot(pi_Y_fig, 0, pi_0, x_lo, x_hi, dash='dash',
-                           name="PC (t₁)", color="#E45756", line_width=c.thin_line_width)
-
     if phase != "idle":
-        h.add_line_to_plot(pi_Y_fig, 0, pi_cur, x_lo, x_hi,
-                           name="LTIA", color="#54A24B", line_width=c.thin_line_width)
+        LTIA_slope = pc_slope if show_phillips else 0.0
+        LTIA_int   = (pi_cur - pc_slope * Y_cur) if show_phillips else pi_cur
+        h.add_line_to_plot(pi_Y_fig, LTIA_slope, LTIA_int, x_lo, x_hi,
+                           name=("LTIA(PC)" if show_phillips else "LTIA"), color="#54A24B", line_width=c.thin_line_width)
         h.add_vertical_line(pi_Y_fig, Y_cur, y_max=pi_cur,
                             name=f"Y ({Y_cur:.2f})", name_position='bottom', color='#B0B0B0', dash='dot')
     else:
@@ -345,11 +354,19 @@ with tab1:
     if level == 'Advanced':
         shock_size = pi_0 - pi_eq
         shock_label = f"+{shock_size:.1f}" if shock_size >= 0 else f"{shock_size:.1f}"
+        if show_phillips:
+            pi_e = pi_0 - pc_slope * (Y_shock - c.Y_potential)   # π^e = π − γ·Ỹ
+            ia_line = (f'<b style="color:#54A24B;">IA (Phillips):</b> '
+                       f'𝜋 = {pi_e:.1f} + {gamma:.1f}·Ỹ &nbsp;'
+                       f'<span style="color:gray;">(𝜋<sub>expected</sub> at Ȳ)</span>')
+        else:
+            ia_line = (f'<b style="color:#54A24B;">IA:</b> 𝜋 = {pi_0:.1f} &nbsp;'
+                       f'<span style="color:gray;">(shock: {shock_label})</span>')
         text_to_show = f"""
             <b style="color:#4C78A8;">IS:</b> Y = {omega:.1f} − {phi:.1f}·r &nbsp;→&nbsp; r = {IS_slope:.1f}·Y + {IS_intercept:.1f}<br>
             <b style="color:#F58518;">MP:</b> r = {MP_slope:.1f}·Y + {MP_intercept_cur:.1f}<br>
             <b style="color:#B279A2;">AD:</b> 𝜋 = {AD_slope:.1f}·Y + {AD_intercept:.1f}<br>
-            <b style="color:#54A24B;">IA:</b> 𝜋 = {pi_0:.1f} &nbsp;<span style="color:gray;">(shock: {shock_label})</span><br>
+            {ia_line}<br>
             <hr style="margin:4px 0; border:none; border-top:1px solid #ddd;">
             <b style="color:black;">π* (LR eq.):</b> {pi_eq:.1f}<br>
             <b style="color:black;">Output gap (Y − Ȳ):</b> {output_gap:.1f}<br>
