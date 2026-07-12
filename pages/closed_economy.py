@@ -44,20 +44,6 @@ with st.sidebar:
     is_running = phase == "adjusting"
     is_paused = phase == "short_term_paused"
 
-    # Play / Reset buttons
-    bcol1, bcol2 = st.columns([1.2,0.8])
-    with bcol1:
-        if is_running:
-            play_clicked = False
-            st.button("⏸ Running…", disabled=True, width="stretch")
-        elif is_paused:
-            play_clicked = False
-            st.button("▶▶ Paused", disabled=True, width="stretch")
-        else:
-            play_clicked = st.button("⏵ Play", type="primary", width="stretch")
-    with bcol2:
-        reset_clicked = st.button("↺ Reset", on_click=reset, width="stretch", disabled=is_running)
-
     continue_clicked = False
     if is_paused:
         st.info("**Period 1:** Initial shock, short-run impact shown. Click **Continue** to see the long-run adjustment.")
@@ -66,8 +52,6 @@ with st.sidebar:
     level = st.selectbox('Control Level', options=['Easy', 'Medium', 'Advanced'],
                          disabled=is_running or is_paused, on_change=reset)
 
-    st.sidebar.markdown("<hr style='margin: 2px 0; border: none; border-top: 1px solid #ccc;'>",
-                        unsafe_allow_html=True)
 
     show_phillips = st.toggle("Show Phillips Curve", value=False, disabled=is_running or is_paused) if level == 'Advanced' else False
 
@@ -76,8 +60,8 @@ with st.sidebar:
         st.markdown('##### Please Select the shock:')
         shock_type = st.pills('shock', label_visibility='collapsed',
                               options=['Upward Inflation Shock', 'Downward Inflation Shock',
-                                       'Pos. Monetary Shock', 'Neg. Monetary Shock',
-                                       'Pos. Demand shock', 'Neg. Demand shock'],
+                                       'Expansionary Monetary Shock', 'Contractionary Monetary Shock',
+                                       'Expansionary Demand Shock', 'Contractionary Demand Shock'],
                               disabled=is_running or is_paused, on_change=reset)
         phi = 1.0; lambda_p = 0.5; lambda_i = 0.5; gamma = 0.5; eta = 0.0; inflation_shock = 0.0
         if shock_type == 'Upward Inflation Shock':
@@ -86,16 +70,16 @@ with st.sidebar:
         elif shock_type == 'Downward Inflation Shock':
             omega = 4.5; r_init = 2.0; pi_0_override = 2.0
             text_to_show = c.pos_inflation_shock
-        elif shock_type == 'Pos. Monetary Shock':
+        elif shock_type == 'Expansionary Monetary Shock':
             omega = 4.5; r_init = 1.3; pi_0_override = 3.0
             text_to_show = c.pos_monetary_shock
-        elif shock_type == 'Neg. Monetary Shock':
+        elif shock_type == 'Contractionary Monetary Shock':
             omega = 4.5; r_init = 2.7; pi_0_override = 3.0
             text_to_show = c.neg_monetary_shock
-        elif shock_type == 'Pos. Demand shock':
+        elif shock_type == 'Expansionary Demand Shock':
             omega = 5.0; r_init = 2.0; pi_0_override = 3.0
             text_to_show = c.pos_demand_shock
-        elif shock_type == 'Neg. Demand shock':
+        elif shock_type == 'Contractionary Demand Shock':
             omega = 4.0; r_init = 2.0; pi_0_override = 3.0
             text_to_show = c.neg_demand_shock
         else:
@@ -151,6 +135,21 @@ with st.sidebar:
         inflation_shock = 0.0
 
 
+    # Play / Reset buttons
+    st.sidebar.markdown("<hr style='margin: 2px 0; border: none; border-top: 1px solid #ccc;'>", unsafe_allow_html=True)
+
+    bcol1, bcol2 = st.columns([1.2,0.8])
+    with bcol1:
+        if is_running:
+            play_clicked = False
+            st.button("⏸ Running…", disabled=True, width="stretch")
+        elif is_paused:
+            play_clicked = False
+            st.button("▶▶ Paused", disabled=True, width="stretch")
+        else:
+            play_clicked = st.button("⏵ Play", type="primary", width="stretch")
+    with bcol2:
+        reset_clicked = st.button("↺ Reset", on_click=reset, width="stretch", disabled=is_running)
 
 # ―――― Settings (user-overridable via Settings page) ――――――――――――――――
 iteration_count = st.session_state.get("setting_iterations", c.iteration_count)

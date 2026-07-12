@@ -151,7 +151,7 @@ neg_inflation_shock = """
 
 pos_monetary_shock = """
 <div style="text-align:center; font-size:17px; font-weight:700;">
-    Positive Monetary Shock 🏦
+    Expansionary Monetary Shock 🏦
 </div>
 
 <div style="font-size:13px; color:gray;">
@@ -163,7 +163,7 @@ pos_monetary_shock = """
 
 pos_demand_shock = """
 <div style="text-align:center; font-size:17px; font-weight:700;">
-    Positive Demand Shock 🛒
+    Expansionary Demand Shock 🛒
 </div>
 
 <div style="font-size:13px; color:gray;">
@@ -187,7 +187,7 @@ pos_inflation_shock = """
 
 neg_monetary_shock = """
 <div style="text-align:center; font-size:17px; font-weight:700;">
-    Negative Monetary Shock 🏦
+    Contractionary Monetary Shock 🏦
 </div>
 
 <div style="font-size:13px; color:gray;">
@@ -199,7 +199,7 @@ neg_monetary_shock = """
 
 neg_demand_shock = """
 <div style="text-align:center; font-size:17px; font-weight:700;">
-    Negative Demand Shock 🛒
+    Contractionary Demand Shock 🛒
 </div>
 
 <div style="font-size:13px; color:gray;">
