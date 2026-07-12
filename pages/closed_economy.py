@@ -167,6 +167,13 @@ AD_slope = (IS_slope - lambda_p / c.Y_potential) / lambda_i
 AD_intercept = (IS_intercept - r_init + lambda_p) / lambda_i
 pi_eq = AD_slope * c.Y_potential + AD_intercept   # long-run equilibrium inflation
 
+# Fixed pre-shock (initial) equilibrium — the economy's resting point BEFORE any
+# shock: Y=Ȳ, π=3.0, r=3.5 under the default parameters. The time-series charts
+# start here (period 0) and then converge to the NEW long-run equilibrium
+# (pi_eq / r_eq_display), which differs after demand or monetary shocks.
+PI_BASELINE = 3.0
+R_BASELINE  = (0.5 / c.Y_potential) * c.Y_potential + (2.0 - 0.5 + 0.5 * PI_BASELINE)  # default params → 3.5
+
 # Medium & Advanced: anchor pi_0 to the FIXED baseline equilibrium (default
 # omega=4.5, r_init=2.0, lambda=0.5 → π=3.0) plus only the inflation shock, so
 # demand/monetary parameters never move the initial inflation — it stays
@@ -266,9 +273,8 @@ if play_clicked and phase == "idle":
     st.session_state.pi_prev = pi_0
     st.session_state.iter_counter = 2
     df = pd.DataFrame(columns=["Iteration", "Output", "Inflation", "Interest Rate"])
-    r_eq = MP_slope * c.Y_potential + (r_init - lambda_p + lambda_i * pi_eq)
-    df.loc[0] = [0, c.Y_potential, pi_eq, r_eq]   # period 0: pre-shock equilibrium
-    df.loc[1] = [1, Y_shock, pi_0, r_shock]        # period 1: short-run jump
+    df.loc[0] = [0, c.Y_potential, PI_BASELINE, R_BASELINE]  # period 0: initial pre-shock equilibrium
+    df.loc[1] = [1, Y_shock, pi_0, r_shock]                  # period 1: short-run jump
     st.session_state.iteration_df = df
     st.rerun()
 
