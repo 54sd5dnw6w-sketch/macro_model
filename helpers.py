@@ -32,7 +32,7 @@ def create_linear_plot(x_label="Y", y_label="r"):
     fig.update_layout(xaxis_title=x_label, yaxis_title=y_label,showlegend=False)
     return fig
 
-def add_line_to_plot(plotly_fig, slope, intercept, x_min=0, x_max=10, n_points=100, name='Name', color='blue', line_width=c.standard_line_width, dash='solid'):
+def add_line_to_plot(plotly_fig, slope, intercept, x_min=0, x_max=10, n_points=100, name='Name', color='blue', line_width=c.standard_line_width, dash='solid', label_position='right'):
     x = np.linspace(x_min, x_max, n_points)
     y = slope * x + intercept
     df = pd.DataFrame({"x": x, "y": y})
@@ -47,12 +47,18 @@ def add_line_to_plot(plotly_fig, slope, intercept, x_min=0, x_max=10, n_points=1
         )
     )
 
+    # label at the right end of the line by default; 'left' anchors it at the start
+    if label_position == 'left':
+        label_x, label_y, label_anchor = x[0], y[0], "right"
+    else:
+        label_x, label_y, label_anchor = x[-1], y[-1], "left"
+
     plotly_fig.add_annotation(
-        x=x[-1],
-        y=y[-1],
+        x=label_x,
+        y=label_y,
         text=name,
         showarrow=False,
-        xanchor="left",
+        xanchor=label_anchor,
         font=dict(color=color)  # match line color
     )
 
@@ -149,7 +155,7 @@ def add_arrow(fig, x_start, y_start, x_end, y_end):
 
 
 
-def show_plotly_fig(fig, height=300, column_to_plot=st):
+def show_plotly_fig(fig, height=400, column_to_plot=st):
     fig.update_layout(
         height=height,
         margin=dict(t=0, b=0, l=0, r=0),
