@@ -158,13 +158,13 @@ with st.sidebar:
         text_to_show = SHOCK_TEXT.get(shock_type, c.placeholder_shock)
 
     elif level == 'Medium':
-        omega = st.slider(r'$\omega$ (demand):', on_change=reset, min_value=0.5, max_value=4.0, step=0.1,
+        omega = st.slider(r'$\omega$:', on_change=reset, min_value=0.5, max_value=4.0, step=0.1,
                           value=OMEGA_BASE, help=r"IS Curve: $Y = \omega - \varphi r + \psi w^r$")
-        r_init = st.slider(r"$r'$ (policy stance):", on_change=reset, min_value=-0.5, max_value=1.5, step=0.1,
+        r_init = st.slider(r"$r'$ (%):", on_change=reset, min_value=-0.5, max_value=1.5, step=0.1,
                            value=RP_BASE, help=r"MP Curve: $r = r' + \lambda_P \tilde Y + \lambda_I \pi$")
-        r_foreign = st.slider(r"$r^a$ (foreign rate):", on_change=reset, min_value=1.0, max_value=3.0, step=0.1,
+        r_foreign = st.slider(r"$r^a$ (%) - abroad:", on_change=reset, min_value=1.0, max_value=3.0, step=0.1,
                               value=RA_BASE, help=r"FX Curve: $r = r^a$ under a flexible exchange rate")
-        inflation_shock = st.slider(r"imported inflation (%):", on_change=reset, min_value=0.0, max_value=2.0,
+        inflation_shock = st.slider(r"Imported inflation (%):", on_change=reset, min_value=0.0, max_value=2.0,
                                     step=0.25, value=0.0, help="One-off upward shift of the IA-curve (χ·Δwʳ).")
 
     elif level == 'Advanced':
@@ -176,22 +176,25 @@ with st.sidebar:
         omega = st.number_input(r'$\omega$ :', on_change=reset, min_value=0.0, step=0.5, value=OMEGA_BASE,
                                 help=r"IS Curve: $Y = \omega - \varphi r + \psi w^r$")
         st.markdown("<hr style='margin: 2px 0; border: none; border-top: 1px solid #ccc;'>", unsafe_allow_html=True)
-        st.markdown('##### MP & FX Curves')
+        st.markdown('##### MP Curve')
         r_init = st.number_input(r"$r'$ :", on_change=reset, step=0.1, value=RP_BASE,
                                  help=r"MP Curve: $r = r' + \lambda_P \tilde Y + \lambda_I \pi$")
         lambda_p = st.number_input(r'$\lambda_P$ :', on_change=reset, min_value=0.1, max_value=10.0, step=0.1,
                                    value=LP_BASE, help=r"MP Curve output-gap weight")
         lambda_i = st.number_input(r'$\lambda_I$ :', on_change=reset, min_value=0.1, max_value=10.0, step=0.1,
                                    value=LI_BASE, help=r"MP Curve inflation weight")
-        r_foreign = st.number_input(r"$r^a$ (foreign rate):", on_change=reset, step=0.1, value=RA_BASE,
+
+        st.markdown("<hr style='margin: 2px 0; border: none; border-top: 1px solid #ccc;'>", unsafe_allow_html=True)
+        st.markdown('##### FX Curve')
+        r_foreign = st.number_input(r"$r^a$ (%) - abroad:", on_change=reset, step=0.1, value=RA_BASE,
                                     help=r"FX Curve: $r = r^a$")
-        pi_foreign = st.number_input(r"$\pi^a$ (foreign inflation):", on_change=reset, step=0.1, value=PIA_BASE,
+        pi_foreign = st.number_input(r"$\pi^a$ (%) - abroad:", on_change=reset, step=0.1, value=PIA_BASE,
                                      help=r"Long-run domestic inflation anchor")
         st.markdown("<hr style='margin: 2px 0; border: none; border-top: 1px solid #ccc;'>", unsafe_allow_html=True)
         st.markdown('##### IA Curve')
         gamma = st.number_input(r'$\gamma$ :', on_change=reset, min_value=0.0, step=0.1, value=GAMMA_BASE,
                                 help=r"IA curve: $\pi_{t+1} = \pi_t + \gamma \tilde Y_t + \eta$")
-        inflation_shock = st.number_input(r"imported inflation (%):", on_change=reset, min_value=-3.0, max_value=3.0,
+        inflation_shock = st.number_input(r"Imported Inflation (%):", on_change=reset, min_value=-3.0, max_value=3.0,
                                           step=0.25, value=0.0, help="One-off shift of the initial IA level (χ·Δwʳ).")
         eta = st.number_input(r'$\eta$ (exogenous shock):', on_change=reset, step=0.1, value=0.0,
                               help=r"Persistent exogenous price shock each period.")
@@ -334,7 +337,8 @@ else:
 tab1, tab2 = st.tabs(["📊 Model", "📖 Theory"])
 
 with tab2:
-    st.markdown(MARKDOWN_THEORY)
+    #st.markdown(MARKDOWN_THEORY)
+    st.info('To be added soon')
 
 with tab1:
     cols = st.columns([1.7, 1])
