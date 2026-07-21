@@ -172,21 +172,44 @@ if level in ('Medium', 'Advanced'):
     pi_eq_baseline = _ad_slope_base * c.Y_potential + _ad_int_base
     pi_0_override  = pi_eq_baseline + inflation_shock
 
-# pi_0: the IA level at period 1 (immediate post-shock) — falls back to equilibrium if not set
+# pi_0: expected/anchor inflation entering period 1 (immediate post-shock) — falls
+# back to equilibrium if not set. Under the Phillips curve this is π^e (the level
+# the PC crosses at Ȳ); the realised period-1 inflation is higher/lower once the
+# output gap feeds through.
 pi_0 = pi_0_override if pi_0_override is not None else pi_eq
 
-# pi_cur: current IA level during animation (or pi_0 if not started)
+# Slope of the Phillips curve π = π^e + (γ/Ȳ)·Ỹ
+pc_slope = gamma / c.Y_potential
+
+# pi_e_cur: expected inflation carried into the current animated period (π^e).
 if st.session_state.pi_prev is None:
     st.session_state.pi_prev = pi_0
-pi_cur = st.session_state.pi_prev
+pi_e_cur = st.session_state.pi_prev
 
-# Intersection with current (animated) IA
-MP_intercept_cur = r_init - lambda_p + lambda_i * pi_cur
-Y_cur, r_cur = h.find_line_intersection(IS_slope, IS_intercept, MP_slope, MP_intercept_cur)
 
-# Intersection at the shocked IA (period 1 short-run jump)
-MP_intercept_shock = r_init - lambda_p + lambda_i * pi_0
-Y_shock, r_shock = h.find_line_intersection(IS_slope, IS_intercept, MP_slope, MP_intercept_shock)
+def operating_point(pi_expected):
+    """Short-run (Y, π, r) for a given expected inflation π^e.
+
+    Phillips curve ON: inflation reacts to the CURRENT output gap, so (Y, π) is the
+    joint solution of AD and the PC π = π^e + (γ/Ȳ)·Ỹ — inflation moves immediately.
+    Phillips curve OFF (horizontal IA): inflation is predetermined at π^e and only
+    output jumps (IS∩MP)."""
+    if show_phillips:
+        pc_int = pi_expected - pc_slope * c.Y_potential
+        Y, pi_ = h.find_line_intersection(AD_slope, AD_intercept, pc_slope, pc_int)
+    else:
+        pi_ = pi_expected
+        Y, _ = h.find_line_intersection(IS_slope, IS_intercept, MP_slope,
+                                        r_init - lambda_p + lambda_i * pi_)
+    r = MP_slope * Y + (r_init - lambda_p + lambda_i * pi_)
+    return Y, pi_, r
+
+
+# Current (animated) operating point and the period-1 short-run jump.
+Y_cur, pi_cur, r_cur = operating_point(pi_e_cur)
+Y_shock, pi_shock, r_shock = operating_point(pi_0)
+MP_intercept_cur   = r_init - lambda_p + lambda_i * pi_cur
+MP_intercept_shock = r_init - lambda_p + lambda_i * pi_shock
 
 # Convergence check: stable if γ < 2·Ȳ·|AD_slope|
 convergence_ok = (gamma < 2 * c.Y_potential * abs(AD_slope)) if AD_slope != 0 else True
@@ -277,7 +300,7 @@ if play_clicked and phase == "idle":
     st.session_state.iter_counter = 2
     df = pd.DataFrame(columns=["Iteration", "Output", "Inflation", "Interest Rate"])
     df.loc[0] = [0, c.Y_potential, PI_BASELINE, R_BASELINE]  # period 0: initial pre-shock equilibrium
-    df.loc[1] = [1, Y_shock, pi_0, r_shock]                  # period 1: short-run jump
+    df.loc[1] = [1, Y_shock, pi_shock, r_shock]              # period 1: short-run jump
     st.session_state.iteration_df = df
     st.rerun()
 
@@ -313,7 +336,7 @@ else:
     sIS_slope, sIS_int = IS_slope, IS_intercept
     sMP_slope, sMP_int = MP_slope, MP_intercept_shock
     sAD_slope, sAD_int = AD_slope, AD_intercept
-    sIA_pi, sY = pi_0, Y_shock
+    sIA_pi, sY = pi_shock, Y_shock
 
 # ―――― Tabs ――――――――――――――――
 tab1, tab2 = st.tabs(["📊 Model", "📖 Theory"])
@@ -349,7 +372,6 @@ with tab1:
     pi_Y_fig = h.create_linear_plot(x_label="Y - Output", y_label="𝜋 - inflation")
 
     # When "Show the IA as a Phillips Curve" is on, the IA is drawn taking THIS period's output gap (π = π^e + γ·Ỹ) → a positively sloped line pivoting on the operating point, instead of the horizontal (last-period-gap) IA. It therefore still meets AD exactly at the marked output and crosses Ȳ at π^e.
-    pc_slope = gamma / c.Y_potential
     STIA_slope = pc_slope if show_phillips else 0.0
     STIA_int   = (sIA_pi - pc_slope * sY) if show_phillips else sIA_pi
     h.add_line_to_plot(pi_Y_fig, STIA_slope, STIA_int, x_lo, x_hi,
@@ -375,7 +397,7 @@ with tab1:
         shock_size = pi_0 - pi_eq
         shock_label = f"+{shock_size:.1f}" if shock_size >= 0 else f"{shock_size:.1f}"
         if show_phillips:
-            pi_e = pi_0 - pc_slope * (Y_shock - c.Y_potential)   # π^e = π − γ·Ỹ
+            pi_e = pi_e_cur   # π^e: the level the PC crosses at Ȳ
             ia_line = (f'<b style="color:#54A24B;">IA (Phillips):</b> '
                        f'𝜋 = {pi_e:.1f} + {gamma:.1f}·Ỹ &nbsp;'
                        f'<span style="color:gray;">(𝜋<sub>expected</sub> at Ȳ)</span>')
@@ -464,7 +486,10 @@ with tab1:
     if phase == "adjusting":
         new_row_idx = len(st.session_state.iteration_df)
         st.session_state.iteration_df.loc[new_row_idx] = [st.session_state.iter_counter, Y_cur, pi_cur, r_cur]
-        st.session_state.pi_prev = pi_cur + gamma * (Y_cur - c.Y_potential) / c.Y_potential + eta
+        # Next period's expected inflation = π^e + γ·Ỹ (+ persistent η). Anchored on
+        # π^e (this period's expectation), not the realised π, so the Phillips-curve
+        # gap is not double-counted.
+        st.session_state.pi_prev = pi_e_cur + gamma * (Y_cur - c.Y_potential) / c.Y_potential + eta
         st.session_state.iter_counter += 1
 
         if st.session_state.iter_counter >= iteration_count:
