@@ -47,11 +47,13 @@ def add_line_to_plot(plotly_fig, slope, intercept, x_min=0, x_max=10, n_points=1
         )
     )
 
-    # label at the right end of the line by default; 'left' anchors it at the start
+    # label at the right end of the line by default; 'left' places it just INSIDE
+    # the left edge (anchored left, nudged up) so it does not hang off the plot and
+    # expand the left margin — which would misalign vertically-stacked charts.
     if label_position == 'left':
-        label_x, label_y, label_anchor = x[0], y[0], "right"
+        label_x, label_y, label_anchor, label_yshift = x[0], y[0], "left", 9
     else:
-        label_x, label_y, label_anchor = x[-1], y[-1], "left"
+        label_x, label_y, label_anchor, label_yshift = x[-1], y[-1], "left", 0
 
     plotly_fig.add_annotation(
         x=label_x,
@@ -59,6 +61,7 @@ def add_line_to_plot(plotly_fig, slope, intercept, x_min=0, x_max=10, n_points=1
         text=name,
         showarrow=False,
         xanchor=label_anchor,
+        yshift=label_yshift,
         font=dict(color=color)  # match line color
     )
 
