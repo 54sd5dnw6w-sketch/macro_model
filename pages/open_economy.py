@@ -99,6 +99,24 @@ A one-off fall in the real exchange rate makes foreign goods cheaper and passes 
 <br><br>
 Inflation drops below foreign inflation πᵃ. The central bank lowers the real rate, output rises above potential, and the positive output gap brings inflation back up to πᵃ.
 </div>""",
+    'Expansionary Fiscal Shock': """
+<div style="text-align:center; font-size:17px; font-weight:700;">Expansionary Fiscal Shock 🏛️</div>
+<div style="font-size:13px; color:gray;">
+Higher government demand shifts the IS-curve right (↑ω). What happens next depends entirely on the <b>exchange-rate regime</b>:
+<br><br>
+<b>Flexible:</b> the currency appreciates (wʳ ↓), net exports fall, and output is <b>fully crowded out</b> — Y and π are unchanged.
+<br><br>
+<b>Fixed peg:</b> the exchange rate cannot move, so fiscal policy is <b>effective</b> — output jumps above potential, then real appreciation gradually crowds it out and inflation returns to πᵃ.
+</div>""",
+    'Contractionary Fiscal Shock': """
+<div style="text-align:center; font-size:17px; font-weight:700;">Contractionary Fiscal Shock 🏛️</div>
+<div style="font-size:13px; color:gray;">
+Lower government demand shifts the IS-curve left (↓ω). The effect depends on the <b>exchange-rate regime</b>:
+<br><br>
+<b>Flexible:</b> the currency depreciates (wʳ ↑), net exports rise, and the demand cut is <b>fully crowded out</b> — Y and π are unchanged.
+<br><br>
+<b>Fixed peg:</b> fiscal policy is <b>effective</b> — output falls below potential, then real depreciation restores it and inflation returns to πᵃ.
+</div>""",
     None: c.placeholder_shock,
 }
 
@@ -156,11 +174,16 @@ with st.sidebar:
     if level == 'Easy':
         st.markdown('##### Please Select the shock:')
         shock_type = st.pills('shock', label_visibility='collapsed',
-                              options=['Expansionary Monetary Shock', 'Contractionary Monetary Shock',
+                              options=['Expansionary Fiscal Shock', 'Contractionary Fiscal Shock',
+                                       'Expansionary Monetary Shock', 'Contractionary Monetary Shock',
                                        'Rising Foreign Interest Rate', 'Falling Foreign Interest Rate',
                                        'Imported Inflation Shock', 'Imported Deflation Shock'],
                               disabled=is_running or is_paused, on_change=reset, key="oe_shock")
-        if shock_type == 'Expansionary Monetary Shock':
+        if shock_type == 'Expansionary Fiscal Shock':
+            omega = OMEGA_BASE + 0.5
+        elif shock_type == 'Contractionary Fiscal Shock':
+            omega = OMEGA_BASE - 0.5
+        elif shock_type == 'Expansionary Monetary Shock':
             r_init = RP_BASE - 0.3
         elif shock_type == 'Contractionary Monetary Shock':
             r_init = RP_BASE + 0.3
@@ -287,6 +310,26 @@ else:
                       f"π* = {pi_eq:.2f} ≠ πᵃ = {pi_foreign:.2f}; the nominal exchange rate crawls at "
                       f"π − πᵃ ≈ {pi_eq - pi_foreign:+.2f}%/period.</span>")
 
+# ―――― Fiscal policy (demand shock via ω) ――――――――――――――――
+# Under a FLOAT a fiscal expansion is fully crowded out: the currency appreciates
+# (wʳ ↓) and net exports fall, so output is unchanged (ω already drops out of the
+# AD-curve, and realfx_at picks up the appreciation). Under a FIXED peg the
+# exchange rate cannot jump, so fiscal policy is effective — output jumps on
+# impact and is then gradually crowded out as higher inflation appreciates the
+# real exchange rate, with inflation returning to πᵃ.
+fiscal_shock = omega - OMEGA_BASE
+fixed_regime = regime in ('Fixed – no sterilization', 'Fixed – with sterilization')
+fiscal_effective = fixed_regime and fiscal_shock != 0.0
+FISCAL_CROWD_OUT = 0.5   # per-period decay of the fiscal output boost (real appreciation)
+
+
+def fiscal_boost(period):
+    """Fiscal output boost in a given period — 0 under a float (crowded out)."""
+    if not fiscal_effective or phase == "idle":
+        return 0.0
+    return fiscal_shock * (FISCAL_CROWD_OUT ** max(period - 1, 0))
+
+
 # Initial (period-1) inflation: predetermined at πᵃ, moved only by an imported/initial shock.
 pi_0 = pi_foreign + inflation_shock
 
@@ -314,16 +357,17 @@ def is_intercept_at(y):
 
 # Current period (animated) operating point. During the short-run pause the point
 # sits on the shocked AD (the impact jump); once adjusting it moves along the
-# dynamics AD toward π*.
+# dynamics AD toward π*. A fixed-peg fiscal boost is added on top (0 under a float).
 _cur_ad = AD_intercept_sr if phase == "short_term_paused" else AD_intercept
-Y_cur = output_at(pi_cur, _cur_ad)
+_cur_period = 1 if phase == "short_term_paused" else st.session_state.oe_iter_counter
+Y_cur = output_at(pi_cur, _cur_ad) + fiscal_boost(_cur_period)
 r_cur = r_foreign
 wr_cur = realfx_at(Y_cur)
 IS_intercept_cur = is_intercept_at(Y_cur)
 MP_intercept_cur = r_init - lambda_p + lambda_i * pi_cur
 
 # Shocked (period-1) operating point — the short-run impact jump on the shocked AD.
-Y_shock = output_at(pi_0, AD_intercept_sr)
+Y_shock = output_at(pi_0, AD_intercept_sr) + fiscal_boost(1)
 wr_shock = realfx_at(Y_shock)
 IS_intercept_shock = is_intercept_at(Y_shock)
 MP_intercept_shock = r_init - lambda_p + lambda_i * pi_0
@@ -347,10 +391,15 @@ if level == 'Medium':
         text_to_show = c.empty_placeholder_moderate_level_shock
     else:
         demand_only = all("demand" in f for f in forces)
-        note = ("<br><i style='color:#888;'>A pure demand shock is fully crowded out by the "
-                "exchange rate — output and inflation are unchanged.</i>" if demand_only else
-                f"<br><i style='color:#888;'>New long-run inflation π* = {pi_eq:.2f} "
-                f"(foreign inflation πᵃ = {pi_foreign:.2f}).</i>")
+        if demand_only and not fixed_regime:
+            note = ("<br><i style='color:#888;'>Under a float, a pure demand shock is fully crowded "
+                    "out by the exchange rate — output and inflation are unchanged.</i>")
+        elif demand_only:
+            note = ("<br><i style='color:#888;'>Under a fixed peg, fiscal/demand policy is effective — "
+                    "output moves on impact before real-exchange-rate adjustment crowds it out.</i>")
+        else:
+            note = (f"<br><i style='color:#888;'>New long-run inflation π* = {pi_eq:.2f} "
+                    f"(foreign inflation πᵃ = {pi_foreign:.2f}).</i>")
         text_to_show = f"""
 <div style="font-size:17px; font-weight:700; color:#222;">Open-Economy Shock 🌍</div>
 <div style="font-size:13px; color:gray; margin-top:4px;"><b>{' + '.join(forces)}</b>{note}</div>"""
@@ -484,6 +533,14 @@ with tab1:
         if monetary_neutralised:
             st.info("🏛️ **Fixed peg, no sterilization:** monetary policy is powerless — reserve "
                     "flows tie r to rᵃ, so the change in r' has no effect.")
+
+        if fiscal_shock != 0:
+            if fixed_regime:
+                st.info("🏛️ **Fixed peg — fiscal policy is effective:** output jumps on impact, then "
+                        "real appreciation (wʳ ↓) crowds it out and inflation returns to πᵃ.")
+            else:
+                st.info("🏛️ **Float — fiscal policy is crowded out:** the currency appreciates (wʳ ↓) "
+                        "and net exports fall, so output and inflation are unchanged.")
 
         st.markdown(text_to_show, unsafe_allow_html=True)
         st.markdown(f"<div style='font-size:13px; margin-top:6px;'>{regime_outcome}</div>",
