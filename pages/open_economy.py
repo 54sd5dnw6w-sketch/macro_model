@@ -92,6 +92,13 @@ A one-off rise in the real exchange rate makes foreign goods more expensive and 
 <br><br>
 Inflation jumps above foreign inflation πᵃ. The central bank raises the real rate, output falls below potential, and the negative output gap brings inflation back down to πᵃ.
 </div>""",
+    'Imported Deflation Shock': """
+<div style="text-align:center; font-size:17px; font-weight:700;">Imported Deflation Shock 📉</div>
+<div style="font-size:13px; color:gray;">
+A one-off fall in the real exchange rate makes foreign goods cheaper and passes directly into domestic prices (χ·Δwʳ), shifting the IA-curve down — even with no output gap (eq. 5.2).
+<br><br>
+Inflation drops below foreign inflation πᵃ. The central bank lowers the real rate, output rises above potential, and the positive output gap brings inflation back up to πᵃ.
+</div>""",
     None: c.placeholder_shock,
 }
 
@@ -130,6 +137,14 @@ with st.sidebar:
     level = st.selectbox('Control Level', options=['Easy', 'Medium', 'Advanced'],
                          disabled=is_running or is_paused, on_change=reset, key="oe_level")
 
+    regime = st.selectbox('Exchange-rate regime',
+                          options=['Flexible', 'Fixed – no sterilization', 'Fixed – with sterilization'],
+                          disabled=is_running or is_paused, on_change=reset, key="oe_regime",
+                          help=("Flexible: float absorbs shocks, π → πᵃ (PPP). "
+                                "Fixed – no sterilization: monetary policy is powerless (r tied to rᵃ). "
+                                "Fixed – with sterilization: monetary policy is temporarily independent and "
+                                "ends in a crawling peg (π* ≠ πᵃ, the nominal rate crawls at π − πᵃ)."))
+
     st.sidebar.markdown("<hr style='margin: 2px 0; border: none; border-top: 1px solid #ccc;'>", unsafe_allow_html=True)
 
     # ―――― Parameter Inputs ――――――――――――――――
@@ -143,7 +158,7 @@ with st.sidebar:
         shock_type = st.pills('shock', label_visibility='collapsed',
                               options=['Expansionary Monetary Shock', 'Contractionary Monetary Shock',
                                        'Rising Foreign Interest Rate', 'Falling Foreign Interest Rate',
-                                       'Imported Inflation Shock'],
+                                       'Imported Inflation Shock', 'Imported Deflation Shock'],
                               disabled=is_running or is_paused, on_change=reset, key="oe_shock")
         if shock_type == 'Expansionary Monetary Shock':
             r_init = RP_BASE - 0.3
@@ -155,6 +170,8 @@ with st.sidebar:
             r_foreign = RA_BASE - 0.3
         elif shock_type == 'Imported Inflation Shock':
             inflation_shock = 0.5
+        elif shock_type == 'Imported Deflation Shock':
+            inflation_shock = -0.5
         text_to_show = SHOCK_TEXT.get(shock_type, c.placeholder_shock)
 
     elif level == 'Medium':
@@ -164,8 +181,9 @@ with st.sidebar:
                            value=RP_BASE, help=r"MP Curve: $r = r' + \lambda_P \tilde Y + \lambda_I \pi$")
         r_foreign = st.slider(r"$r^a$ (%) - abroad:", on_change=reset, min_value=1.0, max_value=3.0, step=0.1,
                               value=RA_BASE, help=r"FX Curve: $r = r^a$ under a flexible exchange rate")
-        inflation_shock = st.slider(r"Imported inflation (%):", on_change=reset, min_value=0.0, max_value=2.0,
-                                    step=0.25, value=0.0, help="One-off upward shift of the IA-curve (χ·Δwʳ).")
+        inflation_shock = st.slider(r"Imported inflation (%):", on_change=reset, min_value=-2.0, max_value=2.0,
+                                    step=0.25, value=0.0,
+                                    help="One-off shift of the IA-curve (χ·Δwʳ). Positive = imported inflation, negative = imported deflation.")
 
     elif level == 'Advanced':
         st.markdown('##### IS Curve')
@@ -225,16 +243,49 @@ with st.sidebar:
 iteration_count = st.session_state.get("setting_iterations", c.iteration_count)
 sim_speed       = st.session_state.get("setting_speed", c.speed)
 
-# ―――― Derived Model Parameters (flexible exchange rate) ――――――――――――――――
+# ―――― Derived Model Parameters ――――――――――――――――
 Ybar = c.Y_potential
 IS_slope = -1 / phi
 MP_slope = lambda_p / Ybar
 AD_slope = -lambda_p / (lambda_i * Ybar)
-AD_intercept = (r_foreign - r_init + lambda_p) / lambda_i
-pi_eq = (r_foreign - r_init) / lambda_i          # long-run equilibrium inflation π*
+
+# ―――― Exchange-rate regime ――――――――――――――――
+# The adjustment path and the long-run end state depend on the regime:
+#   • Flexible / Fixed-no-sterilization → PPP holds, inflation returns to πᵃ.
+#       Under a float the exchange rate absorbs the shock; under a fixed peg
+#       without sterilization reserve flows tie r to rᵃ (monetary policy is
+#       powerless) but PPP still drags inflation back to foreign inflation.
+#   • Fixed-with-sterilization → monetary policy is temporarily independent and
+#       ends in a CRAWLING PEG: the long-run inflation π* = (rᵃ − r')/λ_I differs
+#       from foreign inflation πᵃ, and the nominal rate crawls at π* − πᵃ.
+ppp_regime = regime in ('Flexible', 'Fixed – no sterilization')
+
+# Fixed without sterilization: reserve flows peg r to rᵃ, so domestic monetary
+# policy (r') has no effect — neutralise any monetary shock.
+monetary_neutralised = (regime == 'Fixed – no sterilization') and (r_init != RP_BASE)
+if regime == 'Fixed – no sterilization':
+    r_init = RP_BASE
+
+# Short-run (shocked) AD — governs the period-1 impact jump in every regime.
+AD_intercept_sr = (r_foreign - r_init + lambda_p) / lambda_i
+if ppp_regime:
+    pi_eq = pi_foreign                              # PPP: inflation returns to πᵃ
+    AD_intercept = pi_foreign - AD_slope * Ybar     # dynamics AD crosses (Ȳ, πᵃ)
+else:
+    pi_eq = (r_foreign - r_init) / lambda_i         # crawling peg: π* ≠ πᵃ
+    AD_intercept = AD_intercept_sr
 
 # Fixed pre-shock equilibrium — charts start here (period 0).
 PI_BASELINE = pi_foreign
+
+# Regime outcome summary (shown in the right column).
+if ppp_regime:
+    regime_outcome = (f"<b>{regime}</b><br><span style='color:gray;'>Long-run: π → πᵃ = "
+                      f"{pi_foreign:.2f} (PPP holds).</span>")
+else:
+    regime_outcome = (f"<b>{regime}</b><br><span style='color:gray;'>Long-run: <b>crawling peg</b> — "
+                      f"π* = {pi_eq:.2f} ≠ πᵃ = {pi_foreign:.2f}; the nominal exchange rate crawls at "
+                      f"π − πᵃ ≈ {pi_eq - pi_foreign:+.2f}%/period.</span>")
 
 # Initial (period-1) inflation: predetermined at πᵃ, moved only by an imported/initial shock.
 pi_0 = pi_foreign + inflation_shock
@@ -245,9 +296,10 @@ if st.session_state.oe_pi_prev is None:
 pi_cur = st.session_state.oe_pi_prev
 
 
-def output_at(pi):
-    """Short-run output on the AD-curve at inflation π (MP∩FX)."""
-    return (pi - AD_intercept) / AD_slope
+def output_at(pi, ad_intercept=None):
+    """Output on the AD-curve at inflation π (MP∩FX). Defaults to the dynamics AD
+    (which converges to π*); pass the short-run AD for the impact jump."""
+    return (pi - (AD_intercept if ad_intercept is None else ad_intercept)) / AD_slope
 
 
 def realfx_at(y):
@@ -260,15 +312,18 @@ def is_intercept_at(y):
     return (omega + psi * realfx_at(y)) / phi
 
 
-# Current period (animated) operating point
-Y_cur = output_at(pi_cur)
+# Current period (animated) operating point. During the short-run pause the point
+# sits on the shocked AD (the impact jump); once adjusting it moves along the
+# dynamics AD toward π*.
+_cur_ad = AD_intercept_sr if phase == "short_term_paused" else AD_intercept
+Y_cur = output_at(pi_cur, _cur_ad)
 r_cur = r_foreign
 wr_cur = realfx_at(Y_cur)
 IS_intercept_cur = is_intercept_at(Y_cur)
 MP_intercept_cur = r_init - lambda_p + lambda_i * pi_cur
 
-# Shocked (period-1) operating point
-Y_shock = output_at(pi_0)
+# Shocked (period-1) operating point — the short-run impact jump on the shocked AD.
+Y_shock = output_at(pi_0, AD_intercept_sr)
 wr_shock = realfx_at(Y_shock)
 IS_intercept_shock = is_intercept_at(Y_shock)
 MP_intercept_shock = r_init - lambda_p + lambda_i * pi_0
@@ -286,6 +341,7 @@ if level == 'Medium':
     if r_foreign > RA_BASE + 0.05:  forces.append("higher foreign rate (↑rᵃ)")
     elif r_foreign < RA_BASE - 0.05: forces.append("lower foreign rate (↓rᵃ)")
     if inflation_shock > 0:         forces.append("imported inflation (↑χ·Δwʳ)")
+    elif inflation_shock < 0:       forces.append("imported deflation (↓χ·Δwʳ)")
 
     if not forces:
         text_to_show = c.empty_placeholder_moderate_level_shock
@@ -346,7 +402,7 @@ else:
     sIS_slope, sIS_int = IS_slope, IS_intercept_shock
     sMP_slope, sMP_int = MP_slope, MP_intercept_shock
     sFX = r_foreign
-    sAD_slope, sAD_int = AD_slope, AD_intercept
+    sAD_slope, sAD_int = AD_slope, AD_intercept_sr   # short-run (shocked) AD
     sIA, sY = pi_0, Y_shock
 
 # ―――― Tabs ――――――――――――――――
@@ -412,7 +468,7 @@ with tab1:
             <b style="color:#4C78A8;">IS:</b> Y = {omega:.1f} − {phi:.1f}·r + {psi:.1f}·wʳ<br>
             <b style="color:#F58518;">MP:</b> r = {MP_slope:.2f}·Y + {MP_intercept_cur:.2f}<br>
             <b style="color:#E45756;">FX:</b> r = rᵃ = {r_foreign:.2f}<br>
-            <b style="color:#B279A2;">AD:</b> 𝜋 = {AD_slope:.2f}·Y + {AD_intercept:.2f}<br>
+            <b style="color:#B279A2;">AD:</b> 𝜋 = {AD_slope:.2f}·Y + {AD_intercept_sr:.2f}<br>
             <b style="color:#54A24B;">IA:</b> 𝜋 = {pi_0:.2f}<br>
             <hr style="margin:4px 0; border:none; border-top:1px solid #ddd;">
             <b style="color:black;">π* (LR eq.):</b> {pi_eq:.2f} &nbsp; <span style="color:gray;">(πᵃ = {pi_foreign:.1f})</span><br>
@@ -425,7 +481,13 @@ with tab1:
         if not convergence_ok:
             st.warning("⚠️ These parameters may not converge. Try reducing γ.")
 
+        if monetary_neutralised:
+            st.info("🏛️ **Fixed peg, no sterilization:** monetary policy is powerless — reserve "
+                    "flows tie r to rᵃ, so the change in r' has no effect.")
+
         st.markdown(text_to_show, unsafe_allow_html=True)
+        st.markdown(f"<div style='font-size:13px; margin-top:6px;'>{regime_outcome}</div>",
+                    unsafe_allow_html=True)
 
         lc1, lc2 = st.columns([1.2, 0.8])
         with lc1:
