@@ -8,13 +8,7 @@ import helpers as h
 
 
 # ―――― Session State ――――――――――――――――
-h.session_init(
-    phase="idle",        # idle | short_term_paused | adjusting | done
-    pi_prev=None,
-    iter_counter=0,
-    iteration_df=pd.DataFrame(columns=["Iteration", "Output", "Inflation", "Interest Rate"]),
-    locked_df=None,
-)
+h.session_init(phase="idle",pi_prev=None,iter_counter=0,iteration_df=pd.DataFrame(columns=["Iteration", "Output", "Inflation", "Interest Rate"]),locked_df=None,)
 
 
 def reset():
@@ -167,17 +161,11 @@ AD_slope = (IS_slope - lambda_p / c.Y_potential) / lambda_i
 AD_intercept = (IS_intercept - r_init + lambda_p) / lambda_i
 pi_eq = AD_slope * c.Y_potential + AD_intercept   # long-run equilibrium inflation
 
-# Fixed pre-shock (initial) equilibrium — the economy's resting point BEFORE any
-# shock: Y=Ȳ, π=3.0, r=3.5 under the default parameters. The time-series charts
-# start here (period 0) and then converge to the NEW long-run equilibrium
-# (pi_eq / r_eq_display), which differs after demand or monetary shocks.
+# Fixed pre-shock (initial) equilibrium — the economy's resting point BEFORE any shock: Y=Ȳ, π=3.0, r=3.5 under the default parameters. The time-series charts start here (period 0) and then converge to the NEW long-run equilibrium (pi_eq / r_eq_display), which differs after demand or monetary shocks.
 PI_BASELINE = 3.0
 R_BASELINE  = (0.5 / c.Y_potential) * c.Y_potential + (2.0 - 0.5 + 0.5 * PI_BASELINE)  # default params → 3.5
 
-# Medium & Advanced: anchor pi_0 to the FIXED baseline equilibrium (default
-# omega=4.5, r_init=2.0, lambda=0.5 → π=3.0) plus only the inflation shock, so
-# demand/monetary parameters never move the initial inflation — it stays
-# constant unless the user explicitly changes η (inflation shock).
+# Medium & Advanced: anchor pi_0 to the FIXED baseline equilibrium (default omega=4.5, r_init=2.0, lambda=0.5 → π=3.0) plus only the inflation shock, so demand/monetary parameters never move the initial inflation — it stays constant unless the user explicitly changes η (inflation shock).
 if level in ('Medium', 'Advanced'):
     _ad_slope_base = (-1.0 - 0.5) / 0.5          # phi=1, lambda_p=0.5, lambda_i=0.5
     _ad_int_base   = (4.5 - 2.0 + 0.5) / 0.5     # omega=4.5, r_init=2.0, lambda_p=0.5
@@ -205,9 +193,9 @@ convergence_ok = (gamma < 2 * c.Y_potential * abs(AD_slope)) if AD_slope != 0 el
 
 # ―――― Medium: resolve combined text ――――――――――――――――
 if level == 'Medium':
-    demand_shifted  = omega > 4.6 or omega < 4.4
-    money_shifted   = r_init > 2.1 or r_init < 1.9
-    infl_shifted    = inflation_shock != 0.0
+    demand_shifted = omega > 4.6 or omega < 4.4
+    money_shifted = r_init > 2.1 or r_init < 1.9
+    infl_shifted = inflation_shock != 0.0
     n_active = sum([demand_shifted, money_shifted, infl_shifted])
 
     if n_active == 0:
@@ -218,48 +206,63 @@ if level == 'Medium':
         # Characterise net outcome from model
         output_above = Y_shock > c.Y_potential * 1.01
         output_below = Y_shock < c.Y_potential * 0.99
-        pi_above     = pi_0 > pi_eq + 0.05
-        pi_below     = pi_0 < pi_eq - 0.05
+        pi_above = pi_0 > pi_eq + 0.05
+        pi_below = pi_0 < pi_eq - 0.05
 
         # Label active forces
         force_parts = []
-        if omega > 4.6:          force_parts.append("expansionary demand (↑ω)")
-        elif omega < 4.4:        force_parts.append("restrictive demand (↓ω)")
-        if r_init < 1.9:         force_parts.append("loose monetary policy (↓r')")
-        elif r_init > 2.1:       force_parts.append("tight monetary policy (↑r')")
-        if inflation_shock > 0:  force_parts.append("upward inflation shock (↑η)")
-        elif inflation_shock < 0: force_parts.append("downward inflation shock (↓η)")
+        if omega > 4.6:
+            force_parts.append("expansionary demand (↑ω)")
+        elif omega < 4.4:
+            force_parts.append("restrictive demand (↓ω)")
+        if r_init < 1.9:
+            force_parts.append("loose monetary policy (↓r')")
+        elif r_init > 2.1:
+            force_parts.append("tight monetary policy (↑r')")
+        if inflation_shock > 0:
+            force_parts.append("upward inflation shock (↑η)")
+        elif inflation_shock < 0:
+            force_parts.append("downward inflation shock (↓η)")
         forces_str = " + ".join(force_parts)
 
         # Detect conflict: forces push in opposite directions on output
-        demand_exp   = omega > 4.6
-        demand_res   = omega < 4.4
-        money_loose  = r_init < 1.9
+        demand_exp = omega > 4.6
+        demand_res = omega < 4.4
+        money_loose = r_init < 1.9
         money_tight_ = r_init > 2.1
-        conflicting  = (demand_exp and money_tight_) or (demand_res and money_loose)
+        conflicting = (demand_exp and money_tight_) or (demand_res and money_loose)
 
-        if output_above:   output_desc = "output <b>above potential</b>"
-        elif output_below: output_desc = "output <b>below potential</b>"
-        else:              output_desc = "output <b>near potential</b>"
+        if output_above:
+            output_desc = "output <b>above potential</b>"
+        elif output_below:
+            output_desc = "output <b>below potential</b>"
+        else:
+            output_desc = "output <b>near potential</b>"
 
-        if pi_above:   pi_desc = "inflation <b>above equilibrium</b>"
-        elif pi_below: pi_desc = "inflation <b>below equilibrium</b>"
-        else:          pi_desc = "inflation <b>near equilibrium</b>"
+        if pi_above:
+            pi_desc = "inflation <b>above equilibrium</b>"
+        elif pi_below:
+            pi_desc = "inflation <b>below equilibrium</b>"
+        else:
+            pi_desc = "inflation <b>near equilibrium</b>"
 
         if conflicting:
-            if output_above:  dominant = "Expansionary demand dominates — the monetary tightening is not enough to offset the stimulus."
-            elif output_below: dominant = "Tight monetary policy dominates — it more than offsets the demand expansion."
-            else:             dominant = "The two forces roughly cancel out — output stays near potential."
+            if output_above:
+                dominant = "Expansionary demand dominates — the monetary tightening is not enough to offset the stimulus."
+            elif output_below:
+                dominant = "Tight monetary policy dominates — it more than offsets the demand expansion."
+            else:
+                dominant = "The two forces roughly cancel out — output stays near potential."
             conflict_note = f"<br><i style='color:#888;'>{dominant}</i>"
         else:
             conflict_note = "<br><i style='color:#888;'>The shocks reinforce each other, amplifying the effect on output and inflation.</i>"
 
         text_to_show = f"""
-<div style="font-size:17px; font-weight:700; color:#222;">Combined Shock 🔀</div>
-<div style="font-size:13px; color:gray; margin-top:4px;">
-    <b>{forces_str}</b><br>
-    Net result: {output_desc} and {pi_desc}.{conflict_note}
-</div>"""
+                <div style="font-size:17px; font-weight:700; color:#222;">Combined Shock 🔀</div>
+                <div style="font-size:13px; color:gray; margin-top:4px;">
+                    <b>{forces_str}</b><br>
+                    Net result: {output_desc} and {pi_desc}.{conflict_note}
+                </div>"""
 
 # ―――― Continue: advance from short_term_paused to adjusting ――――――――――――――――
 if continue_clicked and phase == "short_term_paused":
@@ -330,10 +333,7 @@ with tab1:
     # ―――― π–Y diagram ――――――――――――――――
     pi_Y_fig = h.create_linear_plot(x_label="Y - Output", y_label="𝜋 - inflation")
 
-    # When "Show the IA as a Phillips Curve" is on, the IA is drawn taking THIS
-    # period's output gap (π = π^e + γ·Ỹ) → a positively sloped line pivoting on
-    # the operating point, instead of the horizontal (last-period-gap) IA. It
-    # therefore still meets AD exactly at the marked output and crosses Ȳ at π^e.
+    # When "Show the IA as a Phillips Curve" is on, the IA is drawn taking THIS period's output gap (π = π^e + γ·Ỹ) → a positively sloped line pivoting on the operating point, instead of the horizontal (last-period-gap) IA. It therefore still meets AD exactly at the marked output and crosses Ȳ at π^e.
     pc_slope = gamma / c.Y_potential
     STIA_slope = pc_slope if show_phillips else 0.0
     STIA_int   = (pi_0 - pc_slope * Y_shock) if show_phillips else pi_0
@@ -402,17 +402,11 @@ with tab1:
         output_fig.update_traces(mode="lines+markers", marker=dict(size=5))
 
         if st.session_state.locked_df is not None:
-            output_fig.add_scatter(
-                x=st.session_state.locked_df["Iteration"],
-                y=st.session_state.locked_df["Output"],
-                mode="lines", line=dict(color="#BBBBBB", dash="dot"), name="Previous run",
-            )
+            output_fig.add_scatter( x=st.session_state.locked_df["Iteration"], y=st.session_state.locked_df["Output"], mode="lines", line=dict(color="#BBBBBB", dash="dot"), name="Previous run", )
 
         if not st.session_state.iteration_df.empty:
             last = st.session_state.iteration_df.iloc[-1]
-            output_fig.add_annotation(x=last["Iteration"], y=last["Output"],
-                                      text=f"Y={last['Output']:.2f}", showarrow=False,
-                                      xanchor="left", yshift=12)
+            output_fig.add_annotation(x=last["Iteration"], y=last["Output"], text=f"Y={last['Output']:.2f}", showarrow=False, xanchor="left", yshift=12)
 
         output_fig.update_layout(xaxis_title="Period", yaxis_title="Y - Output", showlegend=False)
         h.add_line_to_plot(output_fig, 0, c.Y_potential, 0, iteration_count,
@@ -424,17 +418,11 @@ with tab1:
         inflation_fig.update_traces(mode="lines+markers", marker=dict(size=5))
 
         if st.session_state.locked_df is not None:
-            inflation_fig.add_scatter(
-                x=st.session_state.locked_df["Iteration"],
-                y=st.session_state.locked_df["Inflation"],
-                mode="lines", line=dict(color="#BBBBBB", dash="dot"), name="Previous run",
-            )
+            inflation_fig.add_scatter( x=st.session_state.locked_df["Iteration"], y=st.session_state.locked_df["Inflation"], mode="lines", line=dict(color="#BBBBBB", dash="dot"), name="Previous run", )
 
         if not st.session_state.iteration_df.empty:
             last = st.session_state.iteration_df.iloc[-1]
-            inflation_fig.add_annotation(x=last["Iteration"], y=last["Inflation"],
-                                         text=f"𝜋={last['Inflation']:.2f}", showarrow=False,
-                                         xanchor="left", yshift=12)
+            inflation_fig.add_annotation(x=last["Iteration"], y=last["Inflation"],text=f"𝜋={last['Inflation']:.2f}", showarrow=False,xanchor="left", yshift=12)
 
         inflation_fig.update_layout(xaxis_title="Period", yaxis_title="𝜋 - inflation", showlegend=False)
         h.add_line_to_plot(inflation_fig, 0, pi_eq, 0, iteration_count,
@@ -446,17 +434,11 @@ with tab1:
         rate_fig.update_traces(mode="lines+markers", marker=dict(size=5))
 
         if st.session_state.locked_df is not None:
-            rate_fig.add_scatter(
-                x=st.session_state.locked_df["Iteration"],
-                y=st.session_state.locked_df["Interest Rate"],
-                mode="lines", line=dict(color="#BBBBBB", dash="dot"), name="Previous run",
-            )
+            rate_fig.add_scatter( x=st.session_state.locked_df["Iteration"], y=st.session_state.locked_df["Interest Rate"], mode="lines", line=dict(color="#BBBBBB", dash="dot"), name="Previous run", )
 
         if not st.session_state.iteration_df.empty:
             last = st.session_state.iteration_df.iloc[-1]
-            rate_fig.add_annotation(x=last["Iteration"], y=last["Interest Rate"],
-                                    text=f"r={last['Interest Rate']:.2f}", showarrow=False,
-                                    xanchor="left", yshift=12)
+            rate_fig.add_annotation(x=last["Iteration"], y=last["Interest Rate"], text=f"r={last['Interest Rate']:.2f}", showarrow=False, xanchor="left", yshift=12)
 
         r_eq_display = MP_slope * c.Y_potential + (r_init - lambda_p + lambda_i * pi_eq)
         rate_fig.update_layout(xaxis_title="Period", yaxis_title="r - interest rate", showlegend=False)
@@ -467,9 +449,7 @@ with tab1:
     # ―――― Animation step ――――――――――――――――
     if phase == "adjusting":
         new_row_idx = len(st.session_state.iteration_df)
-        st.session_state.iteration_df.loc[new_row_idx] = [
-            st.session_state.iter_counter, Y_cur, pi_cur, r_cur
-        ]
+        st.session_state.iteration_df.loc[new_row_idx] = [st.session_state.iter_counter, Y_cur, pi_cur, r_cur]
         st.session_state.pi_prev = pi_cur + gamma * (Y_cur - c.Y_potential) / c.Y_potential + eta
         st.session_state.iter_counter += 1
 

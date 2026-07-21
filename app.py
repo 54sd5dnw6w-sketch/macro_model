@@ -1,6 +1,5 @@
 import streamlit as st
 
-
 pages_ = {
     "Consensus Model": [
         st.Page("pages/closed_economy.py", title="Closed Economy"),

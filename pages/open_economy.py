@@ -333,6 +333,22 @@ else:
     STIA_color, STIA_name, STIA_lw = "#CDEACB", "STIA", c.thin_line_width
     STIS_color, STIS_name, STIS_lw = "#AEC7E8", "STIS", c.thin_line_width
 
+# ―――― Static (short-run) curves: rest while idle, shocked after Play ――――――――――――――――
+# Before Play the diagrams show the pre-shock resting equilibrium (Y=Ȳ, π=πᵃ, r=rᵃ);
+# the curves jump to the shocked position only once Play is pressed.
+if phase == "idle":
+    sIS_slope, sIS_int = -1 / PHI_BASE, (OMEGA_BASE + PSI_BASE * WR_BASELINE) / PHI_BASE
+    sMP_slope, sMP_int = LP_BASE / Ybar, RP_BASE - LP_BASE + LI_BASE * PIA_BASE
+    sFX = RA_BASE
+    sAD_slope, sAD_int = -LP_BASE / (LI_BASE * Ybar), (RA_BASE - RP_BASE + LP_BASE) / LI_BASE
+    sIA, sY = PIA_BASE, Ybar
+else:
+    sIS_slope, sIS_int = IS_slope, IS_intercept_shock
+    sMP_slope, sMP_int = MP_slope, MP_intercept_shock
+    sFX = r_foreign
+    sAD_slope, sAD_int = AD_slope, AD_intercept
+    sIA, sY = pi_0, Y_shock
+
 # ―――― Tabs ――――――――――――――――
 tab1, tab2 = st.tabs(["📊 Model", "📖 Theory"])
 
@@ -345,11 +361,11 @@ with tab1:
 
     # ―――― r–Y diagram ――――――――――――――――
     r_Y_fig = h.create_linear_plot(x_label="Y - Output", y_label="r - interest rate")
-    h.add_line_to_plot(r_Y_fig, IS_slope, IS_intercept_shock, x_lo, x_hi,
+    h.add_line_to_plot(r_Y_fig, sIS_slope, sIS_int, x_lo, x_hi,
                        name=STIS_name, color=STIS_color, line_width=STIS_lw)
-    h.add_line_to_plot(r_Y_fig, MP_slope, MP_intercept_shock, x_lo, x_hi,
+    h.add_line_to_plot(r_Y_fig, sMP_slope, sMP_int, x_lo, x_hi,
                        name=STMP_name, color=STMP_color, line_width=STMP_lw)
-    h.add_line_to_plot(r_Y_fig, 0, r_foreign, x_lo, x_hi, name='FX', color="#E45756")
+    h.add_line_to_plot(r_Y_fig, 0, sFX, x_lo, x_hi, name='FX', color="#E45756")
 
     if phase != "idle":
         h.add_line_to_plot(r_Y_fig, IS_slope, IS_intercept_cur, x_lo, x_hi,
@@ -359,8 +375,8 @@ with tab1:
         h.add_vertical_line(r_Y_fig, Y_cur, y_max=r_cur,
                             name=f"Y ({Y_cur:.2f})", name_position='bottom', color='#B0B0B0', dash='dot')
     else:
-        h.add_vertical_line(r_Y_fig, Y_shock, y_max=r_foreign,
-                            name=f"Y ({Y_shock:.2f})", name_position='bottom', color='#B0B0B0', dash='dot')
+        h.add_vertical_line(r_Y_fig, sY, y_max=sFX,
+                            name=f"Y ({sY:.2f})", name_position='bottom', color='#B0B0B0', dash='dot')
 
     h.add_vertical_line(r_Y_fig, Ybar, name=f'Ȳ ({Ybar})', color='#555555', dash='8px,5px')
     h.show_plotly_fig(r_Y_fig, column_to_plot=cols[0])
@@ -369,9 +385,9 @@ with tab1:
 
     # ―――― π–Y diagram ――――――――――――――――
     pi_Y_fig = h.create_linear_plot(x_label="Y - Output", y_label="𝜋 - inflation")
-    h.add_line_to_plot(pi_Y_fig, 0, pi_0, x_lo, x_hi,
+    h.add_line_to_plot(pi_Y_fig, 0, sIA, x_lo, x_hi,
                        name=STIA_name, color=STIA_color, line_width=STIA_lw)
-    h.add_line_to_plot(pi_Y_fig, AD_slope, AD_intercept, x_lo, x_hi, name='AD', color="#B279A2")
+    h.add_line_to_plot(pi_Y_fig, sAD_slope, sAD_int, x_lo, x_hi, name='AD', color="#B279A2")
 
     if phase != "idle":
         h.add_line_to_plot(pi_Y_fig, 0, pi_cur, x_lo, x_hi,
@@ -379,8 +395,8 @@ with tab1:
         h.add_vertical_line(pi_Y_fig, Y_cur, y_max=pi_cur,
                             name=f"Y ({Y_cur:.2f})", name_position='bottom', color='#B0B0B0', dash='dot')
     else:
-        h.add_vertical_line(pi_Y_fig, Y_shock, y_max=pi_0,
-                            name=f"Y ({Y_shock:.2f})", name_position='bottom', color='#B0B0B0', dash='dot')
+        h.add_vertical_line(pi_Y_fig, sY, y_max=sIA,
+                            name=f"Y ({sY:.2f})", name_position='bottom', color='#B0B0B0', dash='dot')
 
     # PPP-curve: horizontal at foreign inflation πᵃ (the long-run anchor). Labelled
     # on the left so it doesn't collide with the IA label on the right.
