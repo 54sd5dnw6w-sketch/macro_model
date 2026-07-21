@@ -300,6 +300,21 @@ else:
     STMP_color, STMP_name, STMP_lw = "#FAD7B0", "STMP", c.thin_line_width
     STIA_color, STIA_name, STIA_lw = "#CDEACB", "STIA", c.thin_line_width
 
+# ―――― Static (short-run) curves: rest while idle, shocked after Play ――――――――――――――――
+# Before Play the diagrams show the pre-shock resting equilibrium (Y=Ȳ, π=3, r=3.5);
+# the curves jump to the shocked position only once Play is pressed.
+if phase == "idle":
+    sIS_slope, sIS_int = -1.0, 4.5                       # IS at ω=4.5, φ=1
+    sMP_slope, sMP_int = 0.5 / c.Y_potential, 3.0        # MP through (Ȳ, 3.5)
+    sAD_slope = (sIS_slope - 0.5 / c.Y_potential) / 0.5
+    sAD_int   = (4.5 - 2.0 + 0.5) / 0.5
+    sIA_pi, sY = PI_BASELINE, c.Y_potential
+else:
+    sIS_slope, sIS_int = IS_slope, IS_intercept
+    sMP_slope, sMP_int = MP_slope, MP_intercept_shock
+    sAD_slope, sAD_int = AD_slope, AD_intercept
+    sIA_pi, sY = pi_0, Y_shock
+
 # ―――― Tabs ――――――――――――――――
 tab1, tab2 = st.tabs(["📊 Model", "📖 Theory"])
 
@@ -312,8 +327,8 @@ with tab1:
 
     # ―――― r–Y diagram ――――――――――――――――
     r_Y_fig = h.create_linear_plot(x_label="Y - Output", y_label="r - interest rate")
-    h.add_line_to_plot(r_Y_fig, IS_slope, IS_intercept, x_lo, x_hi, name='IS', color="#4C78A8")
-    h.add_line_to_plot(r_Y_fig, MP_slope, MP_intercept_shock, x_lo, x_hi,
+    h.add_line_to_plot(r_Y_fig, sIS_slope, sIS_int, x_lo, x_hi, name='IS', color="#4C78A8")
+    h.add_line_to_plot(r_Y_fig, sMP_slope, sMP_int, x_lo, x_hi,
                        name=STMP_name, color=STMP_color, line_width=STMP_lw)
 
     if phase != "idle":
@@ -322,8 +337,8 @@ with tab1:
         h.add_vertical_line(r_Y_fig, Y_cur, y_max=r_cur,
                             name=f"Y ({Y_cur:.2f})", name_position='bottom', color='#B0B0B0', dash='dot')
     else:
-        h.add_vertical_line(r_Y_fig, Y_shock,
-                            name=f"Y ({Y_shock:.2f})", name_position='bottom', color='#B0B0B0', dash='dot')
+        h.add_vertical_line(r_Y_fig, sY,
+                            name=f"Y ({sY:.2f})", name_position='bottom', color='#B0B0B0', dash='dot')
 
     h.add_vertical_line(r_Y_fig, c.Y_potential, name=f'Ȳ ({c.Y_potential})', color='#555555', dash='8px,5px')
     h.show_plotly_fig(r_Y_fig, column_to_plot=cols[0])
@@ -336,10 +351,10 @@ with tab1:
     # When "Show the IA as a Phillips Curve" is on, the IA is drawn taking THIS period's output gap (π = π^e + γ·Ỹ) → a positively sloped line pivoting on the operating point, instead of the horizontal (last-period-gap) IA. It therefore still meets AD exactly at the marked output and crosses Ȳ at π^e.
     pc_slope = gamma / c.Y_potential
     STIA_slope = pc_slope if show_phillips else 0.0
-    STIA_int   = (pi_0 - pc_slope * Y_shock) if show_phillips else pi_0
+    STIA_int   = (sIA_pi - pc_slope * sY) if show_phillips else sIA_pi
     h.add_line_to_plot(pi_Y_fig, STIA_slope, STIA_int, x_lo, x_hi,
                        name=("LTIA(PC)" if show_phillips else STIA_name), color=STIA_color, line_width=STIA_lw)
-    h.add_line_to_plot(pi_Y_fig, AD_slope, AD_intercept, x_lo, x_hi, name='AD', color="#B279A2")
+    h.add_line_to_plot(pi_Y_fig, sAD_slope, sAD_int, x_lo, x_hi, name='AD', color="#B279A2")
 
     if phase != "idle":
         LTIA_slope = pc_slope if show_phillips else 0.0
@@ -349,9 +364,8 @@ with tab1:
         h.add_vertical_line(pi_Y_fig, Y_cur, y_max=pi_cur,
                             name=f"Y ({Y_cur:.2f})", name_position='bottom', color='#B0B0B0', dash='dot')
     else:
-        Y_IA_AD_shock, _ = h.find_line_intersection(0, pi_0, AD_slope, AD_intercept)
-        h.add_vertical_line(pi_Y_fig, Y_IA_AD_shock, y_max=pi_0,
-                            name=f"Y ({Y_IA_AD_shock:.2f})", name_position='bottom', color='#B0B0B0', dash='dot')
+        h.add_vertical_line(pi_Y_fig, sY, y_max=sIA_pi,
+                            name=f"Y ({sY:.2f})", name_position='bottom', color='#B0B0B0', dash='dot')
 
     h.add_vertical_line(pi_Y_fig, c.Y_potential, name=f'Ȳ ({c.Y_potential})', color='#555555', dash='8px,5px')
     h.show_plotly_fig(pi_Y_fig, column_to_plot=cols[0])
