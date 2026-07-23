@@ -273,15 +273,18 @@ MP_slope = lambda_p / Ybar
 AD_slope = -lambda_p / (lambda_i * Ybar)
 
 # ―――― Exchange-rate regime ――――――――――――――――
-# The adjustment path and the long-run end state depend on the regime:
-#   • Flexible / Fixed-no-sterilization → PPP holds, inflation returns to πᵃ.
-#       Under a float the exchange rate absorbs the shock; under a fixed peg
-#       without sterilization reserve flows tie r to rᵃ (monetary policy is
-#       powerless) but PPP still drags inflation back to foreign inflation.
-#   • Fixed-with-sterilization → monetary policy is temporarily independent and
-#       ends in a CRAWLING PEG: the long-run inflation π* = (rᵃ − r')/λ_I differs
-#       from foreign inflation πᵃ, and the nominal rate crawls at π* − πᵃ.
-ppp_regime = regime in ('Flexible', 'Fixed – no sterilization')
+# With the MP rule r = r' + λ_P·Ỹ + λ_I·π, long-run inflation is pinned wherever
+# the nominal exchange rate is free to move, so the regimes split as:
+#   • Flexible → the nominal rate floats. Monetary/foreign-rate shocks are
+#       permanent and the economy ends in a CRAWLING PEG: π* = (rᵃ − r')/λ_I ≠ πᵃ,
+#       with the nominal rate crawling at π* − πᵃ. (Fiscal is crowded out.)
+#   • Fixed-with-sterilization → the CB sterilises to keep monetary policy
+#       independent; the hard peg is unsustainable and also ends in the same
+#       CRAWLING PEG π* = (rᵃ − r')/λ_I. (Fiscal is effective.)
+#   • Fixed-no-sterilization → reserve flows tie r to rᵃ (monetary policy is
+#       powerless) and the fixed nominal peg forces PPP, so π → πᵃ.
+# Only the no-sterilization peg returns inflation to foreign inflation.
+ppp_regime = (regime == 'Fixed – no sterilization')
 
 # Fixed without sterilization: reserve flows peg r to rᵃ, so domestic monetary
 # policy (r') has no effect — neutralise any monetary shock.
