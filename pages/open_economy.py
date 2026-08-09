@@ -6,12 +6,12 @@ import plotly.express as px
 import config as c
 import helpers as h
 
-# ―――― Open-economy consensus model (flexible exchange rate) ――――――――――――――――
-# Five equations (Lambsdorff & Giamattei, ch. 5):
+# ―――― Open-economy consensus model ――――――――――――――――
+# Five equations (Lambsdorff & Giamattei, ch. 5, eq. 5.1/5.2):
 #   IS : Y = ω − φ·r + ψ·wʳ
 #   MP : r = r' + λ_P·Ỹ + λ_I·π
 #   FX : r = rᵃ                      (UIP, static expectations)
-#   IA : π = π₋₁ + γ·Ỹ₋₁
+#   IA : π = π₋₁ + γ·Ỹ₋₁ + χ·(wʳ − wʳ₋₁) + η
 #   PPP: long-run domestic inflation converges to foreign inflation πᵃ
 #
 # Under a FLEXIBLE exchange rate the FX line binds (r = rᵃ). Output is therefore
@@ -20,6 +20,16 @@ import helpers as h
 #   • AD (from MP∩FX):  π = (rᵃ − r' + λ_P)/λ_I − λ_P/(λ_I·Ȳ)·Y
 #   • π* = (rᵃ − r')/λ_I      ← ω and ψ drop out ⇒ demand shocks fully crowd out
 #   • wʳ = (Y − ω + φ·rᵃ)/ψ
+#
+# ―――― χ: imported inflation (book §5.5) ――――――――――――――――
+# χ is the pass-through of a change in the real exchange rate to domestic prices
+# (large for a CPI basket, small for the GDP deflator). It is an EXTENSION: every
+# headline result of chapters 4–5.4 — full crowding out under a float above all —
+# is derived with χ = 0, which is why χ defaults to 0 here and is offered only at
+# the Advanced level. Switching it on reproduces §5.5: under a float the exchange
+# rate channel makes inflation adjust faster and the output response smaller.
+# Because wʳ and π move together, the χ term is solved SIMULTANEOUSLY with next
+# period's inflation (see `ia_next`), exactly as eq. (5.2) is written.
 
 # ―――― Fixed pre-shock baseline (period 0 of the charts) ――――――――――――――――
 # Default parameters below give the resting point Y=Ȳ, π=πᵃ=3, r=rᵃ=2, wʳ=1.
@@ -28,7 +38,7 @@ RP_BASE, LP_BASE, LI_BASE, GAMMA_BASE = 0.5, 0.5, 0.5, 0.5
 RA_BASE, PIA_BASE = 2.0, 3.0
 WR_BASELINE = (c.Y_potential - OMEGA_BASE + PHI_BASE * RA_BASE) / PSI_BASE   # → 1.0
 
-# ―――― Fixed-peg adjustment speeds (BOTH fixed regimes) ――――――――――――――――
+# ―――― Fixed-peg adjustment speed (BOTH fixed regimes) ――――――――――――――――
 # Whenever the NOMINAL rate is pegged, the REAL rate is not free: by definition
 # wʳ = w·pᵃ/p, so with w held fixed
 #     wʳ_{t+1} / wʳ_t = (1 + πᵃ) / (1 + π_t)
@@ -37,20 +47,35 @@ WR_BASELINE = (c.Y_potential - OMEGA_BASE + PHI_BASE * RA_BASE) / PSI_BASE   # �
 #
 # CONSEQUENCE (the peg identity): a steady state needs wʳ constant, which is only
 # possible when π = πᵃ. A pegged economy therefore CANNOT settle at an inflation
-# rate of its own — that is the difference between a peg and a crawling peg, and
-# it applies to the sterilised peg exactly as much as to the hard one.
+# rate of its own. See the "BOOK DIVERGENCE" note further down for what §5.3 says
+# about the sterilised peg, where this model and the book part company.
 #
-# THETA is the within-period pass-through of the inflation gap to wʳ under the
-# hard peg; it gives that regime a downward-sloping AD instead of a vertical one
-# (the sterilised peg already gets its slope from the MP rule, so it needs none).
-# The κ values are chosen for monotone, non-oscillating convergence in each case.
+# ―――― Why THETA exists (do not remove it) ――――――――――――――――
+# THETA is the WITHIN-period pass-through of the inflation gap to wʳ under the
+# hard peg:  wʳ_t = S_t − θ·(π_t − πᵃ), where S is the carried-over state. It is
+# not decoration — it is the only source of damping that regime has. Under a hard
+# peg r is nailed to rᵃ, so the Taylor rule cannot stabilise anything, and the
+# system in (π, wʳ) is
+#     M = [[1 − γψθ/Ȳ,  γψ/Ȳ],
+#          [   −κ,        1  ]]
+# whose determinant is 1 − γψθ/Ȳ + γψκ/Ȳ. With θ = κ (a single PPP law) det = 1
+# exactly: a harmonic centre that orbits forever and never converges. With θ = 0
+# (a vertical AD) det > 1 and the model explodes. Only θ > κ damps it.
 #
-# NOTE ON SPEED: true PPP arithmetic would give Δwʳ ≈ wʳ·(πᵃ−π)/100, which is
-# ~2 orders of magnitude slower than the κ below — a real "internal devaluation"
-# takes decades. These κ are deliberately fast so the adjustment is visible in a
-# 30-period run; treat a period as a long span of time, not a year.
-THETA_PEG, KAPPA_PEG = 0.8, 0.08     # hard peg (no sterilization)
-KAPPA_STERIL = 0.04                  # sterilised peg
+# κ is therefore DERIVED, not hand-tuned, from the critical-damping condition
+# trace² = 4·det, which gives the fastest monotone (non-oscillating) convergence:
+#     hard peg    κ = γ·ψ·θ²/(4·Ȳ)
+#     sterilised  κ = γ·φ²·λ_I²/(4·Ȳ·D·ψ),  D = 1 + φ·λ_P/Ȳ
+# (The sterilised peg has no θ: it gets its AD slope, and its damping, from the
+# CB's own MP rule.) Deriving κ is what keeps the tuning correct when γ, ψ, φ or
+# λ are changed at the Advanced level — with the old hard-coded κ the pegs went
+# silently under- or over-damped.
+#
+# NOTE ON SPEED: true PPP arithmetic would give Δwʳ ≈ wʳ·(πᵃ−π)/100, ~2 orders of
+# magnitude slower — a real "internal devaluation" takes decades. θ (and hence κ)
+# is deliberately fast so the adjustment is visible in a 30-period run; treat a
+# period as a long span of time, not a year.
+THETA_PEG = 0.8
 
 
 # ―――― Session State ――――――――――――――――
@@ -71,6 +96,7 @@ PARAM_KEYS = (
     "oe_m_omega", "oe_m_rinit", "oe_m_rforeign", "oe_m_infl",
     "oe_a_phi", "oe_a_psi", "oe_a_omega", "oe_a_rinit", "oe_a_lp", "oe_a_li",
     "oe_a_rforeign", "oe_a_piforeign", "oe_a_gamma", "oe_a_infl", "oe_a_eta",
+    "oe_a_chi",
 )
 
 
@@ -136,16 +162,20 @@ Capital flows in, the domestic currency appreciates (wʳ ↓) and net exports fa
     'Imported Inflation Shock': """
 <div style="text-align:center; font-size:17px; font-weight:700;">Imported Inflation Shock 📈</div>
 <div style="font-size:13px; color:gray;">
-A one-off rise in the real exchange rate makes foreign goods more expensive and passes directly into domestic prices (χ·Δwʳ), shifting the IA-curve up — even with no output gap (eq. 5.2).
+A one-off jump in import prices from abroad passes straight into domestic prices — the χ·Δwʳ term of eq. (5.2) — shifting the IA-curve up <b>even with no output gap</b>. It is modelled here as an exogenous one-off shift of IA; it lands once and is then inherited by later periods.
 <br><br>
-Inflation jumps above foreign inflation πᵃ. The central bank raises the real rate, output falls below potential, and the negative output gap brings inflation back down to πᵃ.
+Inflation jumps above foreign inflation πᵃ. Output falls below potential, and the negative output gap brings inflation back down to πᵃ.
+<br><br>
+<i>Reading the wʳ chart:</i> the line you see is the economy's <b>response</b>, not the shock. Higher inflation with the interest rate tied to rᵃ means the currency must strengthen (wʳ ↓) — under a peg because domestic prices outrun foreign ones, under a float because the currency appreciates. The shock itself comes from abroad and is not drawn.
 </div>""",
     'Imported Deflation Shock': """
 <div style="text-align:center; font-size:17px; font-weight:700;">Imported Deflation Shock 📉</div>
 <div style="font-size:13px; color:gray;">
-A one-off fall in the real exchange rate makes foreign goods cheaper and passes directly into domestic prices (χ·Δwʳ), shifting the IA-curve down — even with no output gap (eq. 5.2).
+A one-off fall in import prices from abroad passes straight into domestic prices — the χ·Δwʳ term of eq. (5.2) — shifting the IA-curve down <b>even with no output gap</b>. It is modelled here as an exogenous one-off shift of IA; it lands once and is then inherited by later periods.
 <br><br>
-Inflation drops below foreign inflation πᵃ. The central bank lowers the real rate, output rises above potential, and the positive output gap brings inflation back up to πᵃ.
+Inflation drops below foreign inflation πᵃ. Output rises above potential, and the positive output gap brings inflation back up to πᵃ.
+<br><br>
+<i>Reading the wʳ chart:</i> the line you see is the economy's <b>response</b>, not the shock — lower inflation with r tied to rᵃ means the currency weakens (wʳ ↑). The shock itself comes from abroad and is not drawn.
 </div>""",
     'Expansionary Fiscal Shock': """
 <div style="text-align:center; font-size:17px; font-weight:700;">Expansionary Fiscal Shock 🏛️</div>
@@ -260,7 +290,7 @@ turns out to depend on the exchange-rate regime — that is section 4.
 
 *"Inflation is sticky today, and drifts based on whether we're running hot or cold."*
 
-$$\pi_{t+1} = \pi_t + \gamma \tilde{Y}_t + \eta$$
+$$\pi_{t+1} = \pi_t + \gamma \tilde{Y}_t + \chi\,(w^r_{t+1} - w^r_t) + \eta$$
 
 Two crucial features:
 
@@ -270,6 +300,13 @@ Two crucial features:
 2. **The output gap is the engine.** Running above capacity ($\tilde{Y}>0$) pushes
    inflation up; running below pushes it down. Inflation only stops moving when
    output is back at potential.
+
+The $\chi$ term is **imported inflation** (§5.5): when the currency weakens, imports
+cost more and that feeds straight into the price index, with no output gap needed.
+$\chi$ is large for a consumer price index (which contains imported final goods) and
+small for the GDP deflator (which does not). It is an **extension** — every headline
+result below is derived with $\chi = 0$, which is why it defaults to zero and appears
+only at the Advanced level. Section 9 explains what changes when you switch it on.
 
 #### PPP — where does inflation eventually settle?
 
@@ -363,15 +400,35 @@ But the peg is still a peg, and that has an unavoidable consequence:
 > $\pi = \pi^a$. **A pegged country cannot end up with an inflation rate of its own,**
 > sterilised or not.
 
-So sterilisation changes the interest rate and the *speed* of adjustment — not the
-destination. Inflation still returns to $\pi^a$, and crowding out still arrives, just
-through the **trade balance** rather than through the exchange rate jumping.
+So in *this model* sterilisation changes the interest rate and the *speed* of
+adjustment — not the destination. Inflation still returns to $\pi^a$, and crowding out
+still arrives, just through the **trade balance** rather than through the exchange rate
+jumping.
 
 And you cannot cheat the trinity forever. In the long run the bank's own rule leaves
 $r = r' + \lambda_I \pi^a$. If it changed $r'$ (or if $r^a$ moved), that is *not* equal
 to $r^a$ — so capital keeps flowing and reserves drain without limit. The peg must
 eventually break, or become a genuine **crawling peg**. The app warns you when the
 scenario you have chosen is in that position.
+
+> ⚠️ **Where this app and the book differ — read this before quoting a long run.**
+> For a **monetary** (or foreign-rate) shock under the **sterilised peg**, book §5.3
+> gives a *different* long run from the one simulated here. The book holds $w^r$ still,
+> lets inflation do all the adjusting, and lands at
+> $$P_\infty:\quad \pi^* = \frac{r^a - r'}{\lambda_I},\qquad r \to r^a$$
+> — i.e. **the same long run as the float**, reached only by converting the peg into a
+> crawling peg. Its words: *"The difference between fixed and flexible exchange rates
+> is, therefore, not in the long-run equilibrium but in the adjustment path."*
+>
+> This app instead lets $w^r$ drift (the peg identity above), so inflation returns to
+> $\pi^a$ and it is the *interest rate* that ends up off-parity. Both are internally
+> consistent; they differ in **which variable is assumed to give way** while the peg is
+> held. What you see here is the *while-the-peg-lasts* path. The book's $P_\infty$
+> needs a fourth regime — a genuine crawling peg — which is not implemented yet.
+>
+> Note this affects **only** the sterilised peg after a monetary or foreign-rate shock.
+> For demand shocks the book uses the same $w^r$ drift this app does (§5.2), and both
+> agree that inflation returns to $\pi^a$.
 
 ---
 
@@ -398,7 +455,8 @@ This is the crucial distinction from a *fixed* peg. Under a genuine nominal peg 
 peg identity above forces $\pi \to \pi^a$; only by letting the nominal rate move — a
 float, or a crawl — can a country hold on to an inflation rate of its own. In this
 model the **Flexible** regime is the one that ends in a crawling peg; both fixed
-regimes end at $\pi^a$.
+regimes end at $\pi^a$ — with the caveat in the box above, since book §5.3 puts the
+sterilised peg's monetary-shock long run here at $\pi^*$ too, not at $\pi^a$.
 
 Look for the **π\*** reference line in the inflation chart: under a float it sits
 *away* from the grey PPP line, and inflation converges to it rather than to $\pi^a$.
@@ -417,7 +475,7 @@ the period-1 output numbers below are exactly what the app produces.
 | **Monetary policy** (cut rates) | ✅ Works, permanently | ❌ **Powerless** | ✅ Works, permanently |
 | *period-1 output* | $1.60$ | $1.00$ (nothing) | $1.20$ |
 | **Foreign rate rises** | Expansionary $(1.60)$ | **Contractionary** $(0.70)$ | Insulated $(1.00)$ |
-| **Inflation ends at** | crawling peg $\pi^* \neq \pi^a$ | $\pi^a$ (the peg identity) | $\pi^a$ — but the peg itself is not sustainable |
+| **Inflation ends at** | crawling peg $\pi^* \neq \pi^a$ | $\pi^a$ (the peg identity) | $\pi^a$ here — but see the box in §4; book §5.3 puts it at $\pi^*$, and the peg is not sustainable either way |
 
 One more row is worth adding, because it is the whole point of the sterilised peg:
 
@@ -454,8 +512,15 @@ Note the sign flip described above, and that sterilisation blocks it entirely.
 
 **📈📉 Imported inflation / deflation** — a one-off jump in import prices pushes
 inflation up (or down) *directly*, with no output gap needed. This is the one shock
-that hits the IA curve first rather than the AD curve. The central bank responds by
-tightening, output dips, and the gap slowly squeezes inflation back down.
+that hits the IA curve first rather than the AD curve. Output then dips and the gap
+slowly squeezes inflation back down.
+
+Careful when reading the $w^r$ chart for these two: the line is the economy's
+**response**, not the shock. The shock arrives from abroad and is applied to the IA
+curve; the currency then *strengthens* ($w^r \downarrow$) because higher inflation with
+$r$ tied to $r^a$ can only be reconciled by a stronger real exchange rate. If you want
+the exchange rate itself to be the *source* of the price shock, that is the $\chi$
+channel in §9.
 
 ---
 
@@ -474,12 +539,53 @@ again — the difference between the two lines is the whole lesson of this chapt
 
 ---
 
+## 9. Imported inflation, $\chi$ — the §5.5 extension
+
+Set $\chi > 0$ at the **Advanced** level and the exchange rate stops being only a
+quantity story. Now a movement in $w^r$ also moves the price index directly, because
+imported goods are *in* that index.
+
+Take the book's own example: a **contractionary monetary policy under a float**. The
+currency appreciates sharply on impact. With $\chi = 0$ that only cuts net exports, and
+you get a deep depression ($Y_1 = 0.40$). With $\chi = 0.5$ the appreciation *also*
+makes imports cheaper, so inflation falls immediately instead of waiting for the output
+gap — and because the central bank sees lower inflation, it does not need as deep a
+slump ($Y_1 = 0.60$, $\pi_1 = 2.80$).
+
+> **§5.5's conclusion:** recognising imported inflation *increases* the impact of
+> monetary policy on inflation and *reduces* its impact on output.
+
+Two things worth noticing when you turn it on:
+
+- The **long run does not move.** Once $w^r$ stops changing, the $\chi$ term is zero, so
+  $\pi^*$ and $\bar Y$ are exactly where they were.
+- **Full crowding out becomes partial.** Under a float a fiscal expansion appreciates
+  the currency, which now *lowers* measured inflation, which lets the central bank
+  tolerate more output. So $Y_1 > \bar Y$ instead of exactly $\bar Y$. This is a real
+  implication of $\chi$, and it is why chapters 4–5.4 — and the table in §6 — are stated
+  for $\chi = 0$.
+
+---
+
+### A simplification worth knowing about
+
+The FX curve here is $r = r^a$ flat, i.e. investors expect today's real exchange rate to
+persist. Book §4.7 and §5.2 relax this. If investors *anticipate* the real appreciation
+that a slump under a peg will bring, then $w^{r,e}_{+1}/w^r > 1$ requires $r > r^a$, so
+the no-sterilisation point $P_o$ sits **above** the FX curve and further left — the
+depression is deeper still. The book calls this an important finding: an exchange rate
+peg without sterilisation makes an economy *more* vulnerable to a demand collapse. This
+app reproduces the ranking (the hard peg's slump is deeper than the sterilised one) but
+not the extra amplification.
+
+---
+
 ### The five equations, together
 
 $$Y = \omega - \varphi\, r + \psi\, w^r \qquad\text{(IS)}$$
 $$r = r' + \lambda_P\,\tilde Y + \lambda_I\,\pi \qquad\text{(MP)}$$
 $$r = r^a \qquad\text{(FX — binds except under sterilisation)}$$
-$$\pi_{t+1} = \pi_t + \gamma\,\tilde Y_t + \eta \qquad\text{(IA)}$$
+$$\pi_{t+1} = \pi_t + \gamma\,\tilde Y_t + \chi\,(w^r_{t+1}-w^r_t) + \eta \qquad\text{(IA)}$$
 $$\pi \to \pi^a \quad\text{or}\quad \pi \to \pi^* \qquad\text{(PPP vs. crawling peg)}$$
 
 *Based on the consensus model of Lambsdorff & Giamattei, chapter 5.*
@@ -508,8 +614,10 @@ with st.sidebar:
                                 "Fixed – no sterilization: r tied to rᵃ so monetary policy is powerless, "
                                 "fiscal is fully effective, and PPP returns π to πᵃ. "
                                 "Fixed – with sterilization: the CB keeps its own r, so the economy is "
-                                "insulated from rᵃ, fiscal works (damped), and monetary policy ends in a "
-                                "crawling peg (π* ≠ πᵃ, the nominal rate crawls at π − πᵃ)."))
+                                "insulated from rᵃ and fiscal works (damped). The nominal peg still holds, "
+                                "so wʳ drifts until π = πᵃ — which leaves r off parity and the peg "
+                                "indefensible. NOTE: book §5.3 instead holds wʳ still and ends at "
+                                "π* = (rᵃ − r')/λ_I via a crawling peg; see the Theory tab."))
 
     st.sidebar.markdown("<hr style='margin: 2px 0; border: none; border-top: 1px solid #ccc;'>", unsafe_allow_html=True)
 
@@ -518,6 +626,7 @@ with st.sidebar:
     phi = PHI_BASE; psi = PSI_BASE; lambda_p = LP_BASE; lambda_i = LI_BASE
     gamma = GAMMA_BASE; pi_foreign = PIA_BASE; eta = 0.0; inflation_shock = 0.0
     omega = OMEGA_BASE; r_init = RP_BASE; r_foreign = RA_BASE; pi_0_override = None
+    chi = 0.0                      # imported-inflation pass-through (§5.5) — Advanced only
 
     if level == 'Easy':
         st.markdown('##### Please Select the shock:')
@@ -588,7 +697,14 @@ with st.sidebar:
                                 key="oe_a_gamma", help=r"IA curve: $\pi_{t+1} = \pi_t + \gamma \tilde Y_t + \eta$")
         inflation_shock = st.number_input(r"Imported Inflation (%):", on_change=reset, min_value=-3.0, max_value=3.0,
                                           step=0.25, value=0.0, key="oe_a_infl",
-                                          help="One-off shift of the initial IA level (χ·Δwʳ).")
+                                          help="One-off exogenous shift of the initial IA level — an import-price "
+                                               "jump arriving from abroad. Lands once and is inherited thereafter.")
+        chi = st.number_input(r'$\chi$ (imported inflation):', on_change=reset, min_value=0.0, max_value=2.0,
+                              step=0.1, value=0.0, key="oe_a_chi",
+                              help=r"Pass-through of a change in the real exchange rate to domestic prices, "
+                                   r"eq. (5.2): $\pi_{t+1} = \pi_t + \gamma\tilde Y_t + \chi(w^r_{t+1}-w^r_t) + \eta$. "
+                                   r"Large for a CPI basket, small for the GDP deflator. This is the §5.5 "
+                                   r"extension — chapters 4–5.4 (and full crowding out under a float) assume χ = 0.")
         eta = st.number_input(r'$\eta$ (exogenous shock):', on_change=reset, step=0.1, value=0.0,
                               key="oe_a_eta", help=r"Persistent exogenous price shock each period.")
 
@@ -648,6 +764,21 @@ AD_slope = -lambda_p / (lambda_i * Ybar)
 #   unbounded reserve flows — the peg is NOT sustainable and must break (or become
 #   a genuine crawling peg). Flagged in the UI rather than silently simulated.
 #
+#   *** BOOK DIVERGENCE (§5.3) — the one place this model and the book disagree ***
+#   For a MONETARY or FOREIGN-RATE shock under sterilisation, book §5.3 holds wʳ
+#   STILL and lets inflation do all the adjusting, landing at
+#       P∞:  π* = (rᵃ − r')/λ_I  and  r → rᵃ   — the SAME long run as the float,
+#   reachable only by turning the peg into a genuine CRAWLING peg ("The difference
+#   between fixed and flexible exchange rates is, therefore, not in the long-run
+#   equilibrium but in the adjustment path."). This model instead lets wʳ drift, so
+#   π → πᵃ and it is r that ends off-parity. Both are internally consistent; they
+#   differ in which variable is assumed to give way while the peg is held. What is
+#   simulated here is the WHILE-IT-LASTS path. Reaching the book's P∞ needs a
+#   fourth regime (crawling peg) — not implemented; surfaced in the UI and the
+#   Theory tab instead of being papered over.
+#   NOTE this affects ONLY the sterilised peg after a monetary/foreign-rate shock.
+#   For DEMAND shocks the book uses the same wʳ drift (§5.2) and both agree on πᵃ.
+#
 # FIXED – NO STERILIZATION — reserve flows are left to run, so they drag r to the
 #   foreign rate: r = rᵃ and MONETARY POLICY IS POWERLESS (r' never appears).
 #   The nominal peg holds, so the REAL rate wʳ is a slow-moving STATE that drifts
@@ -655,6 +786,7 @@ AD_slope = -lambda_p / (lambda_i * Ybar)
 #       Y   = ω − φ·rᵃ + ψ·wʳ_t − ψθ·(π_t − πᵃ)
 #       wʳ_{t+1} = wʳ_t + κ·(πᵃ − π_t)
 #   Fiscal is FULLY effective here (full IS multiplier — the largest of the three).
+#   (θ is what damps this regime — see the note at the top of the file.)
 fixed_regime = regime in ('Fixed – no sterilization', 'Fixed – with sterilization')
 peg_no_steril = (regime == 'Fixed – no sterilization')
 peg_steril = (regime == 'Fixed – with sterilization')
@@ -706,8 +838,34 @@ def peg_ad_intercept(wr_state):
 
 
 def peg_kappa():
-    """Drift speed of the real exchange rate under whichever peg is selected."""
-    return KAPPA_STERIL if peg_steril else KAPPA_PEG
+    """Carry-over drift speed of the real exchange rate under whichever peg is
+    selected: wʳ_{t+1} = wʳ_t + κ·(πᵃ − π_t).
+
+    DERIVED from the model's own parameters instead of hard-coded, so the tuning
+    stays correct when γ, ψ, φ or λ are changed at the Advanced level. (With a
+    fixed κ the pegs silently went under- or over-damped as soon as a slider moved.)
+
+    The SCALE is the critical-damping value of each regime's (π, wʳ) system, i.e.
+    the κ solving trace² = 4·det:
+        hard peg    κ_c = γ·ψ·θ²/(4·Ȳ)                    → 0.080 at the defaults
+        sterilised  κ_c = γ·φ²·λ_I²/(4·Ȳ·D·ψ),  D = 1+φλ_P/Ȳ → 0.021 at the defaults
+    See the note at the top of the file for why the pegs need damping at all.
+
+    The MULTIPLIER is a display-speed calibration. κ_c minimises the asymptotic
+    decay rate, but the pegs are nowhere near their asymptote after 30 periods, so
+    the transient is what the user actually sees. Measured over all eight shocks,
+    worst-case distance from equilibrium at the last plotted period:
+        hard peg    ×1: 0.017   ×2: 0.003   ×3: 0.005   (overshoot 0.08/0.15/0.20)
+        sterilised  ×1: 0.445   ×2: 0.111   ×3: 0.066   (overshoot 0.05/0.08/0.10)
+    The hard peg is already damped by θ and settles at ×1; the sterilised peg has
+    only the Taylor rule to lean on and needs ×3 to finish inside the chart. Both
+    stay comfortably stable (ρ ≈ 0.92)."""
+    if peg_steril:
+        # Damping comes from the CB's own MP rule (there is no θ here).
+        D = 1 + phi * lambda_p / Ybar
+        return 3.0 * gamma * phi ** 2 * lambda_i ** 2 / (4 * Ybar * D * psi)
+    # Hard peg: damping comes from θ, the within-period pass-through.
+    return gamma * psi * THETA_PEG ** 2 / (4 * Ybar)
 
 
 # ―――― T2: is the peg actually defensible? ――――――――――――――――
@@ -717,9 +875,11 @@ def peg_kappa():
 peg_lr_rate = r_init + lambda_i * pi_foreign if peg_steril else r_foreign
 peg_unsustainable = peg_steril and abs(peg_lr_rate - r_foreign) > 1e-6
 
-# Real exchange rate implied by the long run (shared by ALL regimes — they differ
-# only in how fast they get there, never in where they end up).
-WR_LONGRUN = (Ybar - omega + phi * peg_lr_rate) / psi if fixed_regime else None
+# Real exchange rate implied by the long run. Defined for EVERY regime: in the long
+# run Y = Ȳ, so IS gives wʳ* = (Ȳ − ω + φ·r*)/ψ with r* the regime's long-run rate.
+# Used as the reference line on the wʳ time series (the old wʳ₀ line pointed at the
+# pre-shock level, which is not where any shocked run ends up).
+WR_LONGRUN = (Ybar - omega + phi * peg_lr_rate) / psi
 
 # Regime outcome summary (shown in the right column).
 if ppp_regime:
@@ -727,6 +887,10 @@ if ppp_regime:
                       f"{pi_foreign:.2f}. Under a nominal peg the real exchange rate must do the "
                       f"adjusting (wʳ → {WR_LONGRUN:.2f}) — inflation cannot settle anywhere else."
                       f"</span>")
+    if peg_steril:
+        regime_outcome += ("<br><span style='color:#999; font-size:12px;'>Book §5.3 instead holds wʳ "
+                           f"still after a monetary/foreign-rate shock and ends at π* = "
+                           f"{(r_foreign - r_init) / lambda_i:.2f} via a crawling peg — see Theory §4.</span>")
 else:
     regime_outcome = (f"<b>{regime}</b><br><span style='color:gray;'>Long-run: <b>crawling peg</b> — "
                       f"π* = {pi_eq:.2f} ≠ πᵃ = {pi_foreign:.2f}; the nominal exchange rate crawls at "
@@ -736,19 +900,6 @@ else:
 # absent from the float's AD → crowded out; present in both pegs → effective), so
 # no separate adjustment is needed.
 fiscal_shock = omega - OMEGA_BASE
-
-# Initial (period-1) inflation: predetermined at πᵃ, moved only by an imported/initial shock.
-pi_0 = pi_foreign + inflation_shock
-
-# pi_cur / wr_cur_state: the animation's two state variables. Inflation is a state
-# in every regime; the real exchange rate is only a state under the hard peg.
-if st.session_state.oe_pi_prev is None:
-    st.session_state.oe_pi_prev = pi_0
-if st.session_state.oe_wr_prev is None:
-    st.session_state.oe_wr_prev = WR_BASELINE
-pi_cur = st.session_state.oe_pi_prev
-wr_state = st.session_state.oe_wr_prev
-
 
 def output_at(pi, ad_intercept=None, wr_state_=None):
     """Output on the regime's AD-curve at inflation π. Under EITHER peg the AD
@@ -768,19 +919,74 @@ def rate_at(y, pi):
     return r_foreign
 
 
-def realfx_at(y, pi=None):
-    """Real exchange rate wʳ. Under a float it jumps so IS passes through (Y, rᵃ);
-    under EITHER peg the nominal rate is fixed, so wʳ is the slow-moving state."""
+def realfx_at(y, pi, state):
+    """Real exchange rate wʳ at an operating point. Under a float it jumps so IS
+    passes through (Y, rᵃ); under EITHER peg the nominal rate is fixed, so wʳ is
+    driven by the carried-over state `state`.
+
+    `state` is passed EXPLICITLY rather than read from the session: the frozen
+    period-1 curves must be evaluated at the period-1 state (WR_BASELINE), while
+    the live curves use the current one. Reading a module-level state here made
+    the pale 'short-run' IS line drift across the diagram as the run advanced."""
     if peg_steril:
-        return wr_state
+        return state
     if peg_no_steril:
-        return wr_state - THETA_PEG * ((pi_cur if pi is None else pi) - pi_foreign)
+        return state - THETA_PEG * (pi - pi_foreign)
     return (y - omega + phi * r_foreign) / psi
 
 
-def is_intercept_at(y, pi=None):
+def is_intercept_at(y, pi, state):
     """IS intercept for the r/Y diagram, given the wʳ that goes with this point."""
-    return (omega + psi * realfx_at(y, pi)) / phi
+    return (omega + psi * realfx_at(y, pi, state)) / phi
+
+
+def next_wr_coeffs(state_next):
+    """Next period's realised wʳ written as W + b·π₊₁, given the peg state that
+    will apply then. Needed because eq. (5.2)'s χ(wʳ₊₁ − wʳ) term is contemporaneous
+    with π₊₁ — the two have to be solved together, not sequentially."""
+    if peg_steril:
+        return state_next, 0.0                       # wʳ is the state; π does not move it
+    if peg_no_steril:
+        return state_next + THETA_PEG * pi_foreign, -THETA_PEG
+    # Float: wʳ = (Y(π) − ω + φrᵃ)/ψ with Y(π) = (π − AD_intercept)/AD_slope.
+    return ((-AD_intercept / AD_slope - omega + phi * r_foreign) / psi,
+            1.0 / (psi * AD_slope))
+
+
+def ia_next(pi_now, y_now, wr_now, state_next):
+    """IA curve, eq. (5.2):  π₊₁ = π + γ·Ỹ + χ·(wʳ₊₁ − wʳ) + η.
+
+    With χ = 0 (the default, and all of chapters 4–5.4) this is the plain
+    output-gap rule. With χ > 0 the imported-inflation channel of §5.5 is live and
+    the equation is implicit in π₊₁, so it is solved in closed form."""
+    base = pi_now + gamma * (y_now - Ybar) / Ybar + eta
+    if chi == 0:
+        return base
+    W, b = next_wr_coeffs(state_next)
+    return (base + chi * (W - wr_now)) / (1 - chi * b)
+
+
+def peg_state_next(state, pi):
+    """PPP drift of the pegged real exchange rate: wʳ_{t+1} = wʳ_t + κ(πᵃ − π_t)."""
+    return state + peg_kappa() * (pi_foreign - pi) if fixed_regime else state
+
+
+# Initial (period-1) inflation: predetermined at πᵃ, moved by the one-off imported
+# price shock and — when χ > 0 — by the impact jump in the real exchange rate.
+if chi == 0:
+    pi_0 = pi_foreign + inflation_shock
+else:
+    _W1, _b1 = next_wr_coeffs(WR_BASELINE)
+    pi_0 = (pi_foreign + inflation_shock + chi * (_W1 - WR_BASELINE)) / (1 - chi * _b1)
+
+# pi_cur / wr_state: the animation's two state variables. Inflation is a state in
+# every regime; the real exchange rate is only a state under a peg.
+if st.session_state.oe_pi_prev is None:
+    st.session_state.oe_pi_prev = pi_0
+if st.session_state.oe_wr_prev is None:
+    st.session_state.oe_wr_prev = WR_BASELINE
+pi_cur = st.session_state.oe_pi_prev
+wr_state = st.session_state.oe_wr_prev
 
 
 # Current period (animated) operating point.
@@ -793,19 +999,50 @@ if phase == "idle":
 else:
     Y_cur = output_at(pi_cur, _cur_ad, wr_state)
     r_cur = rate_at(Y_cur, pi_cur)
-    wr_cur = realfx_at(Y_cur, pi_cur)
-IS_intercept_cur = is_intercept_at(Y_cur, pi_cur)
+    wr_cur = realfx_at(Y_cur, pi_cur, wr_state)
+IS_intercept_cur = is_intercept_at(Y_cur, pi_cur, wr_state if phase != "idle" else WR_BASELINE)
 MP_intercept_cur = r_init - lambda_p + lambda_i * pi_cur
 
-# Shocked (period-1) operating point — the short-run impact jump.
+# Shocked (period-1) operating point — the short-run impact jump. Evaluated at the
+# PERIOD-1 state (WR_BASELINE), never the live one, so the pale short-run curves
+# stay frozen where the shock actually put them while the run advances.
 Y_shock = output_at(pi_0, AD_intercept_sr, WR_BASELINE)
 r_shock = rate_at(Y_shock, pi_0)
-wr_shock = realfx_at(Y_shock, pi_0)
-IS_intercept_shock = is_intercept_at(Y_shock, pi_0)
+wr_shock = realfx_at(Y_shock, pi_0, WR_BASELINE)
+IS_intercept_shock = is_intercept_at(Y_shock, pi_0, WR_BASELINE)
 MP_intercept_shock = r_init - lambda_p + lambda_i * pi_0
 
-# Convergence check: stable if γ < 2·Ȳ·|AD_slope|
-convergence_ok = (gamma < 2 * Ybar * abs(AD_slope)) if AD_slope != 0 else True
+
+def spectral_radius():
+    """Largest eigenvalue modulus of the dynamic system actually being simulated.
+
+    Replaces the old check γ < 2·Ȳ·|AD_slope|, which was derived for the float —
+    a one-state system in π. Both pegs carry a SECOND state, the real exchange
+    rate, so a 1-D criterion cannot see their stability at all. ρ < 1 ⇔ the run
+    converges."""
+    if not fixed_regime:
+        if AD_slope == 0:
+            return 0.0
+        d = 1 - chi / (psi * AD_slope)
+        return abs((1 + gamma / (Ybar * AD_slope) - chi / (psi * AD_slope)) / d)
+    # Peg: (π, wʳ) system  M = [[a, b], [−κ, 1]]
+    k = peg_kappa()
+    if peg_steril:
+        D = 1 + phi * lambda_p / Ybar
+        a = 1 - gamma * phi * lambda_i / (Ybar * D) - chi * k
+        b = gamma * psi / (Ybar * D)
+    else:
+        a = 1 - gamma * psi * THETA_PEG / Ybar - chi * k
+        b = gamma * psi / Ybar
+    tr, det = a + 1.0, a + b * k
+    disc = tr * tr - 4 * det
+    if disc >= 0:
+        root = disc ** 0.5
+        return max(abs((tr + root) / 2), abs((tr - root) / 2))
+    return abs(det) ** 0.5
+
+
+convergence_ok = spectral_radius() < 1.0
 
 # ―――― Medium: concise dynamic description ――――――――――――――――
 if level == 'Medium':
@@ -816,8 +1053,8 @@ if level == 'Medium':
     elif r_init > RP_BASE + 0.05:   forces.append("tighter monetary policy (↑r')")
     if r_foreign > RA_BASE + 0.05:  forces.append("higher foreign rate (↑rᵃ)")
     elif r_foreign < RA_BASE - 0.05: forces.append("lower foreign rate (↓rᵃ)")
-    if inflation_shock > 0:         forces.append("imported inflation (↑χ·Δwʳ)")
-    elif inflation_shock < 0:       forces.append("imported deflation (↓χ·Δwʳ)")
+    if inflation_shock > 0:         forces.append("imported inflation (IA ↑, one-off)")
+    elif inflation_shock < 0:       forces.append("imported deflation (IA ↓, one-off)")
 
     if not forces:
         text_to_show = c.empty_placeholder_moderate_level_shock
@@ -839,10 +1076,11 @@ if level == 'Medium':
 
 # ―――― Continue: advance from short_term_paused to adjusting ――――――――――――――――
 if continue_clicked and phase == "short_term_paused":
-    st.session_state.oe_pi_prev = pi_0 + gamma * (Y_shock - Ybar) / Ybar + eta
     # Under EITHER peg the real exchange rate drifts with the inflation differential.
+    _state_next = peg_state_next(WR_BASELINE, pi_0)
+    st.session_state.oe_pi_prev = ia_next(pi_0, Y_shock, wr_shock, _state_next)
     if fixed_regime:
-        st.session_state.oe_wr_prev = WR_BASELINE + peg_kappa() * (pi_foreign - pi_0)
+        st.session_state.oe_wr_prev = _state_next
     st.session_state.oe_phase = "adjusting"
     st.rerun()
 
@@ -887,12 +1125,20 @@ if phase == "idle":
 else:
     sIS_slope, sIS_int = IS_slope, IS_intercept_shock
     sMP_slope, sMP_int = MP_slope, MP_intercept_shock
-    sFX = r_shock
-    # Short-run (shocked) AD. Under the hard peg the AD sits where the current
+    # The FX curve is the INTEREST-PARITY constraint r = rᵃ, not the operating
+    # point. Drawing it at the CB's own (sterilised) rate made the constraint
+    # appear to move to meet Pₛ, hiding the very gap that generates the reserve
+    # flows the sterilisation story is about (§4.5, §5.3). It is always rᵃ.
+    sFX = r_foreign
+    # Short-run (shocked) AD. Under either peg the AD sits where the PERIOD-1
     # real-exchange-rate state puts it.
     sAD_slope = AD_slope
     sAD_int = peg_ad_intercept(WR_BASELINE) if fixed_regime else AD_intercept_sr
     sIA, sY = pi_0, Y_shock
+
+# Under sterilisation the CB holds r away from rᵃ: the operating point is OFF the
+# FX line and reserves flow without limit. Reported next to the diagram.
+parity_gap = (r_cur - r_foreign) if peg_steril and phase != "idle" else 0.0
 
 # ―――― Tabs ――――――――――――――――
 tab1, tab2 = st.tabs(["📊 Model", "📖 Theory"])
@@ -970,7 +1216,14 @@ with tab1:
     # ―――― Right column ――――――――――――――――
     with cols[1].container(border=True):
         if not convergence_ok:
-            st.warning("⚠️ These parameters may not converge. Try reducing γ.")
+            st.warning(f"⚠️ These parameters do not converge (spectral radius "
+                       f"{spectral_radius():.2f} ≥ 1). Try reducing γ"
+                       + (" or χ." if chi else "."))
+
+        if parity_gap:
+            st.info(f"💱 **Off interest parity by {parity_gap:+.2f}pp** (r = {r_cur:.2f} vs "
+                    f"rᵃ = {r_foreign:.2f}). The operating point sits away from the red FX line — "
+                    f"that gap is exactly what drives the reserve flows the CB is sterilising.")
 
         if monetary_neutralised:
             st.info("🏛️ **Fixed peg, no sterilization:** monetary policy is powerless — reserve "
@@ -1039,7 +1292,9 @@ with tab1:
 
         _series_chart("Output",    "Y - Output",           "Y",  Ybar,        "Ȳ")
         _series_chart("Inflation", "𝜋 - inflation",        "𝜋",  pi_eq,       "𝜋*")
-        _series_chart("RealFX",    "wʳ - real exch. rate", "wʳ", WR_BASELINE, "wʳ₀")
+        # Reference is the LONG-RUN wʳ, not the pre-shock one: most shocks move
+        # the real exchange rate permanently, so wʳ₀ was the wrong target line.
+        _series_chart("RealFX",    "wʳ - real exch. rate", "wʳ", WR_LONGRUN,  "wʳ*")
         # r is pegged to rᵃ in every regime except 'fixed with sterilization', where
         # the CB sets its own rate — that is what makes the two pegs differ.
         _series_chart("Rate",      "r - interest rate",    "r",
@@ -1051,11 +1306,12 @@ with tab1:
         st.session_state.oe_iteration_df.loc[new_row_idx] = [
             st.session_state.oe_iter_counter, Y_cur, pi_cur, wr_cur, r_cur
         ]
-        st.session_state.oe_pi_prev = pi_cur + gamma * (Y_cur - Ybar) / Ybar + eta
-        # Hard peg: the real exchange rate drifts toward PPP (πᵃ − π), which is what
+        # Under a peg the real exchange rate drifts toward PPP (πᵃ − π), which is what
         # eventually closes the output gap and returns inflation to foreign inflation.
+        _state_next = peg_state_next(wr_state, pi_cur)
+        st.session_state.oe_pi_prev = ia_next(pi_cur, Y_cur, wr_cur, _state_next)
         if fixed_regime:
-            st.session_state.oe_wr_prev = wr_state + peg_kappa() * (pi_foreign - pi_cur)
+            st.session_state.oe_wr_prev = _state_next
         st.session_state.oe_iter_counter += 1
 
         if st.session_state.oe_iter_counter >= iteration_count:
