@@ -158,7 +158,11 @@ def add_arrow(fig, x_start, y_start, x_end, y_end):
 
 
 
-def show_plotly_fig(fig, height=400, column_to_plot=st):
+def show_plotly_fig(fig, height=400, column_to_plot=st, key=None):
+    """Render a figure. Pass a STABLE `key` for charts that are redrawn every
+    animation frame: without one Streamlit remounts the whole Plotly component on
+    each rerun, which is what makes the animation stutter (noticeably so in
+    Firefox). With a key the component is reused and only its data is updated."""
     fig.update_layout(
         height=height,
         margin=dict(t=0, b=0, l=0, r=0),
@@ -167,6 +171,7 @@ def show_plotly_fig(fig, height=400, column_to_plot=st):
     )
     column_to_plot.plotly_chart(
         fig,
+        key=key,
         config={"displayModeBar": False,"staticPlot": False,
         },
     )

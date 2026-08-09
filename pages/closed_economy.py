@@ -364,7 +364,7 @@ with tab1:
                             name=f"Y ({sY:.2f})", name_position='bottom', color='#B0B0B0', dash='dot')
 
     h.add_vertical_line(r_Y_fig, c.Y_potential, name=f'Ȳ ({c.Y_potential})', color='#555555', dash='8px,5px')
-    h.show_plotly_fig(r_Y_fig, column_to_plot=cols[0])
+    h.show_plotly_fig(r_Y_fig, column_to_plot=cols[0], key="ce_rY")
 
     output_gap = Y_cur - c.Y_potential
 
@@ -390,7 +390,7 @@ with tab1:
                             name=f"Y ({sY:.2f})", name_position='bottom', color='#B0B0B0', dash='dot')
 
     h.add_vertical_line(pi_Y_fig, c.Y_potential, name=f'Ȳ ({c.Y_potential})', color='#555555', dash='8px,5px')
-    h.show_plotly_fig(pi_Y_fig, column_to_plot=cols[0])
+    h.show_plotly_fig(pi_Y_fig, column_to_plot=cols[0], key="ce_piY")
 
     # ―――― Advanced: equation display ――――――――――――――――
     if level == 'Advanced':
@@ -447,7 +447,7 @@ with tab1:
         output_fig.update_layout(xaxis_title="Period", yaxis_title="Y - Output", showlegend=False)
         h.add_line_to_plot(output_fig, 0, c.Y_potential, 0, iteration_count,
                            name=f"Ȳ ({c.Y_potential:.2f})", line_width=2, color="#999999", dash='dot')
-        h.show_plotly_fig(output_fig, height=200)
+        h.show_plotly_fig(output_fig, height=200, key="ce_ts_output")
 
         # ―――― π / Periods chart ――――――――――――――――
         inflation_fig = px.scatter(st.session_state.iteration_df, x="Iteration", y="Inflation")
@@ -463,7 +463,7 @@ with tab1:
         inflation_fig.update_layout(xaxis_title="Period", yaxis_title="𝜋 - inflation", showlegend=False)
         h.add_line_to_plot(inflation_fig, 0, pi_eq, 0, iteration_count,
                            name=f"𝜋* ({pi_eq:.2f})", line_width=2, color="#999999", dash='dot')
-        h.show_plotly_fig(inflation_fig, height=200)
+        h.show_plotly_fig(inflation_fig, height=200, key="ce_ts_inflation")
 
         # ―――― r / Periods chart ――――――――――――――――
         rate_fig = px.scatter(st.session_state.iteration_df, x="Iteration", y="Interest Rate")
@@ -480,7 +480,7 @@ with tab1:
         rate_fig.update_layout(xaxis_title="Period", yaxis_title="r - interest rate", showlegend=False)
         h.add_line_to_plot(rate_fig, 0, r_eq_display, 0, iteration_count,
                            name=f"r* ({r_eq_display:.2f})", line_width=2, color="#999999", dash='dot')
-        h.show_plotly_fig(rate_fig, height=200)
+        h.show_plotly_fig(rate_fig, height=200, key="ce_ts_rate")
 
     # ―――― Animation step ――――――――――――――――
     if phase == "adjusting":
