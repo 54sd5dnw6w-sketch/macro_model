@@ -351,8 +351,7 @@ with tab1:
     # ―――― r–Y diagram ――――――――――――――――
     r_Y_fig = h.create_linear_plot(x_label="Y - Output", y_label="r - interest rate")
     h.add_line_to_plot(r_Y_fig, sIS_slope, sIS_int, x_lo, x_hi, name='IS', color="#4C78A8")
-    h.add_line_to_plot(r_Y_fig, sMP_slope, sMP_int, x_lo, x_hi,
-                       name=STMP_name, color=STMP_color, line_width=STMP_lw)
+    h.add_line_to_plot(r_Y_fig, sMP_slope, sMP_int, x_lo, x_hi,name=STMP_name, color=STMP_color, line_width=STMP_lw)
 
     if phase != "idle":
         h.add_line_to_plot(r_Y_fig, MP_slope, MP_intercept_cur, x_lo, x_hi,
@@ -435,7 +434,7 @@ with tab1:
 
         # ―――― Y / Periods chart ――――――――――――――――
         output_fig = px.scatter(st.session_state.iteration_df, x="Iteration", y="Output")
-        output_fig.update_traces(mode="lines+markers", marker=dict(size=5))
+        output_fig.update_traces(mode="lines", marker=dict(size=5))
 
         if st.session_state.locked_df is not None:
             output_fig.add_scatter( x=st.session_state.locked_df["Iteration"], y=st.session_state.locked_df["Output"], mode="lines", line=dict(color="#BBBBBB", dash="dot"), name="Previous run", )
@@ -451,7 +450,7 @@ with tab1:
 
         # ―――― π / Periods chart ――――――――――――――――
         inflation_fig = px.scatter(st.session_state.iteration_df, x="Iteration", y="Inflation")
-        inflation_fig.update_traces(mode="lines+markers", marker=dict(size=5))
+        inflation_fig.update_traces(mode="lines", marker=dict(size=5))
 
         if st.session_state.locked_df is not None:
             inflation_fig.add_scatter( x=st.session_state.locked_df["Iteration"], y=st.session_state.locked_df["Inflation"], mode="lines", line=dict(color="#BBBBBB", dash="dot"), name="Previous run", )
@@ -467,7 +466,7 @@ with tab1:
 
         # ―――― r / Periods chart ――――――――――――――――
         rate_fig = px.scatter(st.session_state.iteration_df, x="Iteration", y="Interest Rate")
-        rate_fig.update_traces(mode="lines+markers", marker=dict(size=5))
+        rate_fig.update_traces(mode="lines", marker=dict(size=5))
 
         if st.session_state.locked_df is not None:
             rate_fig.add_scatter( x=st.session_state.locked_df["Iteration"], y=st.session_state.locked_df["Interest Rate"], mode="lines", line=dict(color="#BBBBBB", dash="dot"), name="Previous run", )
