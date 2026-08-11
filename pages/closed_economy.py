@@ -169,8 +169,9 @@ MP_slope = lambda_p / c.Y_potential
 AD_slope = (IS_slope - lambda_p / c.Y_potential) / lambda_i
 AD_intercept = (IS_intercept - r_init + lambda_p) / lambda_i
 pi_eq = AD_slope * c.Y_potential + AD_intercept   # long-run equilibrium inflation
+r_eq = MP_slope * c.Y_potential + (r_init - lambda_p + lambda_i * pi_eq)   # rate at that point
 
-# Fixed pre-shock (initial) equilibrium — the economy's resting point BEFORE any shock: Y=Ȳ, π=3.0, r=3.5 under the default parameters. The time-series charts start here (period 0) and then converge to the NEW long-run equilibrium (pi_eq / r_eq_display), which differs after demand or monetary shocks.
+# Fixed pre-shock (initial) equilibrium — the economy's resting point BEFORE any shock: Y=Ȳ, π=3.0, r=3.5 under the default parameters. The time-series charts start here (period 0) and then converge to the NEW long-run equilibrium (pi_eq / r_eq), which differs after demand or monetary shocks.
 PI_BASELINE = 3.0
 R_BASELINE  = (0.5 / c.Y_potential) * c.Y_potential + (2.0 - 0.5 + 0.5 * PI_BASELINE)  # default params → 3.5
 
@@ -418,18 +419,22 @@ with tab1:
             <b style="color:#B279A2;">AD:</b> 𝜋 = {AD_slope:.1f}·Y + {AD_intercept:.1f}<br>
             {ia_line}<br>
             <hr style="margin:4px 0; border:none; border-top:1px solid #ddd;">
-            <b style="color:black;">π* (LR eq.):</b> {pi_eq:.1f}<br>
-            <b style="color:black;">Output gap (Y − Ȳ):</b> {output_gap:.1f}<br>
-            <b style="color:black;">r:</b> {r_cur:.1f}
+            <b>Output gap (Y − Ȳ):</b> {output_gap:.1f}<br>
+            <b>r:</b> {r_cur:.1f}
         """
 
     # ―――― Right column ――――――――――――――――
     with cols[1].container(border=True):
 
         if not convergence_ok:
-            st.warning("⚠️ These parameters may not converge. Try reducing γ.")
+            st.warning("⚠️ **These settings never settle.** Output and inflation keep swinging "
+                       "instead of coming to rest. Try a smaller γ.")
 
         st.markdown(text_to_show, unsafe_allow_html=True)
+        # Where the run ends up — numbers only. The description above says it in words.
+        st.markdown(f"<div style='font-size:12px; color:gray; margin-top:8px;'><b>Long run:</b> "
+                    f"output back at Ȳ = {c.Y_potential:.2f}; inflation settles at {pi_eq:.2f}%; "
+                    f"interest rate at {r_eq:.2f}%.</div>", unsafe_allow_html=True)
 
         # Lock / clear comparison run — only available once the run is complete
         lc1, lc2 = st.columns([1.2,0.8])
@@ -484,10 +489,9 @@ with tab1:
             last = st.session_state.iteration_df.iloc[-1]
             rate_fig.add_annotation(x=last["Iteration"], y=last["Interest Rate"], text=f"r={last['Interest Rate']:.2f}", showarrow=False, xanchor="left", yshift=12)
 
-        r_eq_display = MP_slope * c.Y_potential + (r_init - lambda_p + lambda_i * pi_eq)
         rate_fig.update_layout(xaxis_title="Period", yaxis_title="r - interest rate", showlegend=False)
-        h.add_line_to_plot(rate_fig, 0, r_eq_display, 0, iteration_count,
-                           name=f"r* ({r_eq_display:.2f})", line_width=2, color="#999999", dash='dot')
+        h.add_line_to_plot(rate_fig, 0, r_eq, 0, iteration_count,
+                           name=f"r* ({r_eq:.2f})", line_width=2, color="#999999", dash='dot')
         h.show_plotly_fig(rate_fig, height=200, key="ce_ts_rate")
 
     # ―――― Animation step ――――――――――――――――

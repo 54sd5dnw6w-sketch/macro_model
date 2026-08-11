@@ -150,15 +150,13 @@ with st.sidebar:
     regime = st.selectbox('Exchange-rate regime',
                           options=['Flexible', 'Fixed – no sterilization', 'Fixed – with sterilization'],
                           disabled=is_running or is_paused, on_change=reset, key="oe_regime",
-                          help=("Flexible: r = rᵃ; fiscal is crowded out; monetary/foreign-rate shocks "
-                                "end in a crawling peg (π* ≠ πᵃ). "
-                                "Fixed – no sterilization: r tied to rᵃ so monetary policy is powerless, "
-                                "fiscal is fully effective, and PPP returns π to πᵃ. "
-                                "Fixed – with sterilization: the CB keeps its own r, so the economy is "
-                                "insulated from rᵃ and fiscal works (damped). The nominal peg still holds, "
-                                "so wʳ drifts until π = πᵃ — which leaves r off parity and the peg "
-                                "indefensible. NOTE: book §5.3 instead holds wʳ still and ends at "
-                                "π* = (rᵃ − r')/λ_I via a crawling peg; see the Theory tab."))
+                          help=("Flexible: the currency is free to move, which cancels out demand "
+                                "changes but lets interest-rate changes work. "
+                                "Fixed – no sterilization: the currency is held, so demand changes "
+                                "have their full effect and monetary policy has none. "
+                                "Fixed – with sterilization: the currency is held and the bank offsets "
+                                "the money flows, so it keeps its own interest rate — for as long as "
+                                "its reserves last."))
 
     st.sidebar.markdown("<hr style='margin: 2px 0; border: none; border-top: 1px solid #ccc;'>", unsafe_allow_html=True)
 
@@ -193,7 +191,8 @@ with st.sidebar:
             inflation_shock = 0.5
         elif shock_type == 'Imported Deflation Shock':
             inflation_shock = -0.5
-        text_to_show = c.SHOCK_TEXT.get(shock_type, c.placeholder_shock)
+        # One story, for the regime actually selected — the pop-ups below never repeat it.
+        text_to_show = c.oe_shock_panel(shock_type, regime)
 
     elif level == 'Medium':
         omega = st.slider(r'$\omega$:', on_change=reset, min_value=0.5, max_value=4.0, step=0.1,
@@ -207,7 +206,8 @@ with st.sidebar:
                               help=r"FX Curve: $r = r^a$ under a flexible exchange rate")
         inflation_shock = st.slider(r"Imported inflation (%):", on_change=reset, min_value=-2.0, max_value=2.0,
                                     step=0.25, value=0.0, key="oe_m_infl",
-                                    help="One-off shift of the IA-curve (χ·Δwʳ). Positive = imported inflation, negative = imported deflation.")
+                                    help="A one-off jump in import prices, which lands directly on inflation. "
+                                         "Positive = prices from abroad rise, negative = they fall.")
 
     elif level == 'Advanced':
         st.markdown('##### IS Curve')
@@ -238,14 +238,14 @@ with st.sidebar:
                                 key="oe_a_gamma", help=r"IA curve: $\pi_{t+1} = \pi_t + \gamma \tilde Y_t + \eta$")
         inflation_shock = st.number_input(r"Imported Inflation (%):", on_change=reset, min_value=-3.0, max_value=3.0,
                                           step=0.25, value=0.0, key="oe_a_infl",
-                                          help="One-off exogenous shift of the initial IA level — an import-price "
-                                               "jump arriving from abroad. Lands once and is inherited thereafter.")
+                                          help="A one-off jump in import prices. It lands on inflation once "
+                                               "and is carried forward from there.")
         chi = st.number_input(r'$\chi$ (imported inflation):', on_change=reset, min_value=0.0, max_value=2.0,
                               step=0.1, value=0.0, key="oe_a_chi",
-                              help=r"Pass-through of a change in the real exchange rate to domestic prices, "
-                                   r"eq. (5.2): $\pi_{t+1} = \pi_t + \gamma\tilde Y_t + \chi(w^r_{t+1}-w^r_t) + \eta$. "
-                                   r"Large for a CPI basket, small for the GDP deflator. This is the §5.5 "
-                                   r"extension — chapters 4–5.4 (and full crowding out under a float) assume χ = 0.")
+                              help=r"How much a move in the exchange rate feeds into domestic prices: a weaker "
+                                   r"currency makes imports dearer straight away. Large if the price index "
+                                   r"contains a lot of imported goods, small if it does not. Leave it at 0 for "
+                                   r"the standard results.")
         eta = st.number_input(r'$\eta$ (exogenous shock):', on_change=reset, step=0.1, value=0.0,
                               key="oe_a_eta", help=r"Persistent exogenous price shock each period.")
 
@@ -315,8 +315,9 @@ AD_slope = -lambda_p / (lambda_i * Ybar)
 #   π → πᵃ and it is r that ends off-parity. Both are internally consistent; they
 #   differ in which variable is assumed to give way while the peg is held. What is
 #   simulated here is the WHILE-IT-LASTS path. Reaching the book's P∞ needs a
-#   fourth regime (crawling peg) — not implemented; surfaced in the UI and the
-#   Theory tab instead of being papered over.
+#   fourth regime (crawling peg) — not implemented. The Theory tab still records
+#   the divergence; the Model tab's panel no longer does, since the description
+#   there is meant to explain the run, not compare treatments.
 #   NOTE this affects ONLY the sterilised peg after a monetary/foreign-rate shock.
 #   For DEMAND shocks the book uses the same wʳ drift (§5.2) and both agree on πᵃ.
 #
@@ -335,6 +336,10 @@ ppp_regime = fixed_regime           # ANY nominal peg forces π → πᵃ (the p
 
 # Fixed without sterilization: reserve flows peg r to rᵃ, so domestic monetary
 # policy (r') has no effect — neutralise any monetary shock.
+# r_init_selected keeps what the USER chose: the Medium panel lists the settings as
+# made, and the pop-up is what adds "…but it does nothing here". Reading the
+# overwritten r_init there made the panel claim nothing had been changed at all.
+r_init_selected = r_init
 monetary_neutralised = peg_no_steril and (r_init != RP_BASE)
 if peg_no_steril:
     r_init = RP_BASE
@@ -422,20 +427,15 @@ peg_unsustainable = peg_steril and abs(peg_lr_rate - r_foreign) > 1e-6
 # pre-shock level, which is not where any shocked run ends up).
 WR_LONGRUN = (Ybar - omega + phi * peg_lr_rate) / psi
 
-# Regime outcome summary (shown in the right column).
-if ppp_regime:
-    regime_outcome = (f"<b>{regime}</b><br><span style='color:gray;'>Long-run: π → πᵃ = "
-                      f"{pi_foreign:.2f}. Under a nominal peg the real exchange rate must do the "
-                      f"adjusting (wʳ → {WR_LONGRUN:.2f}) — inflation cannot settle anywhere else."
-                      f"</span>")
-    if peg_steril:
-        regime_outcome += ("<br><span style='color:#999; font-size:12px;'>Book §5.3 instead holds wʳ "
-                           f"still after a monetary/foreign-rate shock and ends at π* = "
-                           f"{(r_foreign - r_init) / lambda_i:.2f} via a crawling peg — see Theory §4.</span>")
+# Where the run ends up — NUMBERS ONLY. The panel above it tells the story in
+# words, so this line must not repeat the mechanism, only state the destination.
+if ppp_regime or abs(pi_eq - pi_foreign) < 0.005:
+    longrun_line = (f"<b>Long run:</b> output back at Ȳ; inflation at the world rate "
+                    f"{pi_foreign:.2f}%; real exchange rate settles at {WR_LONGRUN:.2f}.")
 else:
-    regime_outcome = (f"<b>{regime}</b><br><span style='color:gray;'>Long-run: <b>crawling peg</b> — "
-                      f"π* = {pi_eq:.2f} ≠ πᵃ = {pi_foreign:.2f}; the nominal exchange rate crawls at "
-                      f"π − πᵃ ≈ {pi_eq - pi_foreign:+.2f}%/period.</span>")
+    longrun_line = (f"<b>Long run:</b> output back at Ȳ; inflation settles at {pi_eq:.2f}% against "
+                    f"{pi_foreign:.2f}% abroad, so the currency slides {pi_eq - pi_foreign:+.2f}% a "
+                    f"period; real exchange rate settles at {WR_LONGRUN:.2f}.")
 
 # Fiscal policy enters through ω. It is now handled by each regime's own AD (it is
 # absent from the float's AD → crowded out; present in both pegs → effective), so
@@ -587,33 +587,35 @@ convergence_ok = spectral_radius() < 1.0
 
 # ―――― Medium: concise dynamic description ――――――――――――――――
 if level == 'Medium':
-    forces = []
-    if omega > OMEGA_BASE + 0.05:   forces.append("expansionary demand (↑ω)")
-    elif omega < OMEGA_BASE - 0.05: forces.append("contractionary demand (↓ω)")
-    if r_init < RP_BASE - 0.05:     forces.append("looser monetary policy (↓r')")
-    elif r_init > RP_BASE + 0.05:   forces.append("tighter monetary policy (↑r')")
-    if r_foreign > RA_BASE + 0.05:  forces.append("higher foreign rate (↑rᵃ)")
-    elif r_foreign < RA_BASE - 0.05: forces.append("lower foreign rate (↓rᵃ)")
-    if inflation_shock > 0:         forces.append("imported inflation (IA ↑, one-off)")
-    elif inflation_shock < 0:       forces.append("imported deflation (IA ↓, one-off)")
+    forces, kinds = [], []
+    if omega > OMEGA_BASE + 0.05:
+        forces.append("expansionary demand (↑ω)"); kinds.append('demand')
+    elif omega < OMEGA_BASE - 0.05:
+        forces.append("contractionary demand (↓ω)"); kinds.append('demand')
+    if r_init_selected < RP_BASE - 0.05:
+        forces.append("looser monetary policy (↓r')"); kinds.append('monetary')
+    elif r_init_selected > RP_BASE + 0.05:
+        forces.append("tighter monetary policy (↑r')"); kinds.append('monetary')
+    if r_foreign > RA_BASE + 0.05:
+        forces.append("higher foreign rate (↑rᵃ)"); kinds.append('foreign')
+    elif r_foreign < RA_BASE - 0.05:
+        forces.append("lower foreign rate (↓rᵃ)"); kinds.append('foreign')
+    if inflation_shock > 0:
+        forces.append("imported inflation (one-off)"); kinds.append('imported')
+    elif inflation_shock < 0:
+        forces.append("imported deflation (one-off)"); kinds.append('imported')
 
     if not forces:
         text_to_show = c.empty_placeholder_moderate_level_shock
     else:
-        demand_only = all("demand" in f for f in forces)
-        if demand_only and not fixed_regime:
-            note = ("<br><i style='color:#888;'>Under a float, a pure demand shock is fully crowded "
-                    "out by the exchange rate — output and inflation are unchanged.</i>")
-        elif demand_only:
-            note = ("<br><i style='color:#888;'>Under a fixed peg, fiscal/demand policy is effective — "
-                    "output moves on impact before real-exchange-rate adjustment crowds it out "
-                    "(fully without sterilization, damped by the CB's own rate with it).</i>")
-        else:
-            note = (f"<br><i style='color:#888;'>New long-run inflation π* = {pi_eq:.2f} "
-                    f"(foreign inflation πᵃ = {pi_foreign:.2f}).</i>")
-        text_to_show = f"""
-<div style="font-size:17px; font-weight:700; color:#222;">Open-Economy Shock 🌍</div>
-<div style="font-size:13px; color:gray; margin-top:4px;"><b>{' + '.join(forces)}</b>{note}</div>"""
+        # One line per kind of setting changed, for this regime. Kinds the pop-ups
+        # already handle have no entry, so nothing appears twice; where the run ends
+        # is left to the long-run line.
+        regime_key = c.REGIME_KEY[regime]
+        notes = [c.OE_MEDIUM_NOTE[(k, regime_key)] for k in kinds
+                 if (k, regime_key) in c.OE_MEDIUM_NOTE]
+        text_to_show = c.oe_panel("Your settings", regime,
+                                  f"<b>{' + '.join(forces)}</b><br><br>" + "<br>".join(notes), "🎛️")
 
 # ―――― Continue: advance from short_term_paused to adjusting ――――――――――――――――
 if continue_clicked and phase == "short_term_paused":
@@ -677,10 +679,6 @@ else:
     sAD_int = peg_ad_intercept(WR_BASELINE) if fixed_regime else AD_intercept_sr
     sIA, sY = pi_0, Y_shock
 
-# Under sterilisation the CB holds r away from rᵃ: the operating point is OFF the
-# FX line and reserves flow without limit. Reported next to the diagram.
-parity_gap = (r_cur - r_foreign) if peg_steril and phase != "idle" else 0.0
-
 # ―――― Tabs ――――――――――――――――
 tab1, tab2 = st.tabs(["📊 Model", "📖 Theory"])
 
@@ -688,7 +686,7 @@ with tab2:
     st.markdown(c.MARKDOWN_THEORY, unsafe_allow_html=True)
 
 with tab1:
-    cols = st.columns([1.3,1,1])
+    cols = st.columns([1.4,0.9,0.7])
 
     # ―――― r–Y diagram ――――――――――――――――
     r_Y_fig = h.create_linear_plot(x_label="Y - Output", y_label="r - interest rate")
@@ -727,60 +725,48 @@ with tab1:
 
     # ―――― Advanced: equation display ――――――――――――――――
     if level == 'Advanced':
-        _fx_line = (f'<b style="color:#E45756;">FX:</b> r set by the CB (sterilised) = {r_cur:.2f}'
+        # Equations plus the live readouts. π* is deliberately absent: the long-run
+        # line under this panel already reports where inflation ends.
+        _fx_line = (f'<b style="color:#E45756;">FX:</b> r set by the bank = {r_cur:.2f}'
                     if peg_steril else
                     f'<b style="color:#E45756;">FX:</b> r = rᵃ = {r_foreign:.2f}')
-        text_to_show = f"""
+        text_to_show = c.oe_panel("Current model", regime, f"""
             <b style="color:#4C78A8;">IS:</b> Y = {omega:.1f} − {phi:.1f}·r + {psi:.1f}·wʳ<br>
             <b style="color:#F58518;">MP:</b> r = {MP_slope:.2f}·Y + {MP_intercept_cur:.2f}<br>
             {_fx_line}<br>
             <b style="color:#B279A2;">AD:</b> 𝜋 = {sAD_slope:.2f}·Y + {sAD_int:.2f}<br>
             <b style="color:#54A24B;">IA:</b> 𝜋 = {pi_0:.2f}<br>
             <hr style="margin:4px 0; border:none; border-top:1px solid #ddd;">
-            <b style="color:black;">π* (LR eq.):</b> {pi_eq:.2f} &nbsp; <span style="color:gray;">(πᵃ = {pi_foreign:.1f})</span><br>
-            <b style="color:black;">Output gap (Y − Ȳ):</b> {output_gap:.2f}<br>
-            <b style="color:black;">Real exchange rate wʳ:</b> {wr_cur:.2f}
-        """
+            <b>Output gap (Y − Ȳ):</b> {output_gap:.2f}<br>
+            <b>Real exchange rate wʳ:</b> {wr_cur:.2f}
+        """, "⚙️")
 
     # ―――― Right column ――――――――――――――――
     with cols[2].container(border=True):
+        # ―――― Pop-ups ――――――――――――――――
+        # Only things the description panel below does NOT say: a run that will not
+        # settle, a peg that cannot be held, and — at Medium/Advanced, where the
+        # panel lists settings instead of telling a story — a policy switched off by
+        # the chosen regime. Nothing here repeats the panel.
         if not convergence_ok:
-            st.warning(f"⚠️ These parameters do not converge (spectral radius "
-                       f"{spectral_radius():.2f} ≥ 1). Try reducing γ"
-                       + (" or χ." if chi else "."))
-
-        if parity_gap:
-            st.info(f"💱 **Off interest parity by {parity_gap:+.2f}pp** (r = {r_cur:.2f} vs "
-                    f"rᵃ = {r_foreign:.2f}). The operating point sits away from the red FX line — "
-                    f"that gap is exactly what drives the reserve flows the CB is sterilising.")
-
-        if monetary_neutralised:
-            st.info(c.monetary_neutralised_text)
-
-        if foreign_neutralised:
-            st.info(c.foreign_neutralised_text)
+            st.warning("⚠️ **These settings never settle.** Output and inflation keep swinging "
+                       "instead of coming to rest. Try a smaller γ" + (" or χ." if chi else "."))
 
         if peg_unsustainable:
-            st.warning(
-                f"⚠️ **This peg cannot be defended indefinitely.** In the long run the CB's own rule "
-                f"leaves r = {peg_lr_rate:.2f} while the foreign rate is rᵃ = {r_foreign:.2f}. With free "
-                f"capital mobility that gap means never-ending flows and unbounded reserve "
-                f"gains/losses. Sterilisation only postpones the reckoning: the country must "
-                f"eventually abandon sterilisation (→ the flat paths of the hard peg) or move to a "
-                f"**crawling peg** (→ the flexible-regime outcome). The path shown is the "
-                f"*while-it-lasts* adjustment.")
+            st.warning(f"⚠️ **This fixed rate cannot be held forever.** The bank ends up holding "
+                       f"r = {peg_lr_rate:.2f} while the world rate is rᵃ = {r_foreign:.2f}, which is "
+                       f"why the operating point sits away from the red FX line. Money keeps crossing "
+                       f"the border, so reserves drain (or pile up) without limit and the fixed rate "
+                       f"has to be given up eventually. What you see is the path while it lasts.")
 
-        if fiscal_shock != 0:
-            expansion = fiscal_shock > 0
-            if peg_no_steril:
-                st.info(c.peg_no_ster)
-            elif peg_steril:
-                st.info(c.peg_ster_expansion if expansion else c.peg_ster_contraction)
-            else:
-                st.info(c.no_peg_nor_ster_expansion if expansion else c.no_peg_nor_ster_contraction)
+        if level != 'Easy':
+            if monetary_neutralised:
+                st.info(c.monetary_neutralised_text)
+            if foreign_neutralised:
+                st.info(c.foreign_neutralised_text)
 
         st.markdown(text_to_show, unsafe_allow_html=True)
-        st.markdown(f"<div style='font-size:13px; margin-top:6px;'>{regime_outcome}</div>",
+        st.markdown(f"<div style='font-size:12px; color:gray; margin-top:8px;'>{longrun_line}</div>",
                     unsafe_allow_html=True)
 
         lc1, lc2 = st.columns([1.2, 0.8])

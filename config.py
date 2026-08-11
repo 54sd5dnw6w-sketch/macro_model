@@ -312,90 +312,172 @@ empty_placeholder_moderate_level_shock = """
 """
 
 # ―――― Open-economy consensus model ――――――――――――――――
-# ―――― Easy-mode shock descriptions ――――――――――――――――
-SHOCK_TEXT = {
-    'Expansionary Monetary Shock': """
-<div style="text-align:center; font-size:17px; font-weight:700;">Expansionary Monetary Shock 🏦</div>
-<div style="font-size:13px; color:gray;">
-The central bank adopts a looser policy stance (↓r'). The MP-curve shifts down and the AD-curve shifts right. What follows depends on the <b>exchange-rate regime</b>:
-<br><br>
-<b>Flexible:</b> output rises above potential. The lower rate induces capital outflows, the domestic currency depreciates (wʳ ↑) and net exports rise. The positive output gap then raises inflation to its new, higher long-run level π* = (rᵃ − r')/λ<sub>I</sub>.
-<br><br>
-<b>Fixed peg, no sterilization:</b> <b>monetary policy has no effect</b> — reserve flows tie r to rᵃ, so neither output nor inflation moves.
-<br><br>
-<b>Fixed peg, with sterilization:</b> the bank keeps its own rate, so output rises, but by less than under a float. The nominal peg still holds, so wʳ cannot jump and inflation returns to πᵃ rather than to π* (book §5.3 reaches π* instead — see the Theory tab).
-</div>""",
-    'Contractionary Monetary Shock': """
-<div style="text-align:center; font-size:17px; font-weight:700;">Contractionary Monetary Shock 🏦</div>
-<div style="font-size:13px; color:gray;">
-The central bank tightens its policy stance (↑r'). The MP-curve shifts up and the AD-curve shifts left. What follows depends on the <b>exchange-rate regime</b>:
-<br><br>
-<b>Flexible:</b> output falls below potential and capital flows in, which appreciates the domestic currency (wʳ ↓). The negative output gap gradually lowers inflation to its new long-run level π* = (rᵃ − r')/λ<sub>I</sub>, which now lies below foreign inflation πᵃ.
-<br><br>
-<b>Fixed peg, no sterilization:</b> <b>monetary policy has no effect</b> — reserve flows tie r to rᵃ, so neither output nor inflation moves.
-<br><br>
-<b>Fixed peg, with sterilization:</b> the bank keeps its own rate, so output falls, but by less than under a float. The nominal peg still holds, so wʳ cannot jump and inflation returns to πᵃ rather than to π* (book §5.3 reaches π* instead — see the Theory tab).
-</div>""",
-    'Rising Foreign Interest Rate': """
-<div style="text-align:center; font-size:17px; font-weight:700;">Rising Foreign Interest Rate 🌍</div>
-<div style="font-size:13px; color:gray;">
-The foreign central bank raises its rate (↑rᵃ). The FX-line shifts up. The sign of the effect <b>changes with the exchange-rate regime</b>:
-<br><br>
-<b>Flexible:</b> capital flows abroad, the domestic currency depreciates and the real exchange rate wʳ rises, which shifts IS to the right. Output <b>rises</b> in the short run and the domestic real rate follows rᵃ upward. Inflation converges to π* = (rᵃ − r')/λ<sub>I</sub>.
-<br><br>
-<b>Fixed peg, no sterilization:</b> the currency cannot depreciate, so nothing offsets the higher rate — it is simply imported, and output <b>falls</b> below potential. Real depreciation (wʳ ↑) then restores it while inflation returns to πᵃ.
-<br><br>
-<b>Fixed peg, with sterilization:</b> the bank offsets the reserve flows, so the economy is <b>insulated</b> — rᵃ never reaches it and output and inflation are unchanged. Reserves, however, move without limit.
-</div>""",
-    'Falling Foreign Interest Rate': """
-<div style="text-align:center; font-size:17px; font-weight:700;">Falling Foreign Interest Rate 🌍</div>
-<div style="font-size:13px; color:gray;">
-The foreign central bank lowers its rate (↓rᵃ). The FX-line shifts down. The sign of the effect <b>changes with the exchange-rate regime</b>:
-<br><br>
-<b>Flexible:</b> capital flows in, the domestic currency appreciates (wʳ ↓) and net exports fall, which shifts IS to the left. Output <b>falls</b> in the short run and inflation declines to its new long-run level π* = (rᵃ − r')/λ<sub>I</sub>.
-<br><br>
-<b>Fixed peg, no sterilization:</b> the currency cannot appreciate, so the lower rate is simply imported and output <b>rises</b> above potential. Real appreciation (wʳ ↓) then returns it to potential while inflation returns to πᵃ.
-<br><br>
-<b>Fixed peg, with sterilization:</b> the bank offsets the reserve flows, so the economy is <b>insulated</b> — rᵃ never reaches it and output and inflation are unchanged. Reserves, however, move without limit.
-</div>""",
-    'Imported Inflation Shock': """
-<div style="text-align:center; font-size:17px; font-weight:700;">Imported Inflation Shock 📈</div>
-<div style="font-size:13px; color:gray;">
-A one-off increase in import prices passes directly into domestic prices — the χ·Δwʳ term of eq. (5.2) — and shifts the IA-curve up <b>even in the absence of an output gap</b>. It is modelled here as an exogenous one-off shift of IA: it is applied once and then carried forward into later periods.
-<br><br>
-Inflation rises above foreign inflation πᵃ. Output falls below potential, and the negative output gap brings inflation back down to πᵃ.
-<br><br>
-<i>Reading the wʳ chart:</i> the line shown is the <b>response</b> of the economy, not the shock. Higher inflation with the interest rate tied to rᵃ requires the currency to strengthen (wʳ ↓) — under a peg because domestic prices outrun foreign ones, and under a float through appreciation. The shock itself originates abroad and is not drawn.
-</div>""",
-    'Imported Deflation Shock': """
-<div style="text-align:center; font-size:17px; font-weight:700;">Imported Deflation Shock 📉</div>
-<div style="font-size:13px; color:gray;">
-A one-off fall in import prices passes directly into domestic prices — the χ·Δwʳ term of eq. (5.2) — and shifts the IA-curve down <b>even in the absence of an output gap</b>. It is modelled here as an exogenous one-off shift of IA: it is applied once and then carried forward into later periods.
-<br><br>
-Inflation falls below foreign inflation πᵃ. Output rises above potential, and the positive output gap brings inflation back up to πᵃ.
-<br><br>
-<i>Reading the wʳ chart:</i> the line shown is the <b>response</b> of the economy, not the shock — lower inflation with r tied to rᵃ requires the currency to weaken (wʳ ↑). The shock itself originates abroad and is not drawn.
-</div>""",
-    'Expansionary Fiscal Shock': """
-<div style="text-align:center; font-size:17px; font-weight:700;">Expansionary Fiscal Shock 🏛️</div>
-<div style="font-size:13px; color:gray;">
-Higher government demand shifts the IS-curve to the right (↑ω). What follows depends entirely on the <b>exchange-rate regime</b>:
-<br><br>
-<b>Flexible:</b> the currency appreciates (wʳ ↓), net exports fall, and the expansion is <b>fully crowded out</b> — Y and π are unchanged.
-<br><br>
-<b>Fixed peg:</b> the nominal rate cannot move, so fiscal policy is <b>effective</b> — output rises above potential, by the full amount without sterilization and by less with it. Crowding out then arrives slowly through the trade balance, as domestic prices outrun foreign ones (wʳ ↓), and inflation returns to πᵃ.
-</div>""",
-    'Contractionary Fiscal Shock': """
-<div style="text-align:center; font-size:17px; font-weight:700;">Contractionary Fiscal Shock 🏛️</div>
-<div style="font-size:13px; color:gray;">
-Lower government demand shifts the IS-curve to the left (↓ω). The effect depends on the <b>exchange-rate regime</b>:
-<br><br>
-<b>Flexible:</b> the currency depreciates (wʳ ↑), net exports rise, and the reduction in demand is <b>fully crowded out</b> — Y and π are unchanged.
-<br><br>
-<b>Fixed peg:</b> fiscal policy is <b>effective</b> — output falls below potential, and real depreciation (wʳ ↑) then restores it gradually while inflation returns to πᵃ.
-</div>""",
-    None: placeholder_shock,
+# ―――― Easy-mode shock panel ――――――――――――――――
+# ONE description per (shock family, regime), assembled by oe_shock_panel(). The
+# regime is chosen in the sidebar, so the panel only ever tells the story of the
+# regime actually running — the info/warning boxes never repeat it.
+#
+# Direction words are substituted rather than written out twice, so an expansion
+# and its mirror image cannot disagree about a sign (a contraction used to be
+# described as an appreciation because both shared one hand-written string).
+
+OE_SHOCK_META = {
+    # shock name                      → (family, direction, emoji)
+    'Expansionary Fiscal Shock':      ('fiscal', +1, '🏛️'),
+    'Contractionary Fiscal Shock':    ('fiscal', -1, '🏛️'),
+    'Expansionary Monetary Shock':    ('monetary', +1, '🏦'),
+    'Contractionary Monetary Shock':  ('monetary', -1, '🏦'),
+    'Rising Foreign Interest Rate':   ('foreign', +1, '🌍'),
+    'Falling Foreign Interest Rate':  ('foreign', -1, '🌍'),
+    'Imported Inflation Shock':       ('imported', +1, '📈'),
+    'Imported Deflation Shock':       ('imported', -1, '📉'),
 }
+
+OE_REGIME_LABEL = {
+    'Flexible': '🌊 Floating currency',
+    'Fixed – no sterilization': '🔒 Fixed exchange rate',
+    'Fixed – with sterilization': '🛡️ Fixed exchange rate, flows offset',
+}
+
+# What the shock is, before any regime enters the picture.
+OE_LEAD = {
+    'fiscal': "The government spends {more_less}, which shifts the IS-curve to the {right_left} (ω {up_down}).",
+    'monetary': "The central bank takes a {looser_tighter} stance ({down_up} r').",
+    'foreign': "The rest of the world moves to a {higher_lower} interest rate ({up_down} rᵃ).",
+    'imported': "Import prices {jump_drop} once and feed straight into domestic prices — the one shock "
+                "that moves inflation without an output gap first.",
+}
+
+# What the chosen regime then does with it.
+OE_STORY = {
+    ('fiscal', 'float'):
+        "The change in demand pushes the interest rate {higher_lower}, so money {capital_flow} and the "
+        "currency {strengthens_weakens} (wʳ {down_up}). Net exports {fall_rise} by exactly what the "
+        "government {added_removed}, so <b>output and inflation never move</b> — the exchange rate "
+        "cancels fiscal policy out.",
+    ('fiscal', 'hard'):
+        "The exchange rate cannot move, so the whole impulse lands on output: it {rises_falls} {above_below} "
+        "potential, the strongest fiscal effect of the three regimes. Domestic prices then {outrun_lag} "
+        "foreign ones, competitiveness slowly {worsens_improves} (wʳ {down_up}), and output drifts back "
+        "to potential.",
+    ('fiscal', 'ster'):
+        "The exchange rate still cannot move, so output {rises_falls} — but the bank moves its own interest "
+        "rate against the shock, so the effect is smaller than with a plain fixed rate. Trade then closes the "
+        "gap: domestic prices {outrun_lag} foreign ones (wʳ {down_up}) and output returns to potential.",
+
+    ('monetary', 'float'):
+        "Money {capital_flow_rev}, the currency {weakens_strengthens} (wʳ {up_down}) and net "
+        "exports {rise_fall}, so output {rises_falls} {above_below} potential. As the gap closes, inflation "
+        "settles at a permanently {higher_lower} level and the currency keeps sliding to make up the "
+        "difference with the rest of the world.",
+    ('monetary', 'hard'):
+        "<b>This does nothing here.</b> Holding the exchange rate forces the bank to buy and sell foreign "
+        "currency, and that pulls the domestic interest rate straight back to the world rate. Output and "
+        "inflation stay exactly where they were.",
+    ('monetary', 'ster'):
+        "Because the bank offsets those currency flows it keeps its own interest rate, so output "
+        "{rises_falls} — but by less than with a floating currency, since the exchange rate cannot help. "
+        "Inflation ends back at the world rate: a country holding its exchange rate fixed cannot keep an "
+        "inflation rate of its own.",
+
+    ('foreign', 'float'):
+        "Money {chases_return}, the currency {weakens_strengthens} "
+        "(wʳ {up_down}) and exports {rise_fall}, so output {rises_falls} {above_below} potential. The "
+        "domestic interest rate follows the world rate, and inflation settles {higher_lower} than before.",
+    ('foreign', 'hard'):
+        "With the exchange rate fixed nothing softens the blow: the {higher_lower} world rate is imported "
+        "directly, borrowing becomes {dearer_cheaper} and output {falls_rises} {below_above} potential — "
+        "the opposite sign to a floating currency. Domestic prices then {lag_outrun} foreign ones, "
+        "competitiveness {improves_worsens} (wʳ {up_down}), and output returns to potential.",
+    ('foreign', 'ster'):
+        "The bank offsets the currency flows, so the foreign rate never reaches the economy — <b>output "
+        "and inflation do not move at all</b>.",
+
+    ('imported', 'float'):
+        "Inflation starts {above_below} the world rate. With the domestic interest rate tied to the world "
+        "rate, that leaves output {below_above} potential, and the currency {strengthens_weakens} "
+        "(wʳ {down_up}) at the same time. The output gap then pulls inflation back to the world rate.",
+    ('imported', 'hard'):
+        "Inflation starts {above_below} the world rate, which leaves output {below_above} potential. "
+        "Domestic prices are now {price_gap} foreign ones, so the currency becomes "
+        "{stronger_weaker} in real terms (wʳ {down_up}) and the output gap slowly brings inflation back "
+        "to the world rate.",
+    ('imported', 'ster'):
+        "Inflation starts {above_below} the world rate, and the bank's own interest-rate response leaves "
+        "output {below_above} potential. The output gap then brings inflation back to the world rate, "
+        "while the real exchange rate drifts {down_up_word} as prices come back into line.",
+}
+
+
+# Medium level: one line per KIND of setting the user has changed, for the regime
+# actually selected. Entries that a pop-up already covers (monetary under a plain
+# fixed rate, the foreign rate when flows are offset) are deliberately absent, so
+# nothing is ever said twice.
+OE_MEDIUM_NOTE = {
+    ('demand', 'float'): "The exchange rate cancels a change in demand out completely.",
+    ('demand', 'hard'): "With the exchange rate held fixed, a change in demand has its full effect on output.",
+    ('demand', 'ster'): "A change in demand moves output, damped by the bank's own interest-rate response.",
+    ('monetary', 'float'): "An interest-rate change moves output now, and inflation permanently.",
+    ('monetary', 'ster'): "The bank keeps its own interest rate, so it still moves output — by less than "
+                          "with a floating currency.",
+    ('foreign', 'float'): "A change in the world rate reaches the economy through the currency, and "
+                          "output moves with it.",
+    ('foreign', 'hard'): "The world rate is imported directly, so output moves the opposite way to a "
+                         "floating currency.",
+    ('imported', 'float'): "The jump in import prices lands on inflation first; output then moves to bring "
+                           "it back.",
+}
+OE_MEDIUM_NOTE[('imported', 'hard')] = OE_MEDIUM_NOTE[('imported', 'float')]
+OE_MEDIUM_NOTE[('imported', 'ster')] = OE_MEDIUM_NOTE[('imported', 'float')]
+
+
+def _direction_words(up):
+    """Every word that flips with the sign of the shock, in one place."""
+    def p(a, b):
+        return a if up else b
+    return dict(
+        rises_falls=p('rises', 'falls'), falls_rises=p('falls', 'rises'),
+        rise_fall=p('rise', 'fall'), fall_rise=p('fall', 'rise'),
+        above_below=p('above', 'below'), below_above=p('below', 'above'),
+        up_down=p('↑', '↓'), down_up=p('↓', '↑'),
+        more_less=p('more', 'less'), higher_lower=p('higher', 'lower'),
+        right_left=p('right', 'left'), added_removed=p('added', 'took away'),
+        capital_flow=p('flows in from abroad', 'flows out to other countries'),
+        capital_flow_rev=p('flows out to other countries', 'flows in from abroad'),
+        chases_return=p('leaves in search of the better return abroad',
+                        'flows in, because the return at home is now the better one'),
+        strengthens_weakens=p('strengthens', 'weakens'), weakens_strengthens=p('weakens', 'strengthens'),
+        stronger_weaker=p('stronger', 'weaker'),
+        looser_tighter=p('looser', 'tighter'), dearer_cheaper=p('dearer', 'cheaper'),
+        outrun_lag=p('outrun', 'lag behind'), lag_outrun=p('lag behind', 'outrun'),
+        worsens_improves=p('worsens', 'improves'), improves_worsens=p('improves', 'worsens'),
+        price_gap=p('rising faster than', 'rising more slowly than'),
+        down_up_word=p('down', 'up'), jump_drop=p('jump', 'drop'),
+    )
+
+
+REGIME_KEY = {'Flexible': 'float', 'Fixed – no sterilization': 'hard',
+              'Fixed – with sterilization': 'ster'}
+
+
+def oe_panel(title, regime, body, emoji=''):
+    """The one shape every open-economy description uses: what was selected, which
+    regime it is running in, then the explanation."""
+    return f"""
+<div style="text-align:center; font-size:17px; font-weight:700;">{title} {emoji}</div>
+<div style="text-align:center; font-size:12px; color:#999; margin:2px 0 8px 0;">{OE_REGIME_LABEL[regime]}</div>
+<div style="font-size:13px; color:gray;">{body}</div>"""
+
+
+def oe_shock_panel(shock, regime):
+    """Easy-mode description of `shock` as it plays out under `regime`."""
+    if shock not in OE_SHOCK_META:
+        return placeholder_shock
+    family, direction, emoji = OE_SHOCK_META[shock]
+    words = _direction_words(direction > 0)
+    lead = OE_LEAD[family].format(**words)
+    story = OE_STORY[(family, REGIME_KEY[regime])].format(**words)
+    return oe_panel(shock, regime, f"{lead}<br><br>{story}", emoji)
 
 
 MARKDOWN_THEORY = r"""
@@ -796,29 +878,14 @@ $$\pi \to \pi^a \quad\text{or}\quad \pi \to \pi^* \qquad\text{(PPP vs. crawling 
 *Based on the consensus model of Lambsdorff & Giamattei, chapter 5.*
 """
 
-peg_no_ster = """🏛️ **Hard peg — fiscal policy is fully effective:** the money supply
-accommodates, so output moves by the full IS multiplier before the real
-exchange rate slowly crowds it out."""
+# ―――― Pop-ups ―――――――――――――――――――――――――――――――――――
+# Shown ONLY where the main panel does not already say it: at Medium/Advanced the
+# panel lists the settings rather than telling a story, so a policy that cannot
+# work in the chosen regime needs flagging. At Easy the story says it instead.
 
-peg_ster_expansion = """🏛️ **Sterilised peg — fiscal policy is effective but damped:** the bank's own
-MP rule raises r as output rises, so the impact is smaller than without
-sterilization. Crowding out still arrives via the trade balance, as domestic
-prices outrun foreign ones (wʳ ↓)."""
+monetary_neutralised_text = """🏦 **Monetary policy has no effect here.** Holding the exchange rate
+fixed pulls the domestic interest rate back to the world rate, so the change in r'
+never reaches the economy."""
 
-peg_ster_contraction = """🏛️ **Sterilised peg — fiscal policy is effective but damped:** the bank's own
-MP rule lowers r as output falls, so the impact is smaller than without
-sterilization. The contraction is still undone via the trade balance, as domestic
-prices fall behind foreign ones (wʳ ↑)."""
-
-no_peg_nor_ster_expansion = """🏛️ **Float — fiscal policy is crowded out:** the currency appreciates (wʳ ↓)
-and net exports fall, so output and inflation are unchanged."""
-
-no_peg_nor_ster_contraction = """🏛️ **Float — fiscal policy is crowded out:** the currency depreciates (wʳ ↑)
-and net exports rise, so output and inflation are unchanged."""
-
-foreign_neutralised_text = """🏛️ **Fixed peg, with sterilization:** the bank sterilises the reserve flows, so
-the real economy is insulated — the change in rᵃ does not reach it. Reserves,
-however, move continuously (see the warning below)."""
-
-monetary_neutralised_text = """🏛️ **Fixed peg, no sterilization:** monetary policy has no effect — reserve
-flows tie r to rᵃ, so the change in r' does not reach the economy."""
+foreign_neutralised_text = """🌍 **The foreign rate does not reach the economy.** The bank offsets the
+currency flows, so output and inflation are unaffected."""
