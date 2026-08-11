@@ -29,6 +29,14 @@ def clear_lock():
 
 st.set_page_config(layout="wide", initial_sidebar_state="expanded")
 
+# ―――― Medium: when does a slider count as "shocked"? ――――――――――――――――
+# The SAME thresholds pick the descriptive text and decide how many forces are
+# active, so no setting can be active without a description. (They used to differ
+# — text at ω>5 / r'>2.3 but activity at ω>4.6 / r'>2.1 — which left the panel
+# blank for ω between 4.6 and 5, or r' between 2.1 and 2.3.)
+OMEGA_HI, OMEGA_LO = 4.6, 4.4
+RINIT_HI, RINIT_LO = 2.1, 1.9
+
 # ―――― Sidebar ――――――――――――――――
 st.sidebar.header("Closed Economy")
 text_to_show = ''
@@ -81,23 +89,23 @@ with st.sidebar:
                           help=r"IS Curve: $Y = \omega - \phi r$")
         r_init = st.slider(r"$r' (\%) :$", on_change=reset, min_value=0.1, max_value=3.5, step=0.1, value=2.0,
                            help=r"MP Curve: $r = r' + \lambda_P \tilde{Y} + \lambda_I \pi$")
-        inflation_shock = st.slider(r"$\eta$ (inflation shock, %):", on_change=reset, min_value=-3.0, max_value=3.0, step=0.25, value=0.0,
-                                    help=r"Shifts initial inflation away from equilibrium. 0 = no shock.")
+        inflation_shock = st.slider(r"Initial inflation shock (%):", on_change=reset, min_value=-3.0, max_value=3.0, step=0.25, value=0.0,
+                                    help=r"One-off shift of initial inflation away from equilibrium. 0 = no shock. "
+                                         r"Distinct from the per-period $\eta$ of the IA curve (Advanced).")
         eta = 0
         pi_0_override = None  # resolved after pi_eq is computed
 
-        empty_text_counter = 0
-        if omega > 5.0:   omega_text = c.omega_text_exp
-        elif omega < 4.0: omega_text = c.omega_text_res
-        else:             omega_text = ''; empty_text_counter += 1
+        if omega > OMEGA_HI:   omega_text = c.omega_text_exp
+        elif omega < OMEGA_LO: omega_text = c.omega_text_res
+        else:                  omega_text = ''
 
-        if r_init > 2.3:   r_text = c.r_text_con
-        elif r_init < 1.7: r_text = c.r_text_exp
-        else:              r_text = ''; empty_text_counter += 1
+        if r_init > RINIT_HI:   r_text = c.r_text_con
+        elif r_init < RINIT_LO: r_text = c.r_text_exp
+        else:                   r_text = ''
 
         if inflation_shock > 0:   pi_text = c.pi_text_inf
         elif inflation_shock < 0: pi_text = c.pi_text_def
-        else:                     pi_text = ''; empty_text_counter += 1
+        else:                     pi_text = ''
         # text_to_show resolved after derived params (needs Y_shock, pi_eq)
 
     elif level == 'Advanced':
@@ -114,8 +122,9 @@ with st.sidebar:
                                    help=r"MP Curve: $r = r' + \lambda_P \tilde{Y} + \lambda_I \pi$")
         lambda_i = st.number_input(r'$\lambda_I :$', on_change=reset, min_value=0.1, max_value=10.0, step=0.1, value=0.5,
                                    help=r"MP Curve: $r = r' + \lambda_P \tilde{Y} + \lambda_I \pi$")
-        inflation_shock = st.number_input(r"$\eta$ (inflation shock, %):", on_change=reset, min_value=-3.0, max_value=3.0, step=0.25, value=0.0,
-                                           help=r"Shifts initial inflation away from equilibrium. 0 = no shock.")
+        inflation_shock = st.number_input(r"Initial inflation shock (%):", on_change=reset, min_value=-3.0, max_value=3.0, step=0.25, value=0.0,
+                                           help=r"One-off shift of initial inflation away from equilibrium. 0 = no shock. "
+                                                r"Distinct from the per-period $\eta$ below.")
         pi_0_override = None  # resolved after pi_eq is computed
         st.markdown("<hr style='margin: 2px 0; border: none; border-top: 1px solid #ccc;'>", unsafe_allow_html=True)
         st.markdown('##### For IA Curve')
@@ -216,8 +225,8 @@ convergence_ok = (gamma < 2 * c.Y_potential * abs(AD_slope)) if AD_slope != 0 el
 
 # ―――― Medium: resolve combined text ――――――――――――――――
 if level == 'Medium':
-    demand_shifted = omega > 4.6 or omega < 4.4
-    money_shifted = r_init > 2.1 or r_init < 1.9
+    demand_shifted = omega > OMEGA_HI or omega < OMEGA_LO
+    money_shifted = r_init > RINIT_HI or r_init < RINIT_LO
     infl_shifted = inflation_shock != 0.0
     n_active = sum([demand_shifted, money_shifted, infl_shifted])
 
@@ -234,13 +243,13 @@ if level == 'Medium':
 
         # Label active forces
         force_parts = []
-        if omega > 4.6:
+        if omega > OMEGA_HI:
             force_parts.append("expansionary demand (↑ω)")
-        elif omega < 4.4:
+        elif omega < OMEGA_LO:
             force_parts.append("restrictive demand (↓ω)")
-        if r_init < 1.9:
+        if r_init < RINIT_LO:
             force_parts.append("loose monetary policy (↓r')")
-        elif r_init > 2.1:
+        elif r_init > RINIT_HI:
             force_parts.append("tight monetary policy (↑r')")
         if inflation_shock > 0:
             force_parts.append("upward inflation shock (↑η)")
@@ -249,10 +258,10 @@ if level == 'Medium':
         forces_str = " + ".join(force_parts)
 
         # Detect conflict: forces push in opposite directions on output
-        demand_exp = omega > 4.6
-        demand_res = omega < 4.4
-        money_loose = r_init < 1.9
-        money_tight_ = r_init > 2.1
+        demand_exp = omega > OMEGA_HI
+        demand_res = omega < OMEGA_LO
+        money_loose = r_init < RINIT_LO
+        money_tight_ = r_init > RINIT_HI
         conflicting = (demand_exp and money_tight_) or (demand_res and money_loose)
 
         if output_above:

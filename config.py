@@ -224,23 +224,26 @@ placeholder_shock = """
 """
 
 # ---------- Fiscal Policy (omega) ----------
+# NB: ω is autonomous DEMAND in the IS curve — these are demand-side shifts, not
+# supply shocks. The thresholds that select these texts live in closed_economy.py
+# (OMEGA_HI / OMEGA_LO), so no numeric range is quoted here.
 omega_text_exp = """
 <div style="font-size:17px; font-weight:700; color:#222;">
-    Positive Supply Shock (ω > 5) 🏛️
+    Expansionary Demand Shock (↑ω) 🏛️
 </div>
 
 <div style="font-size:13px; color:gray;">
-    Either a favourable external supply shock, or an increase in public spending or a reduction in taxes.
+    An increase in autonomous demand — higher public spending, lower taxes, or stronger private consumption and investment. The IS-curve shifts right, so output rises above potential and inflation follows.
 </div>
 """
 
 omega_text_res = """
 <div style="font-size:17px; font-weight:700; color:#222;">
-    Negative Supply Shock (ω < 4) 🏛️
+    Contractionary Demand Shock (↓ω) 🏛️
 </div>
 
 <div style="font-size:13px; color:gray;">
-    Either an adverse external event that raises world prices, or a reduction in aggregate demand through lower public spending or higher taxes.
+    A fall in autonomous demand — lower public spending, higher taxes, or weaker private consumption and investment. The IS-curve shifts left, so output falls below potential and inflation follows it down.
 </div>
 """
 
@@ -248,7 +251,7 @@ omega_text_res = """
 # ---------- Monetary Policy (r) ----------
 r_text_con = """
 <div style="font-size:17px; font-weight:700; color:#222;">
-    Contractionary Monetary Policy (r > 2.3) 💰
+    Contractionary Monetary Policy (↑r') 💰
 </div>
 
 <div style="font-size:13px; color:gray;">
@@ -259,7 +262,7 @@ r_text_con = """
 
 r_text_exp = """
 <div style="font-size:17px; font-weight:700; color:#222;">
-    Expansionary Monetary Policy (r < 1.7) 💰
+    Expansionary Monetary Policy (↓r') 💰
 </div>
 
 <div style="font-size:13px; color:gray;">
@@ -272,7 +275,7 @@ r_text_exp = """
 # ---------- Inflation Shock (pi) ----------
 pi_text_inf = """
 <div style="font-size:17px; font-weight:700; color:#222;">
-    Upward Inflation Shock (η > 0) 📈
+    Upward Inflation Shock (↑π₀) 📈
 </div>
 
 <div style="font-size:13px; color:gray;">
@@ -284,7 +287,7 @@ pi_text_inf = """
 
 pi_text_def = """
 <div style="font-size:17px; font-weight:700; color:#222;">
-    Downward Inflation Shock (η < 0) 📉
+    Downward Inflation Shock (↓π₀) 📉
 </div>
 
 <div style="font-size:13px; color:gray;">
@@ -314,30 +317,46 @@ SHOCK_TEXT = {
     'Expansionary Monetary Shock': """
 <div style="text-align:center; font-size:17px; font-weight:700;">Expansionary Monetary Shock 🏦</div>
 <div style="font-size:13px; color:gray;">
-The central bank adopts a looser policy stance (↓r'). The MP-curve shifts down and the AD-curve shifts right.
+The central bank adopts a looser policy stance (↓r'). The MP-curve shifts down and the AD-curve shifts right. What follows depends on the <b>exchange-rate regime</b>:
 <br><br>
-In the short run output rises above potential. The lower rate induces capital outflows, the domestic currency depreciates (wʳ ↑) and net exports rise. The positive output gap then raises inflation to its new, higher long-run level π* = (rᵃ − r')/λ<sub>I</sub>.
+<b>Flexible:</b> output rises above potential. The lower rate induces capital outflows, the domestic currency depreciates (wʳ ↑) and net exports rise. The positive output gap then raises inflation to its new, higher long-run level π* = (rᵃ − r')/λ<sub>I</sub>.
+<br><br>
+<b>Fixed peg, no sterilization:</b> <b>monetary policy has no effect</b> — reserve flows tie r to rᵃ, so neither output nor inflation moves.
+<br><br>
+<b>Fixed peg, with sterilization:</b> the bank keeps its own rate, so output rises, but by less than under a float. The nominal peg still holds, so wʳ cannot jump and inflation returns to πᵃ rather than to π* (book §5.3 reaches π* instead — see the Theory tab).
 </div>""",
     'Contractionary Monetary Shock': """
 <div style="text-align:center; font-size:17px; font-weight:700;">Contractionary Monetary Shock 🏦</div>
 <div style="font-size:13px; color:gray;">
-The central bank tightens its policy stance (↑r'). The MP-curve shifts up and the AD-curve shifts left.
+The central bank tightens its policy stance (↑r'). The MP-curve shifts up and the AD-curve shifts left. What follows depends on the <b>exchange-rate regime</b>:
 <br><br>
-Output falls below potential and capital flows in, which appreciates the domestic currency (wʳ ↓). The negative output gap gradually lowers inflation to its new long-run level π* = (rᵃ − r')/λ<sub>I</sub>, which now lies below foreign inflation πᵃ.
+<b>Flexible:</b> output falls below potential and capital flows in, which appreciates the domestic currency (wʳ ↓). The negative output gap gradually lowers inflation to its new long-run level π* = (rᵃ − r')/λ<sub>I</sub>, which now lies below foreign inflation πᵃ.
+<br><br>
+<b>Fixed peg, no sterilization:</b> <b>monetary policy has no effect</b> — reserve flows tie r to rᵃ, so neither output nor inflation moves.
+<br><br>
+<b>Fixed peg, with sterilization:</b> the bank keeps its own rate, so output falls, but by less than under a float. The nominal peg still holds, so wʳ cannot jump and inflation returns to πᵃ rather than to π* (book §5.3 reaches π* instead — see the Theory tab).
 </div>""",
     'Rising Foreign Interest Rate': """
 <div style="text-align:center; font-size:17px; font-weight:700;">Rising Foreign Interest Rate 🌍</div>
 <div style="font-size:13px; color:gray;">
-The foreign central bank raises its rate (↑rᵃ). The FX-line shifts up.
+The foreign central bank raises its rate (↑rᵃ). The FX-line shifts up. The sign of the effect <b>changes with the exchange-rate regime</b>:
 <br><br>
-Capital flows abroad, the domestic currency depreciates and the real exchange rate wʳ rises, which shifts IS to the right. Output rises in the short run and the domestic real rate follows rᵃ upward. Inflation converges to π* = (rᵃ − r')/λ<sub>I</sub>.
+<b>Flexible:</b> capital flows abroad, the domestic currency depreciates and the real exchange rate wʳ rises, which shifts IS to the right. Output <b>rises</b> in the short run and the domestic real rate follows rᵃ upward. Inflation converges to π* = (rᵃ − r')/λ<sub>I</sub>.
+<br><br>
+<b>Fixed peg, no sterilization:</b> the currency cannot depreciate, so nothing offsets the higher rate — it is simply imported, and output <b>falls</b> below potential. Real depreciation (wʳ ↑) then restores it while inflation returns to πᵃ.
+<br><br>
+<b>Fixed peg, with sterilization:</b> the bank offsets the reserve flows, so the economy is <b>insulated</b> — rᵃ never reaches it and output and inflation are unchanged. Reserves, however, move without limit.
 </div>""",
     'Falling Foreign Interest Rate': """
 <div style="text-align:center; font-size:17px; font-weight:700;">Falling Foreign Interest Rate 🌍</div>
 <div style="font-size:13px; color:gray;">
-The foreign central bank lowers its rate (↓rᵃ). The FX-line shifts down.
+The foreign central bank lowers its rate (↓rᵃ). The FX-line shifts down. The sign of the effect <b>changes with the exchange-rate regime</b>:
 <br><br>
-Capital flows in, the domestic currency appreciates (wʳ ↓) and net exports fall, which shifts IS to the left. Output falls in the short run and inflation declines to its new long-run level π* = (rᵃ − r')/λ<sub>I</sub>.
+<b>Flexible:</b> capital flows in, the domestic currency appreciates (wʳ ↓) and net exports fall, which shifts IS to the left. Output <b>falls</b> in the short run and inflation declines to its new long-run level π* = (rᵃ − r')/λ<sub>I</sub>.
+<br><br>
+<b>Fixed peg, no sterilization:</b> the currency cannot appreciate, so the lower rate is simply imported and output <b>rises</b> above potential. Real appreciation (wʳ ↓) then returns it to potential while inflation returns to πᵃ.
+<br><br>
+<b>Fixed peg, with sterilization:</b> the bank offsets the reserve flows, so the economy is <b>insulated</b> — rᵃ never reaches it and output and inflation are unchanged. Reserves, however, move without limit.
 </div>""",
     'Imported Inflation Shock': """
 <div style="text-align:center; font-size:17px; font-weight:700;">Imported Inflation Shock 📈</div>
