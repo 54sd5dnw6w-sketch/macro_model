@@ -818,6 +818,12 @@ with tab1:
         st.markdown(f"<div style='font-size:12px; color:gray; margin-top:8px;'>{longrun_line}</div>",
                     unsafe_allow_html=True)
 
+        # Spacer: a stretch container eats whatever height is left, which pins the
+        # buttons to the bottom edge however long the description is, so they stop
+        # drifting up and down as you switch shocks. It needs a child — Streamlit
+        # renders nothing at all for a container with no content.
+        st.container(height="stretch", border=False).html("<div></div>")
+
         lc1, lc2 = st.columns([1.2, 0.8])
         with lc1:
             st.button("🔖 Remember this run", on_click=lock_run, width="stretch",
