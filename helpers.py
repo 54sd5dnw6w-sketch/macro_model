@@ -14,6 +14,19 @@ def session_init(**kwargs):
 
 
 
+def panel_header(text, column_to_plot=st):
+    """Small caps label at the top of a panel.
+
+    Every column of the model tab is a bordered container carrying one of these,
+    which is what makes the row read as one dashboard split into sections rather
+    than as unrelated boxes floating next to each other. Keep the styling here —
+    if each page styles its own header they drift apart."""
+    column_to_plot.markdown(
+        f"<div style='font-size:11px; font-weight:600; letter-spacing:.09em; "
+        f"text-transform:uppercase; color:#9AA0A6; margin:-4px 0 8px 0;'>{text}</div>",
+        unsafe_allow_html=True)
+
+
 # ―――― Linear Math ――――――――――――――――
 def find_line_intersection(slope_1, intercept_1, slope_2, intercept_2):
     if slope_1 == slope_2:

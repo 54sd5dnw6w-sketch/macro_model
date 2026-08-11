@@ -686,10 +686,17 @@ with tab2:
     st.markdown(c.MARKDOWN_THEORY, unsafe_allow_html=True)
 
 with tab1:
-    cols = st.columns([1.4,0.9,0.7])
+    # Three bordered panels of equal weight, each with a header: with only two of
+    # them boxed the diagrams looked like a leftover. gap/alignment keep the tops
+    # of the three borders on one line.
+    cols = st.columns([0.8, 1], gap="small", vertical_alignment="top") # [1.4, 0.9, 0.7],
+    diagrams = cols[0].container(border=True, height="stretch")
+    h.panel_header("Diagrams", diagrams)
 
     # ―――― r–Y diagram ――――――――――――――――
-    r_Y_fig = h.create_linear_plot(x_label="Y - Output", y_label="r - interest rate")
+    # No x-title on the upper chart: it shares the axis with the one below it, and
+    # dropping the repeat binds the two into a single block.
+    r_Y_fig = h.create_linear_plot(x_label="", y_label="r - interest rate")
     h.add_line_to_plot(r_Y_fig, sIS_slope, sIS_int, x_lo, x_hi, name=STIS_name, color=STIS_color, line_width=STIS_lw)
     h.add_line_to_plot(r_Y_fig, sMP_slope, sMP_int, x_lo, x_hi, name=STMP_name, color=STMP_color, line_width=STMP_lw)
     h.add_line_to_plot(r_Y_fig, 0, sFX, x_lo, x_hi, name='FX', color="#E45756")
@@ -702,7 +709,7 @@ with tab1:
         h.add_vertical_line(r_Y_fig, sY, y_max=sFX, name=f"Y ({sY:.2f})", name_position='bottom', color='#B0B0B0', dash='dot')
 
     h.add_vertical_line(r_Y_fig, Ybar, name=f'Ȳ ({Ybar})', color='#555555', dash='8px,5px')
-    h.show_plotly_fig(r_Y_fig, column_to_plot=cols[0], key="oe_rY")
+    h.show_plotly_fig(r_Y_fig, height=340, column_to_plot=diagrams, key="oe_rY")
 
     output_gap = Y_cur - Ybar
 
@@ -721,7 +728,7 @@ with tab1:
     # on the left so it doesn't collide with the IA label on the right.
     h.add_line_to_plot(pi_Y_fig, 0, pi_foreign, x_lo, x_hi, dash='dash', name=f"PPP ({pi_foreign:.1f})", color="#999999", line_width=c.thin_line_width, label_position='left')
     h.add_vertical_line(pi_Y_fig, Ybar, name=f'Ȳ ({Ybar})', color='#555555', dash='8px,5px')
-    h.show_plotly_fig(pi_Y_fig, column_to_plot=cols[0], key="oe_piY")
+    h.show_plotly_fig(pi_Y_fig, height=360, column_to_plot=diagrams, key="oe_piY")
 
     # ―――― Advanced: equation display ――――――――――――――――
     if level == 'Advanced':
@@ -741,8 +748,50 @@ with tab1:
             <b>Real exchange rate wʳ:</b> {wr_cur:.2f}
         """, "⚙️")
 
-    # ―――― Right column ――――――――――――――――
-    with cols[2].container(border=True):
+    df_now = st.session_state.oe_iteration_df
+    df_lock = st.session_state.oe_locked_df
+
+    # ―――― Right column, upper panel ――――――――――――――――
+    with cols[1].container(border=True, height="stretch"):
+        # The header goes in FIRST: called after st.columns() it lands under the
+        # charts instead of on top of them.
+        h.panel_header("Over time")
+        cols_graphs = st.columns(2)
+
+        def _series_chart(y_col, y_title, label, ref_value, ref_label, show_x=False):
+            fig = px.scatter(df_now, x="Iteration", y=y_col)
+            fig.update_traces(mode="lines")
+            if df_lock is not None:
+                fig.add_scatter(x=df_lock["Iteration"], y=df_lock[y_col], mode="lines",
+                                line=dict(color="#BBBBBB", dash="dot"), name="Previous run")
+            if not df_now.empty:
+                last = df_now.iloc[-1]
+                fig.add_annotation(x=last["Iteration"], y=last[y_col],
+                                   text=f"{label}={last[y_col]:.2f}", showarrow=False,
+                                   xanchor="left", yshift=12)
+            # Only the bottom ROW of the grid carries the "Period" title — the charts
+            # share an x-axis, and repeating the label on all four chopped the panel up.
+            fig.update_layout(xaxis_title="Period" if show_x else "", yaxis_title=y_title,
+                              showlegend=False)
+            h.add_line_to_plot(fig, 0, ref_value, 0, iteration_count,
+                               name=f"{ref_label} ({ref_value:.2f})", line_width=2, color="#999999", dash='dot')
+            h.show_plotly_fig(fig, height=185 if show_x else 165, key=f"oe_ts_{y_col}")
+
+        with cols_graphs[0]:
+            _series_chart("Output",    "Y - Output",           "Y",  Ybar,        "Ȳ")
+            _series_chart("Inflation", "𝜋 - inflation",        "𝜋",  pi_eq,       "𝜋*", show_x=True)
+
+        with cols_graphs[1]:
+            # Reference is the LONG-RUN wʳ, not the pre-shock one: most shocks move
+            # the real exchange rate permanently, so wʳ₀ was the wrong target line.
+            _series_chart("RealFX",    "wʳ - real exch. rate", "wʳ", WR_LONGRUN,  "wʳ*")
+            # r is pegged to rᵃ in every regime except 'fixed with sterilization', where
+            # the CB sets its own rate — that is what makes the two pegs differ.
+            _series_chart("Rate",      "r - interest rate",    "r",rate_at(Ybar, pi_eq) if peg_steril else r_foreign, "r*", show_x=True)
+
+    # ―――― Right column, lower panel ――――――――――――――――
+    with cols[1].container(border=True, height="stretch"):
+        h.panel_header("What is happening")
         # ―――― Pop-ups ――――――――――――――――
         # Only things the description panel below does NOT say: a run that will not
         # settle, a peg that cannot be held, and — at Medium/Advanced, where the
@@ -777,38 +826,6 @@ with tab1:
         with lc2:
             if st.session_state.oe_locked_df is not None:
                 st.button("✕ Forget", on_click=clear_lock, width="stretch")
-
-        df_now = st.session_state.oe_iteration_df
-        df_lock = st.session_state.oe_locked_df
-
-
-
-    with cols[1].container(border=True):
-        def _series_chart(y_col, y_title, label, ref_value, ref_label):
-            fig = px.scatter(df_now, x="Iteration", y=y_col)
-            fig.update_traces(mode="lines")
-            if df_lock is not None:
-                fig.add_scatter(x=df_lock["Iteration"], y=df_lock[y_col], mode="lines",
-                                line=dict(color="#BBBBBB", dash="dot"), name="Previous run")
-            if not df_now.empty:
-                last = df_now.iloc[-1]
-                fig.add_annotation(x=last["Iteration"], y=last[y_col],
-                                   text=f"{label}={last[y_col]:.2f}", showarrow=False,
-                                   xanchor="left", yshift=12)
-            fig.update_layout(xaxis_title="Period", yaxis_title=y_title, showlegend=False)
-            h.add_line_to_plot(fig, 0, ref_value, 0, iteration_count,
-                               name=f"{ref_label} ({ref_value:.2f})", line_width=2, color="#999999", dash='dot')
-            h.show_plotly_fig(fig, height=190, key=f"oe_ts_{y_col}")
-
-        _series_chart("Output",    "Y - Output",           "Y",  Ybar,        "Ȳ")
-        _series_chart("Inflation", "𝜋 - inflation",        "𝜋",  pi_eq,       "𝜋*")
-        # Reference is the LONG-RUN wʳ, not the pre-shock one: most shocks move
-        # the real exchange rate permanently, so wʳ₀ was the wrong target line.
-        _series_chart("RealFX",    "wʳ - real exch. rate", "wʳ", WR_LONGRUN,  "wʳ*")
-        # r is pegged to rᵃ in every regime except 'fixed with sterilization', where
-        # the CB sets its own rate — that is what makes the two pegs differ.
-        _series_chart("Rate",      "r - interest rate",    "r",
-                      rate_at(Ybar, pi_eq) if peg_steril else r_foreign, "r*")
 
     # ―――― Animation step ――――――――――――――――
     if phase == "adjusting":

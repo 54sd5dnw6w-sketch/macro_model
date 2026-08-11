@@ -356,10 +356,15 @@ with tab2:
 
 with tab1:
     # ―――― Main layout ――――――――――――――――
-    cols = st.columns([1.7, 1])
+    # Same shape as the open-economy page: bordered panels with a header each, so
+    # the two pages read as one app.
+    cols = st.columns([1.7, 1], gap="small", vertical_alignment="top")
+    diagrams = cols[0].container(border=True, height="stretch")
+    h.panel_header("Diagrams", diagrams)
 
     # ―――― r–Y diagram ――――――――――――――――
-    r_Y_fig = h.create_linear_plot(x_label="Y - Output", y_label="r - interest rate")
+    # The x-title is on the lower chart only: the two share the axis.
+    r_Y_fig = h.create_linear_plot(x_label="", y_label="r - interest rate")
     h.add_line_to_plot(r_Y_fig, sIS_slope, sIS_int, x_lo, x_hi, name='IS', color="#4C78A8")
     h.add_line_to_plot(r_Y_fig, sMP_slope, sMP_int, x_lo, x_hi,name=STMP_name, color=STMP_color, line_width=STMP_lw)
 
@@ -373,7 +378,7 @@ with tab1:
                             name=f"Y ({sY:.2f})", name_position='bottom', color='#B0B0B0', dash='dot')
 
     h.add_vertical_line(r_Y_fig, c.Y_potential, name=f'Ȳ ({c.Y_potential})', color='#555555', dash='8px,5px')
-    h.show_plotly_fig(r_Y_fig, column_to_plot=cols[0], key="ce_rY")
+    h.show_plotly_fig(r_Y_fig, height=340, column_to_plot=diagrams, key="ce_rY")
 
     output_gap = Y_cur - c.Y_potential
 
@@ -399,7 +404,7 @@ with tab1:
                             name=f"Y ({sY:.2f})", name_position='bottom', color='#B0B0B0', dash='dot')
 
     h.add_vertical_line(pi_Y_fig, c.Y_potential, name=f'Ȳ ({c.Y_potential})', color='#555555', dash='8px,5px')
-    h.show_plotly_fig(pi_Y_fig, column_to_plot=cols[0], key="ce_piY")
+    h.show_plotly_fig(pi_Y_fig, height=360, column_to_plot=diagrams, key="ce_piY")
 
     # ―――― Advanced: equation display ――――――――――――――――
     if level == 'Advanced':
@@ -424,7 +429,8 @@ with tab1:
         """
 
     # ―――― Right column ――――――――――――――――
-    with cols[1].container(border=True):
+    with cols[1].container(border=True, height="stretch"):
+        h.panel_header("What is happening")
 
         if not convergence_ok:
             st.warning("⚠️ **These settings never settle.** Output and inflation keep swinging "
@@ -446,7 +452,10 @@ with tab1:
             if st.session_state.locked_df is not None:
                 st.button("✕ Forget", on_click=clear_lock, width="stretch")
 
+        h.panel_header("Over time")
+
         # ―――― Y / Periods chart ――――――――――――――――
+        # Only the bottom chart shows the "Period" title — the three share one x-axis.
         output_fig = px.scatter(st.session_state.iteration_df, x="Iteration", y="Output")
         output_fig.update_traces(mode="lines", marker=dict(size=5))
 
@@ -457,10 +466,10 @@ with tab1:
             last = st.session_state.iteration_df.iloc[-1]
             output_fig.add_annotation(x=last["Iteration"], y=last["Output"], text=f"Y={last['Output']:.2f}", showarrow=False, xanchor="left", yshift=12)
 
-        output_fig.update_layout(xaxis_title="Period", yaxis_title="Y - Output", showlegend=False)
+        output_fig.update_layout(xaxis_title="", yaxis_title="Y - Output", showlegend=False)
         h.add_line_to_plot(output_fig, 0, c.Y_potential, 0, iteration_count,
                            name=f"Ȳ ({c.Y_potential:.2f})", line_width=2, color="#999999", dash='dot')
-        h.show_plotly_fig(output_fig, height=200, key="ce_ts_output")
+        h.show_plotly_fig(output_fig, height=180, key="ce_ts_output")
 
         # ―――― π / Periods chart ――――――――――――――――
         inflation_fig = px.scatter(st.session_state.iteration_df, x="Iteration", y="Inflation")
@@ -473,10 +482,10 @@ with tab1:
             last = st.session_state.iteration_df.iloc[-1]
             inflation_fig.add_annotation(x=last["Iteration"], y=last["Inflation"],text=f"𝜋={last['Inflation']:.2f}", showarrow=False,xanchor="left", yshift=12)
 
-        inflation_fig.update_layout(xaxis_title="Period", yaxis_title="𝜋 - inflation", showlegend=False)
+        inflation_fig.update_layout(xaxis_title="", yaxis_title="𝜋 - inflation", showlegend=False)
         h.add_line_to_plot(inflation_fig, 0, pi_eq, 0, iteration_count,
                            name=f"𝜋* ({pi_eq:.2f})", line_width=2, color="#999999", dash='dot')
-        h.show_plotly_fig(inflation_fig, height=200, key="ce_ts_inflation")
+        h.show_plotly_fig(inflation_fig, height=180, key="ce_ts_inflation")
 
         # ―――― r / Periods chart ――――――――――――――――
         rate_fig = px.scatter(st.session_state.iteration_df, x="Iteration", y="Interest Rate")
