@@ -771,12 +771,13 @@ with tab1:
                 f"*while-it-lasts* adjustment.")
 
         if fiscal_shock != 0:
+            expansion = fiscal_shock > 0
             if peg_no_steril:
                 st.info(c.peg_no_ster)
             elif peg_steril:
-                st.info(c.peg_ster)
+                st.info(c.peg_ster_expansion if expansion else c.peg_ster_contraction)
             else:
-                st.info(c.no_peg_nor_ster)
+                st.info(c.no_peg_nor_ster_expansion if expansion else c.no_peg_nor_ster_contraction)
 
         st.markdown(text_to_show, unsafe_allow_html=True)
         st.markdown(f"<div style='font-size:13px; margin-top:6px;'>{regime_outcome}</div>",

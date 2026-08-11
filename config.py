@@ -781,13 +781,21 @@ peg_no_ster = """🏛️ **Hard peg — fiscal policy is fully effective:** the 
 accommodates, so output moves by the full IS multiplier before the real
 exchange rate slowly crowds it out."""
 
-peg_ster = """🏛️ **Sterilised peg — fiscal policy is effective but damped:** the bank's own
+peg_ster_expansion = """🏛️ **Sterilised peg — fiscal policy is effective but damped:** the bank's own
 MP rule raises r as output rises, so the impact is smaller than without
 sterilization. Crowding out still arrives via the trade balance, as domestic
 prices outrun foreign ones (wʳ ↓)."""
 
-no_peg_nor_ster = """🏛️ **Float — fiscal policy is crowded out:** the currency appreciates (wʳ ↓)
+peg_ster_contraction = """🏛️ **Sterilised peg — fiscal policy is effective but damped:** the bank's own
+MP rule lowers r as output falls, so the impact is smaller than without
+sterilization. The contraction is still undone via the trade balance, as domestic
+prices fall behind foreign ones (wʳ ↑)."""
+
+no_peg_nor_ster_expansion = """🏛️ **Float — fiscal policy is crowded out:** the currency appreciates (wʳ ↓)
 and net exports fall, so output and inflation are unchanged."""
+
+no_peg_nor_ster_contraction = """🏛️ **Float — fiscal policy is crowded out:** the currency depreciates (wʳ ↑)
+and net exports rise, so output and inflation are unchanged."""
 
 foreign_neutralised_text = """🏛️ **Fixed peg, with sterilization:** the bank sterilises the reserve flows, so
 the real economy is insulated — the change in rᵃ does not reach it. Reserves,
