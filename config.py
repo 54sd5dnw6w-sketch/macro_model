@@ -351,9 +351,9 @@ OE_LEAD = {
 # What the chosen regime then does with it.
 OE_STORY = {
     ('fiscal', 'float'):
-        "The change in demand pushes the interest rate {higher_lower}, so money {capital_flow} and the "
-        "currency {strengthens_weakens} (wʳ {down_up}). Net exports {fall_rise} by exactly what the "
-        "government {added_removed}, so <b>output and inflation never move</b> — the exchange rate "
+        "The change in demand <i>would</i> push the interest rate {higher_lower}, so money {capital_flow} "
+        "and the currency {strengthens_weakens} (wʳ {down_up}) instead. Net exports {fall_rise} by exactly "
+        "what the government {added_removed}, so <b>output and inflation never move</b> — the exchange rate "
         "cancels fiscal policy out.",
     ('fiscal', 'hard'):
         "The exchange rate cannot move, so the whole impulse lands on output: it {rises_falls} {above_below} "
@@ -414,7 +414,8 @@ OE_STORY = {
 # fixed rate, the foreign rate when flows are offset) are deliberately absent, so
 # nothing is ever said twice.
 OE_MEDIUM_NOTE = {
-    ('demand', 'float'): "The exchange rate cancels a change in demand out completely.",
+    ('demand', 'float'): "The exchange rate cancels a change in demand out completely — nothing on "
+                         "the charts moves except wʳ.",
     ('demand', 'hard'): "With the exchange rate held fixed, a change in demand has its full effect on output.",
     ('demand', 'ster'): "A change in demand moves output, damped by the bank's own interest-rate response.",
     ('monetary', 'float'): "An interest-rate change moves output now, and inflation permanently.",
@@ -431,6 +432,62 @@ OE_MEDIUM_NOTE[('imported', 'hard')] = OE_MEDIUM_NOTE[('imported', 'float')]
 OE_MEDIUM_NOTE[('imported', 'ster')] = OE_MEDIUM_NOTE[('imported', 'float')]
 
 
+# What the user will actually SEE, verified against the simulation rather than
+# against the economics. The two differ often enough to matter: under a float the
+# IS-curve shifts and the appreciation pushes it back inside the same period, so
+# the diagram shows no movement at all, and a description that stops at "spending
+# rises" reads as flatly wrong next to a flat Y line. Where a line refuses to move,
+# say so and say why.
+OE_CHART = {
+    ('fiscal', 'float'):
+        "<b>nothing moves except wʳ.</b> IS does shift {right_left}, but the currency "
+        "{strengthens_weakens} in the same period and pushes it straight back, so the diagram only "
+        "ever shows the net position. Y, π and r stay exactly where they were.",
+    ('fiscal', 'hard'):
+        "IS shifts {right_left} and Y jumps in period 1. r stays pinned to the red FX line "
+        "throughout. wʳ does not move on impact — it slides {down_up} only once inflation is away "
+        "from the world rate, and that is what walks Y back to potential.",
+    ('fiscal', 'ster'):
+        "IS shifts {right_left} and Y jumps, by less than with a plain fixed rate. r leaves the red "
+        "FX line — the only regime where it does. wʳ is flat on impact and drifts {down_up} later.",
+
+    ('monetary', 'float'):
+        "MP shifts {down_up} and Y jumps, but <b>r stays flat at rᵃ</b>: the bank's stance moved, "
+        "the market rate cannot. wʳ does the moving instead — it jumps {up_down} on impact and then "
+        "comes back.",
+    ('monetary', 'hard'):
+        "<b>nothing moves at all</b> — not IS, not MP, not one of the four lines below. The change "
+        "in r' is undone before it ever reaches the diagram.",
+    ('monetary', 'ster'):
+        "MP shifts {down_up} and the point slides along IS, so Y {rises_falls} and r moves away from "
+        "the red FX line. IS itself stays put, and wʳ is flat until inflation leaves the world rate.",
+
+    ('foreign', 'float'):
+        "the red FX line shifts {up_down} and r follows it. IS moves with the currency, Y jumps, and "
+        "wʳ settles {higher_lower} than it began.",
+    ('foreign', 'hard'):
+        "the red FX line shifts {up_down} and r follows it, but <b>IS does not move</b> — the point "
+        "just slides along it to the {left_right}, which is why Y goes the opposite way to a "
+        "floating currency. wʳ then drifts {up_down} and brings Y back.",
+    ('foreign', 'ster'):
+        "<b>only the red FX line moves.</b> Y, π and wʳ stay flat and r stays where the bank put it. "
+        "The gap you can see between r and the FX line is the flow the bank is absorbing.",
+
+    ('imported', 'float'):
+        "the IA line jumps {up_down} while AD stays where it is, so output slides along AD to "
+        "{below_above} potential. wʳ jumps {down_up} with it and r stays flat at rᵃ; both then work "
+        "their way back.",
+    ('imported', 'hard'):
+        "the IA line jumps {up_down} and output lands {below_above} potential, with IS pulled "
+        "{left_right} by the {stronger_weaker} currency. r stays pinned to the red FX line, and "
+        "everything drifts back as inflation returns to the world rate.",
+    ('imported', 'ster'):
+        "the IA line jumps {up_down} and output lands {below_above} potential, but <b>IS does not "
+        "move and wʳ is flat on impact</b> — with the flows offset the exchange rate only drifts "
+        "later. r moves with the bank's own rule.",
+}
+
+
 def _direction_words(up):
     """Every word that flips with the sign of the shock, in one place."""
     def p(a, b):
@@ -441,7 +498,8 @@ def _direction_words(up):
         above_below=p('above', 'below'), below_above=p('below', 'above'),
         up_down=p('↑', '↓'), down_up=p('↓', '↑'),
         more_less=p('more', 'less'), higher_lower=p('higher', 'lower'),
-        right_left=p('right', 'left'), added_removed=p('added', 'took away'),
+        right_left=p('right', 'left'), left_right=p('left', 'right'),
+        added_removed=p('added', 'took away'),
         capital_flow=p('flows in from abroad', 'flows out to other countries'),
         capital_flow_rev=p('flows out to other countries', 'flows in from abroad'),
         chases_return=p('leaves in search of the better return abroad',
@@ -475,9 +533,14 @@ def oe_shock_panel(shock, regime):
         return placeholder_shock
     family, direction, emoji = OE_SHOCK_META[shock]
     words = _direction_words(direction > 0)
+    regime_key = REGIME_KEY[regime]
     lead = OE_LEAD[family].format(**words)
-    story = OE_STORY[(family, REGIME_KEY[regime])].format(**words)
-    return oe_panel(shock, regime, f"{lead}<br><br>{story}", emoji)
+    story = OE_STORY[(family, regime_key)].format(**words)
+    charts = OE_CHART[(family, regime_key)].format(**words)
+    body = (f"{lead}<br><br>{story}"
+            f"<div style='margin-top:10px; padding-top:8px; border-top:1px solid #eee;'>"
+            f"<b>On the charts:</b> {charts}</div>")
+    return oe_panel(shock, regime, body, emoji)
 
 
 MARKDOWN_THEORY = r"""
