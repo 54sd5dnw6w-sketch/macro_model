@@ -683,7 +683,12 @@ else:
 tab1, tab2 = st.tabs(["📊 Model", "📖 Theory"])
 
 with tab2:
-    st.markdown(c.MARKDOWN_THEORY, unsafe_allow_html=True)
+    # The trinity diagram sits between the two halves of the text. It goes through
+    # st.image: both st.markdown(unsafe_allow_html=True) and st.html run the SVG
+    # through a sanitizer that drops it silently, leaving no element at all.
+    st.markdown(c.THEORY_INTRO)
+    st.image(c.TRINITY_SVG, width="stretch")
+    st.markdown(c.THEORY_REST)
 
 with tab1:
     # Three bordered panels of equal weight, each with a header: with only two of
@@ -805,8 +810,9 @@ with tab1:
             st.warning(f"⚠️ **This fixed rate cannot be held forever.** The bank ends up holding "
                        f"r = {peg_lr_rate:.2f} while the world rate is rᵃ = {r_foreign:.2f}, which is "
                        f"why the operating point sits away from the red FX line. Money keeps crossing "
-                       f"the border, so reserves drain (or pile up) without limit and the fixed rate "
-                       f"has to be given up eventually. What you see is the path while it lasts.")
+                       f"the border, so reserves drain (or pile up) without limit. When they run out "
+                       f"the bank has to let the interest rate go (→ **Fixed – no sterilization**) or "
+                       f"let the currency go (→ **Flexible**). What you see is the path while it lasts.")
 
         if level != 'Easy':
             if monetary_neutralised:

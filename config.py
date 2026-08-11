@@ -334,9 +334,9 @@ OE_SHOCK_META = {
 }
 
 OE_REGIME_LABEL = {
-    'Flexible': '🌊 Floating currency',
-    'Fixed – no sterilization': '🔒 Fixed exchange rate',
-    'Fixed – with sterilization': '🛡️ Fixed exchange rate, flows offset',
+    'Flexible': '🌊 Flexible',
+    'Fixed – no sterilization': '🔒 Fixed – no sterilization',
+    'Fixed – with sterilization': '🛡️ Fixed – with sterilization',
 }
 
 # What the shock is, before any regime enters the picture.
@@ -362,7 +362,7 @@ OE_STORY = {
         "to potential.",
     ('fiscal', 'ster'):
         "The exchange rate still cannot move, so output {rises_falls} — but the bank moves its own interest "
-        "rate against the shock, so the effect is smaller than with a plain fixed rate. Trade then closes the "
+        "rate against the shock, so the effect is smaller than without sterilization. Trade then closes the "
         "gap: domestic prices {outrun_lag} foreign ones (wʳ {down_up}) and output returns to potential.",
 
     ('monetary', 'float'):
@@ -376,7 +376,7 @@ OE_STORY = {
         "inflation stay exactly where they were.",
     ('monetary', 'ster'):
         "Because the bank offsets those currency flows it keeps its own interest rate, so output "
-        "{rises_falls} — but by less than with a floating currency, since the exchange rate cannot help. "
+        "{rises_falls} — but by less than under a flexible rate, since the exchange rate cannot help. "
         "Inflation ends back at the world rate: a country holding its exchange rate fixed cannot keep an "
         "inflation rate of its own.",
 
@@ -387,7 +387,7 @@ OE_STORY = {
     ('foreign', 'hard'):
         "With the exchange rate fixed nothing softens the blow: the {higher_lower} world rate is imported "
         "directly, borrowing becomes {dearer_cheaper} and output {falls_rises} {below_above} potential — "
-        "the opposite sign to a floating currency. Domestic prices then {lag_outrun} foreign ones, "
+        "the opposite sign to a flexible rate. Domestic prices then {lag_outrun} foreign ones, "
         "competitiveness {improves_worsens} (wʳ {up_down}), and output returns to potential.",
     ('foreign', 'ster'):
         "The bank offsets the currency flows, so the foreign rate never reaches the economy — <b>output "
@@ -420,11 +420,11 @@ OE_MEDIUM_NOTE = {
     ('demand', 'ster'): "A change in demand moves output, damped by the bank's own interest-rate response.",
     ('monetary', 'float'): "An interest-rate change moves output now, and inflation permanently.",
     ('monetary', 'ster'): "The bank keeps its own interest rate, so it still moves output — by less than "
-                          "with a floating currency.",
+                          "under a flexible rate.",
     ('foreign', 'float'): "A change in the world rate reaches the economy through the currency, and "
                           "output moves with it.",
     ('foreign', 'hard'): "The world rate is imported directly, so output moves the opposite way to a "
-                         "floating currency.",
+                         "flexible rate.",
     ('imported', 'float'): "The jump in import prices lands on inflation first; output then moves to bring "
                            "it back.",
 }
@@ -448,7 +448,7 @@ OE_CHART = {
         "throughout. wʳ does not move on impact — it slides {down_up} only once inflation is away "
         "from the world rate, and that is what walks Y back to potential.",
     ('fiscal', 'ster'):
-        "IS shifts {right_left} and Y jumps, by less than with a plain fixed rate. r leaves the red "
+        "IS shifts {right_left} and Y jumps, by less than without sterilization. r leaves the red "
         "FX line — the only regime where it does. wʳ is flat on impact and drifts {down_up} later.",
 
     ('monetary', 'float'):
@@ -468,7 +468,7 @@ OE_CHART = {
     ('foreign', 'hard'):
         "the red FX line shifts {up_down} and r follows it, but <b>IS does not move</b> — the point "
         "just slides along it to the {left_right}, which is why Y goes the opposite way to a "
-        "floating currency. wʳ then drifts {up_down} and brings Y back.",
+        "flexible rate. wʳ then drifts {up_down} and brings Y back.",
     ('foreign', 'ster'):
         "<b>only the red FX line moves.</b> Y, π and wʳ stay flat and r stays where the bank put it. "
         "The gap you can see between r and the FX line is the flow the bank is absorbing.",
@@ -483,7 +483,7 @@ OE_CHART = {
         "everything drifts back as inflation returns to the world rate.",
     ('imported', 'ster'):
         "the IA line jumps {up_down} and output lands {below_above} potential, but <b>IS does not "
-        "move and wʳ is flat on impact</b> — with the flows offset the exchange rate only drifts "
+        "move and wʳ is flat on impact</b> — with the flows sterilized the exchange rate only drifts "
         "later. r moves with the bank's own rule.",
 }
 
@@ -543,403 +543,217 @@ def oe_shock_panel(shock, regime):
     return oe_panel(shock, regime, body, emoji)
 
 
-MARKDOWN_THEORY = r"""
+THEORY_INTRO = r"""
 ## The Open Economy
 
-In a **closed** economy the country trades with no one: everything it produces, it also
-consumes itself. This is a useful simplification, but no actual economy works that way.
-
-Opening the economy adds two channels to the model:
-
-- **A goods channel** — output can be sold abroad (exports) and bought from abroad
-  (imports).
-- **A financial channel** — savers can move funds abroad in search of a higher interest
-  rate, and foreign investors can move funds in.
-
-Almost every result that follows comes from a single question: how do these two channels
-respond when something in the economy changes?
+A closed economy trades with no one. Opening it adds two channels: **goods** can be sold
+abroad and bought from abroad, and **money** can cross the border in search of a better
+interest rate. Almost everything below follows from those two.
 
 ---
 
-## 1. The real exchange rate
+### The real exchange rate
 
-The variable that carries most of the adjustment in this model is the **real exchange
-rate**, written $w^r$. It measures how expensive foreign goods are relative to domestic
-ones.
+The new variable is the real exchange rate $w^r$ — how expensive foreign goods are
+compared with domestic ones.
 
 | If $w^r$ **rises** | If $w^r$ **falls** |
 |---|---|
-| The domestic currency is **weaker** (depreciation) | The domestic currency is **stronger** (appreciation) |
-| Foreign goods become expensive at home | Foreign goods become cheap at home |
-| Domestic goods look cheap abroad → **exports rise** | Domestic goods look expensive abroad → **exports fall** |
-| **Demand for domestic output rises** | **Demand for domestic output falls** |
+| the currency is **weaker** (depreciation) | the currency is **stronger** (appreciation) |
+| domestic goods look cheap abroad → exports rise | domestic goods look dear abroad → exports fall |
+| demand for domestic output **rises** | demand for domestic output **falls** |
 
-> **In one sentence:** a depreciation ($w^r \uparrow$) raises demand for domestic output,
-> and an appreciation ($w^r \downarrow$) reduces it.
-
-Two distinct exchange rates are contained in this single symbol, and the distinction
-becomes important later:
-
-- The **nominal** rate is the quoted exchange rate. A central bank can hold it fixed by
-  decree.
-- The **real** rate $w^r$ is the nominal rate *adjusted for prices at home and abroad*.
-  Even when the nominal rate is frozen, $w^r$ continues to move whenever domestic
-  inflation differs from foreign inflation. **A price can be fixed; a price difference
-  cannot.** This property governs much of the analysis in the second half of this page.
+Two rates hide inside that one symbol. The **nominal** rate is the quoted one, and a
+central bank can hold it fixed by decree. The **real** rate is that nominal rate adjusted
+for prices at home and abroad, and it keeps moving whenever domestic inflation differs
+from foreign inflation. A price can be fixed; a price *difference* cannot.
 
 ---
 
-## 2. The five building blocks
+### Curve Definitions
 
-The model consists of five relationships. Each is stated first as a sentence, and the
-algebra is the same sentence written compactly.
+**IS curve** — *the goods market*
 
-#### IS — where does demand come from?
+Output is higher when borrowing is cheap and when the currency is weak.
 
-*Output is higher when borrowing is cheap and when the currency is weak.*
+$$
+Y = \omega - \varphi \, r + \psi \, w^r \qquad \varphi, \psi > 0
+$$
 
-$$Y = \omega - \varphi\, r + \psi\, w^r$$
+| Parameter | Meaning |
+|-----------|---------|
+| $\omega$ | Autonomous demand — **government spending enters here**, so this is the fiscal instrument |
+| $\varphi$ | How strongly a high interest rate holds investment back |
+| $\psi$ | How strongly a weak currency lifts net exports |
 
-| Symbol | Meaning |
-|---|---|
-| $Y$ | Output (GDP) — how much the economy produces |
-| $\omega$ | Autonomous demand. **Government spending enters here**, so this is the fiscal-policy instrument |
-| $\varphi$ | Strength with which high interest rates reduce investment |
-| $\psi$ | Strength with which a weak currency raises net exports |
-
-The term $\psi\, w^r$ is the **only** addition relative to the closed economy, and it
-accounts for most of the difference in behaviour.
-
-#### MP — what does the central bank do?
-
-*Raise the rate when the economy runs hot or inflation climbs.*
-
-$$r = r' + \lambda_P \tilde{Y} + \lambda_I \pi$$
-
-Here $\tilde{Y} = (Y - \bar{Y})/\bar{Y}$ is the **output gap**, the deviation of output
-from the level the economy can sustain, $\bar{Y}$. The intercept $r'$ represents the
-bank's overall stance: **a lower $r'$ means looser policy**.
-
-#### FX — why is the domestic interest rate not free?
-
-*Capital moves towards the highest return, so the domestic rate is drawn to the world rate.*
-
-$$r = r^a$$
-
-If the domestic rate stood above the world rate $r^a$, foreign capital would flow in
-until the difference disappeared. This is the **capital-mobility** constraint. Whether it
-actually binds depends on the exchange-rate regime, which is the subject of section 4.
-
-#### IA — how does inflation move?
-
-*Inflation is sticky within the period and drifts according to whether the economy runs hot or cold.*
-
-$$\pi_{t+1} = \pi_t + \gamma \tilde{Y}_t + \chi\,(w^r_{t+1} - w^r_t) + \eta$$
-
-Two features matter throughout:
-
-1. **Inflation is predetermined.** Today's inflation was set by yesterday's conditions
-   and cannot jump in the period a shock arrives, since wages and contracts are already
-   agreed. Output therefore moves first, and inflation follows.
-2. **The output gap drives inflation.** Running above capacity ($\tilde{Y}>0$) pushes
-   inflation up and running below capacity pushes it down. Inflation stops moving only
-   once output has returned to potential.
-
-The $\chi$ term represents **imported inflation** (§5.5): when the currency weakens,
-imports cost more and this enters the price index directly, with no output gap required.
-$\chi$ is large for a consumer price index, which contains imported final goods, and
-small for the GDP deflator, which does not. The term is an **extension** — every result
-stated below is derived for $\chi = 0$, which is why it defaults to zero and appears only
-at the Advanced level. Section 9 sets out what changes when it is switched on.
-
-#### PPP — where does inflation eventually settle?
-
-*Under a fixed currency, domestic inflation is drawn in the long run to the foreign rate.*
-
-Purchasing power parity provides the anchor $\pi^a$ (foreign inflation), shown as the
-grey dashed line. Whether domestic inflation actually returns to it is **precisely** what
-separates the three regimes.
+The $\psi w^r$ term is the only addition to the closed-economy IS curve, and it accounts
+for most of the difference in behaviour.
 
 ---
 
-## 3. Reading the two diagrams
+**MP curve** — *the central bank's rule*
 
-**Upper chart — the $r$–$Y$ diagram (interest rates)**
+The bank raises the rate when the economy runs hot or inflation climbs.
 
-The intersection of IS, MP and FX determines output and the interest rate. The sideways
-movement of the <span style="color:#4C78A8;">**IS**</span> line *is* the exchange rate
-doing its work.
+$$
+r = r' + \lambda_P \tilde{Y} + \lambda_I \pi \qquad \tilde{Y} = \frac{Y - \bar{Y}}{\bar{Y}}
+$$
 
-**Lower chart — the $\pi$–$Y$ diagram (inflation)**
-
-- The <span style="color:#B279A2;">**AD**</span> curve, which slopes downward, summarises
-  the whole upper diagram in a single line: *for each rate of inflation, what output
-  results once the central bank and the exchange rate have responded?*
-- The <span style="color:#54A24B;">**IA**</span> curve is horizontal because inflation is
-  predetermined — it records *today's* inflation, which cannot move today.
-
-**A run therefore proceeds as follows.** The shock arrives, AD shifts, and the economy
-moves **sideways** along the horizontal IA line, so output changes while inflation cannot.
-Period by period the output gap then drags IA up or down, and the economy **slides along
-AD** until output is back at $\bar{Y}$.
-
-Once a run is under way, the pale curves show the **short-run** position (period 1) and
-the bright curves show **the current position**, so the distance the economy has travelled
-remains visible.
+| Parameter | Meaning |
+|-----------|---------|
+| $r'$ | The bank's stance — a **lower** $r'$ is looser policy |
+| $\lambda_P$ | Weight on the output gap |
+| $\lambda_I$ | Weight on inflation |
 
 ---
 
-## 4. The three regimes — not all objectives are attainable
+**FX curve** — *capital mobility*
 
-This is the central proposition of open-economy macroeconomics, and the reason for the
-regime switch in the sidebar. A country may wish to have three things at once:
+Money chases the highest return, so the domestic rate is pulled towards the world rate.
 
-1. A **stable exchange rate**
-2. **Free movement of capital** across borders
-3. An **independent monetary policy**, set for domestic conditions
+$$
+r = r^a
+$$
 
-**Only two of the three are attainable.** This is the *impossible trinity*, and each
-regime in this application represents a different choice about which objective to give up.
-
-### 🌊 Flexible — the stable exchange rate is given up
-
-The currency floats. Capital moves freely, so $r = r^a$ binds.
-
-The currency then acts as a **shock absorber**, and it is effective enough to neutralise
-fiscal policy entirely. Higher spending attracts an inflow, the currency strengthens, and
-exports fall by exactly the amount that spending added. **Fiscal policy is fully crowded
-out.**
-
-### 🔒 Fixed, no sterilization — monetary independence is given up
-
-The bank commits to the exchange rate and allows capital to flow. Defending the peg
-requires buying and selling foreign currency, which changes the domestic money supply, and
-the domestic interest rate is consequently tied to $r^a$ whether the bank intends it or
-not.
-
-**Monetary policy therefore has no effect.** A change in $r'$ produces no response, and
-the application reports this.
-
-Since the currency can no longer absorb anything, **fiscal policy reaches its maximum
-effect** and the full impact falls on output.
-
-Adjustment operates through the *real* rate. If domestic inflation exceeds foreign
-inflation, domestic goods slowly become more expensive, exports slowly fall, and output
-slowly cools, until inflation is back at $\pi^a$. **Purchasing power parity holds in the
-end.** The process is slow, because it works through accumulated price differences rather
-than through a rate that can jump.
-
-### 🛡️ Fixed, with sterilization — an attempt to obtain all three
-
-Here the bank defends the peg **and** offsets the side effects on the money supply
-("sterilises" them), so that it retains control of its own interest rate.
-
-For a time this succeeds: the exchange rate is stable and monetary policy still has an
-effect. The economy is also **insulated from foreign interest-rate shocks**, since a
-change in $r^a$ leaves domestic output and inflation unaffected.
-
-The peg nevertheless carries an unavoidable implication:
-
-> **The peg identity.** By definition $w^r = w\,p^a/p$. If the nominal rate $w$ is held
-> fixed and domestic inflation exceeds foreign inflation, $w^r$ *must* keep falling,
-> without limit. The system can come to rest only when $w^r$ stops moving, and that
-> requires $\pi = \pi^a$. **A country with a pegged currency cannot sustain an inflation
-> rate of its own,** whether or not it sterilises.
-
-In *this model*, therefore, sterilisation changes the interest rate and the *speed* of
-adjustment, but not the destination. Inflation still returns to $\pi^a$, and crowding out
-still arrives, though through the **trade balance** rather than through a jump in the
-exchange rate.
-
-The trinity also cannot be evaded indefinitely. In the long run the bank's own rule leaves
-$r = r' + \lambda_I \pi^a$. If $r'$ has been changed, or if $r^a$ has moved, this is *not*
-equal to $r^a$, so capital keeps flowing and reserves are depleted without limit. The peg
-must eventually be abandoned, or converted into a genuine **crawling peg**. The
-application issues a warning when the selected scenario is in this position.
-
-> ⚠️ **Where this application and the book differ — worth reading before quoting a long run.**
-> For a **monetary** shock, or a change in the foreign rate, under the **sterilised peg**,
-> book §5.3 obtains a *different* long run from the one simulated here. The book holds
-> $w^r$ constant, lets inflation carry the entire adjustment, and arrives at
-> $$P_\infty:\quad \pi^* = \frac{r^a - r'}{\lambda_I},\qquad r \to r^a$$
-> — that is, **the same long run as under a float**, which is reached only by converting
-> the peg into a crawling peg. In its own words: *"The difference between fixed and
-> flexible exchange rates is, therefore, not in the long-run equilibrium but in the
-> adjustment path."*
->
-> This application instead lets $w^r$ drift, in line with the peg identity above, so that
-> inflation returns to $\pi^a$ and it is the *interest rate* that ends away from parity.
-> Both treatments are internally consistent; they differ in **which variable is assumed to
-> give way** while the peg is held. What is shown here is the path *while the peg lasts*.
-> The book's $P_\infty$ requires a fourth regime — a genuine crawling peg — which is not
-> implemented.
->
-> This affects **only** the sterilised peg following a monetary or foreign-rate shock. For
-> demand shocks the book applies the same drift in $w^r$ as this application (§5.2), and
-> both conclude that inflation returns to $\pi^a$.
+If the domestic rate stood above $r^a$, foreign money would flow in until the difference
+disappeared. Whether this constraint actually binds is exactly what the exchange-rate
+regime decides.
 
 ---
 
-## 5. The crawling peg
+**IA curve** — *inflation adjustment*
 
-This is the mechanism the model is chiefly built to demonstrate, so it is worth stating
-precisely.
+Inflation is fixed within the period and drifts according to whether the economy runs hot
+or cold.
 
-Suppose domestic inflation settles at 3.6% while world inflation remains at 3%. Domestic
-goods then become roughly 0.6% more expensive relative to foreign goods each year. If the
-nominal rate were genuinely frozen, exports would be squeezed continuously.
+$$
+\pi_{t+1} = \pi_t + \gamma \tilde{Y}_t + \chi\,(w^r_{t+1} - w^r_t) + \eta
+$$
 
-The central bank therefore allows the nominal exchange rate to **depreciate by exactly
-that 0.6% per year** — the peg *crawls*. The real exchange rate then holds still, and
-competitiveness is preserved indefinitely.
+| Parameter | Meaning |
+|-----------|---------|
+| $\gamma$ | Speed of adjustment — a higher $\gamma$ converges faster |
+| $\chi$ | How much a move in the exchange rate feeds into prices directly (imports get dearer). 0 by default |
+| $\eta$ | A price shock applied in every period |
 
-$$\pi^* = \frac{r^a - r'}{\lambda_I} \neq \pi^a \qquad \text{nominal rate crawls at } \pi^* - \pi^a$$
-
-> **The central result:** under a crawling peg a country **retains an inflation rate of
-> its own**, permanently different from the world rate. Monetary policy has a *lasting*
-> effect on inflation instead of being drawn back to $\pi^a$. This is what is meant by the
-> statement that monetary policy ends in a crawling peg.
-
-This is the essential difference from a *fixed* peg. Under a genuine nominal peg the peg
-identity forces $\pi \to \pi^a$; only by allowing the nominal rate to move — through a
-float or a crawl — can a country retain an inflation rate of its own. In this model the
-**Flexible** regime is the one that ends in a crawling peg, and both fixed regimes end at
-$\pi^a$ — subject to the qualification above, since book §5.3 places the sterilised peg's
-long run after a monetary shock at $\pi^*$ as well.
-
-The **π\*** reference line in the inflation chart shows this: under a float it lies *away*
-from the grey PPP line, and inflation converges to it rather than to $\pi^a$.
+Two consequences run through everything. Inflation **cannot jump** in the period a shock
+arrives, since wages and contracts are already agreed — so output moves first and
+inflation follows. And inflation stops moving only once output is back at potential.
 
 ---
 
-## 6. Which policy works in which regime?
+**AD curve** — *aggregate demand*
 
-The same shock produces three markedly different outcomes. The period-1 output figures
-below are exactly those the application produces.
+Not a separate assumption: it is IS, MP and FX solved together and drawn in $\pi$–$Y$
+space. It slopes down, and *which* curves go into it depends on the regime — which is why
+it is steeper under a fixed exchange rate than under a flexible one.
 
-| | 🌊 Flexible | 🔒 Fixed, no steril. | 🛡️ Fixed, sterilised |
+---
+
+### Reading the two diagrams
+
+- **Upper, $r$–$Y$:** IS, MP and the flat FX line. The sideways movement of IS *is* the
+  exchange rate doing its work.
+- **Lower, $\pi$–$Y$:** AD slopes down; IA is horizontal, because today's inflation is
+  already determined.
+
+A run therefore goes in two stages. The shock lands and the economy moves **sideways**
+along IA — output changes, inflation cannot. Then, period by period, the output gap drags
+IA up or down and the economy **slides along AD** until output is back at $\bar{Y}$.
+
+---
+
+### Exchange-rate Regimes
+
+A country would like three things at the same time: a **stable exchange rate**, **free
+movement of money** across its border, and a **monetary policy of its own** — an interest
+rate it sets for conditions at home, rather than one the rest of the world sets for it. It
+can have any two. Never all three.
+
+The three settings in the sidebar are the three ways of choosing. **Sterilization** is the
+name for what the third one does: the bank offsets the money flows its defence of the
+exchange rate sets off, so that they leave its own interest rate alone.
+"""
+
+
+THEORY_REST = r"""
+| | 🌊 Flexible | 🔒 Fixed – no sterilization | 🛡️ Fixed – with sterilization |
 |---|---|---|---|
-| **Fiscal policy** (higher spending) | ❌ Fully crowded out — no effect | ✅ **Strongest of the three** | ⚠️ Effective, but damped |
-| *period-1 output* | $1.00$ (unchanged) | $1.50$ | $1.33$ |
-| **Monetary policy** (lower rates) | ✅ Effective, permanently | ❌ **No effect** | ✅ Effective, permanently |
-| *period-1 output* | $1.60$ | $1.00$ (unchanged) | $1.20$ |
-| **Foreign rate rises** | Expansionary $(1.60)$ | **Contractionary** $(0.70)$ | Insulated $(1.00)$ |
-| **Inflation converges to** | crawling peg $\pi^* \neq \pi^a$ | $\pi^a$ (the peg identity) | $\pi^a$ here — but see the note in §4; book §5.3 places it at $\pi^*$, and the peg is not sustainable in either case |
+| **Gives up** | the stable exchange rate | its own monetary policy | nothing — for a while |
+| **Fiscal policy** | no effect at all | strongest of the three | works, damped |
+| **Monetary policy** | works, permanently | no effect at all | works |
+| **Inflation ends at** | its own rate $\pi^*$ | the world rate $\pi^a$ | the world rate $\pi^a$ |
+| **Can it last?** | yes | yes | only while reserves hold out |
 
-One further row records the property that defines the sterilised peg:
+**Why fiscal policy does nothing under a flexible rate.** Higher spending pulls the
+interest rate up, money flows in, the currency strengthens, and exports fall by exactly
+what spending added. Both happen in the same period, so the diagram never shows the
+outward shift — only the net result.
 
-| | 🌊 Flexible | 🔒 Fixed, no steril. | 🛡️ Fixed, sterilised |
-|---|---|---|---|
-| **Is the regime sustainable?** | yes | yes | **only until reserves are exhausted** |
+**Why a fixed rate forces inflation back to the world rate.** By definition
+$w^r = w \cdot p^a / p$. Hold the nominal rate $w$ fixed and let domestic prices rise
+faster than foreign ones, and $w^r$ *must* keep falling. Nothing can be at rest until the
+two inflation rates are equal, so $\pi \to \pi^a$ — slowly, because it works through
+accumulated price differences rather than through a rate that can jump.
 
-Three results deserve particular attention:
+**Why sterilization only buys time.** The bank keeps its own interest rate, so in
+the long run its rule leaves $r = r' + \lambda_I \pi^a$. If that is not equal to $r^a$,
+money never stops crossing the border and reserves drain (or pile up) without limit. The
+app warns you when the settings are in this position.
 
-- **Fiscal and monetary policy are mirror images.** Whichever regime makes one instrument
-  powerful renders the other ineffective: a floating currency removes the effect of fiscal
-  policy, and a hard peg removes the effect of monetary policy.
-- **A rise in the foreign rate changes sign between regimes.** Under a float the currency
-  weakens and exports expand, so output *rises*. Under a peg the currency cannot weaken,
-  the higher interest rate is simply imported, and output *falls*.
-- **Sterilisation changes the path, not the destination.** Because the nominal rate remains
-  pegged, inflation ends at $\pi^a$ just as it does under the hard peg. What sterilisation
-  provides is a temporarily independent interest rate, at the cost of a peg that eventually
-  becomes indefensible.
+**When the reserves run out.** Offsetting the flows means trading foreign currency for
+domestic currency day after day, and a central bank only has so much of it. Once the stock
+is gone, one of the two things it was holding on to has to go:
+
+- **It lets the interest rate go.** It stops sterilizing, the domestic rate is pulled to
+  the world rate, and the economy carries on as **Fixed – no sterilization** — the 🔒 column
+  above. Whatever the bank had done with $r'$ stops mattering from that moment.
+- **It lets the currency go.** It stops defending the rate, which then jumps and moves
+  freely — **Flexible**, the 🌊 column. Inflation now heads for the country's own rate
+  $\pi^*$ rather than the world rate.
+
+Note that **Fixed – no sterilization does not face this**. It lets the flows change the
+money supply instead of sterilizing them, so they stop by themselves as soon as the domestic
+rate has been pulled level with the world rate — which is exactly why that regime has no
+monetary policy of its own to lose.
+
+This app stops at the break: it draws the path *while* the fixed rate lasts, and warns you
+when your settings put you on that path. To see what comes next, switch the regime in the
+sidebar and run the same shock again — **🔖 Remember this run** keeps the first path on the
+charts in grey.
+
+**Where the long run comes from.** Under a flexible rate $r = r^a$ pins the interest
+rate, output is set by MP and FX together, and $\omega$ drops out entirely:
+
+$$
+\pi^* = \frac{r^a - r'}{\lambda_I}
+$$
+
+so the country keeps an inflation rate of its own and the nominal exchange rate slides at
+$\pi^* - \pi^a$ per period to stay competitive. Under either fixed rate the identity above
+takes over instead, and $\pi \to \pi^a$.
 
 ---
 
-## 7. The shocks, one by one
-
-**🏛️ Fiscal (↑ or ↓ $\omega$)** — the government spends more or less, and IS shifts. The
-effect depends entirely on the regime; see the table above.
-
-**🏦 Monetary (↓ or ↑ $r'$)** — the central bank loosens or tightens. Under a float or a
-sterilised peg this moves output immediately and inflation permanently. Under a hard peg
-it has no effect at all.
-
-**🌍 Foreign interest rate (↑ or ↓ $r^a$)** — the rest of the world changes its rate. Note
-the change of sign described above, and that sterilisation blocks the transmission
-entirely.
-
-**📈📉 Imported inflation and deflation** — a one-off change in import prices moves
-inflation up or down *directly*, with no output gap required. This is the one shock that
-reaches the IA curve before the AD curve. Output then deviates from potential, and the
-resulting gap slowly returns inflation to its earlier level.
-
-The $w^r$ chart requires care for these two shocks: the line is the **response** of the
-economy, not the shock. The shock arrives from abroad and is applied to the IA curve; the
-currency then *strengthens* ($w^r \downarrow$), because higher inflation with $r$ tied to
-$r^a$ can only be reconciled by a stronger real exchange rate. For the exchange rate to
-act as the *source* of the price shock instead, see the $\chi$ channel in §9.
-
----
-
-## 8. How a simulation unfolds
+### How a simulation unfolds
 
 | Stage | What is shown |
 |---|---|
-| **Period 0** | The starting equilibrium. $Y = \bar{Y}$, $\pi = \pi^a$, $r = r^a$ — everything at rest. |
-| **Period 1** — *the impact* | The shock arrives. **Output moves, inflation does not**, since it is predetermined. The simulation pauses here so that the short run can be examined. |
-| **Adjustment** | Select **Continue**. The output gap moves inflation in each period, and the economy slides along AD. |
-| **Long run** | Output returns to $\bar{Y}$. Inflation settles at $\pi^a$ under a hard peg, and at the crawling-peg rate $\pi^*$ otherwise. |
+| **Period 0** | The resting point: $Y = \bar{Y}$, $\pi = \pi^a$, $r = r^a$ — everything still. |
+| **Period 1** — *the impact* | The shock lands. **Output moves, inflation does not.** The run pauses here so the short run can be examined. |
+| **Adjustment** | Press **Continue**. The output gap moves inflation each period and the economy slides along AD. |
+| **Long run** | Output is back at $\bar{Y}$. Inflation settles at the world rate under either fixed rate, and at its own rate under a flexible one. |
 
-**A useful exercise:** run the *same* shock in all three regimes and compare the results.
-**🔖 Remember this run** fixes one path in grey, so that the regime can be changed and the
-run repeated; the difference between the two lines is the main result of the chapter.
-
----
-
-## 9. Imported inflation, $\chi$ — the §5.5 extension
-
-Setting $\chi > 0$ at the **Advanced** level extends the role of the exchange rate beyond
-quantities. A movement in $w^r$ then also moves the price index directly, because imported
-goods form part of that index.
-
-Consider the example given in the book: **contractionary monetary policy under a float**.
-The currency appreciates sharply on impact. With $\chi = 0$ this only reduces net exports,
-and the result is a deep contraction ($Y_1 = 0.40$). With $\chi = 0.5$ the appreciation
-*also* makes imports cheaper, so inflation falls immediately rather than waiting for the
-output gap; and since the central bank observes lower inflation, a smaller contraction is
-required ($Y_1 = 0.60$, $\pi_1 = 2.80$).
-
-> **The conclusion of §5.5:** allowing for imported inflation *increases* the effect of
-> monetary policy on inflation and *reduces* its effect on output.
-
-Two further points are worth noting:
-
-- **The long run does not move.** Once $w^r$ has stopped changing the $\chi$ term is zero,
-  so $\pi^*$ and $\bar Y$ are exactly where they were.
-- **Full crowding out becomes partial.** Under a float a fiscal expansion appreciates the
-  currency, which now *lowers* measured inflation and allows the central bank to accept
-  higher output, so $Y_1 > \bar Y$ rather than exactly $\bar Y$. This is a genuine
-  implication of $\chi$, and it is why chapters 4–5.4 — and the table in §6 — are stated
-  for $\chi = 0$.
-
----
-
-### A simplification worth knowing about
-
-The FX curve used here is the horizontal line $r = r^a$, which assumes that investors
-expect today's real exchange rate to persist. Book §4.7 and §5.2 relax this assumption. If
-investors *anticipate* the real appreciation that a contraction under a peg brings, then
-$w^{r,e}_{+1}/w^r > 1$ requires $r > r^a$, so the point $P_o$ without sterilisation lies
-**above** the FX curve and further to the left, and the contraction is deeper still. The
-book treats this as an important finding: an exchange-rate peg without sterilisation makes
-an economy *more* vulnerable to a collapse in demand. This application reproduces the
-ranking — the contraction under the hard peg is deeper than under the sterilised peg — but
-not the additional amplification.
-
----
-
-### The five equations, together
-
-$$Y = \omega - \varphi\, r + \psi\, w^r \qquad\text{(IS)}$$
-$$r = r' + \lambda_P\,\tilde Y + \lambda_I\,\pi \qquad\text{(MP)}$$
-$$r = r^a \qquad\text{(FX — binds except under sterilisation)}$$
-$$\pi_{t+1} = \pi_t + \gamma\,\tilde Y_t + \chi\,(w^r_{t+1}-w^r_t) + \eta \qquad\text{(IA)}$$
-$$\pi \to \pi^a \quad\text{or}\quad \pi \to \pi^* \qquad\text{(PPP vs. crawling peg)}$$
-
-*Based on the consensus model of Lambsdorff & Giamattei, chapter 5.*
+**A useful exercise:** run the *same* shock in all three regimes and compare. **🔖 Remember
+this run** keeps the previous path on the charts in grey.
 """
+
+
+# The impossible trinity, one triangle per regime: the two corners it reaches are
+# joined by a solid edge, the one it gives up is crossed out. Built in code rather
+# than hand-written so the three panels cannot drift apart.
+TRINITY_SVG = '<svg viewBox="0 0 900 300" width="900" height="300" xmlns="http://www.w3.org/2000/svg" font-family="system-ui, -apple-system, sans-serif">\n<g transform="translate(0,0)">\n<text x="150" y="24" text-anchor="middle" font-size="13" font-weight="600" fill="#555">🌊 Flexible</text>\n<line x1="150" y1="78" x2="58" y2="220" stroke="#DDDDDD" stroke-width="1.5" stroke-dasharray="4 4" />\n<line x1="58" y1="220" x2="242" y2="220" stroke="#4C78A8" stroke-width="3" />\n<line x1="150" y1="78" x2="242" y2="220" stroke="#DDDDDD" stroke-width="1.5" stroke-dasharray="4 4" />\n<circle cx="150" cy="78" r="7" fill="#FFFFFF" stroke="#CCCCCC" stroke-width="1.5" />\n<path d="M146,74 L154,82 M154,74 L146,82" stroke="#E45756" stroke-width="1.8" stroke-linecap="round" />\n<circle cx="58" cy="220" r="7" fill="#4C78A8" />\n<circle cx="242" cy="220" r="7" fill="#4C78A8" />\n<text x="150" y="48" text-anchor="middle" font-size="11" fill="#BBBBBB">Stable exchange<tspan x="150" dy="13">rate</tspan></text>\n<text x="58" y="244" text-anchor="middle" font-size="11" fill="#666666">Free movement<tspan x="58" dy="13">of money</tspan></text>\n<text x="242" y="244" text-anchor="middle" font-size="11" fill="#666666">Own monetary<tspan x="242" dy="13">policy</tspan></text>\n<text x="150" y="288" text-anchor="middle" font-size="11" fill="#999">the currency absorbs the shocks</text>\n</g>\n<g transform="translate(300,0)">\n<text x="150" y="24" text-anchor="middle" font-size="13" font-weight="600" fill="#555">🔒 Fixed – no sterilization</text>\n<line x1="150" y1="78" x2="58" y2="220" stroke="#4C78A8" stroke-width="3" />\n<line x1="58" y1="220" x2="242" y2="220" stroke="#DDDDDD" stroke-width="1.5" stroke-dasharray="4 4" />\n<line x1="150" y1="78" x2="242" y2="220" stroke="#DDDDDD" stroke-width="1.5" stroke-dasharray="4 4" />\n<circle cx="150" cy="78" r="7" fill="#4C78A8" />\n<circle cx="58" cy="220" r="7" fill="#4C78A8" />\n<circle cx="242" cy="220" r="7" fill="#FFFFFF" stroke="#CCCCCC" stroke-width="1.5" />\n<path d="M238,216 L246,224 M246,216 L238,224" stroke="#E45756" stroke-width="1.8" stroke-linecap="round" />\n<text x="150" y="48" text-anchor="middle" font-size="11" fill="#666666">Stable exchange<tspan x="150" dy="13">rate</tspan></text>\n<text x="58" y="244" text-anchor="middle" font-size="11" fill="#666666">Free movement<tspan x="58" dy="13">of money</tspan></text>\n<text x="242" y="244" text-anchor="middle" font-size="11" fill="#BBBBBB">Own monetary<tspan x="242" dy="13">policy</tspan></text>\n<text x="150" y="288" text-anchor="middle" font-size="11" fill="#999">the world sets the interest rate</text>\n</g>\n<g transform="translate(600,0)">\n<text x="150" y="24" text-anchor="middle" font-size="13" font-weight="600" fill="#555">🛡️ Fixed – with sterilization</text>\n<line x1="150" y1="78" x2="58" y2="220" stroke="#F58518" stroke-width="3" stroke-dasharray="7 4" />\n<line x1="58" y1="220" x2="242" y2="220" stroke="#F58518" stroke-width="3" stroke-dasharray="7 4" />\n<line x1="150" y1="78" x2="242" y2="220" stroke="#F58518" stroke-width="3" stroke-dasharray="7 4" />\n<circle cx="150" cy="78" r="7" fill="#F58518" />\n<circle cx="58" cy="220" r="7" fill="#F58518" />\n<circle cx="242" cy="220" r="7" fill="#F58518" />\n<text x="150" y="48" text-anchor="middle" font-size="11" fill="#666666">Stable exchange<tspan x="150" dy="13">rate</tspan></text>\n<text x="58" y="244" text-anchor="middle" font-size="11" fill="#666666">Free movement<tspan x="58" dy="13">of money</tspan></text>\n<text x="242" y="244" text-anchor="middle" font-size="11" fill="#666666">Own monetary<tspan x="242" dy="13">policy</tspan></text>\n<text x="150" y="288" text-anchor="middle" font-size="11" fill="#999">all three — until reserves run out</text>\n</g>\n</svg>'
+
 
 # ―――― Pop-ups ―――――――――――――――――――――――――――――――――――
 # Shown ONLY where the main panel does not already say it: at Medium/Advanced the
