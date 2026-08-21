@@ -80,7 +80,7 @@ def add_line_to_plot(plotly_fig, slope, intercept, x_min=0, x_max=10, n_points=1
 
     return df
 
-def add_vertical_line(plotly_fig, x_value, y_min=None, y_max=None, color="#000000", dash="dash", name="Vertical Line", name_position='top'):
+def add_vertical_line(plotly_fig, x_value, y_min=None, y_max=None, color="#000000", dash="dash", name="Vertical Line", name_position='top', line_width=None):
     def _get_y_bounds(fig):
         yaxis = fig.layout.yaxis
 
@@ -122,7 +122,8 @@ def add_vertical_line(plotly_fig, x_value, y_min=None, y_max=None, color="#00000
         y1=end_y,
         xref="x",
         yref="y",
-        line=dict(color=color, dash=dash),
+        line=dict(color=color, dash=dash,
+                  **({} if line_width is None else {"width": line_width})),
     )
 
     if name_position == "top":
@@ -188,6 +189,22 @@ def show_plotly_fig(fig, height=400, column_to_plot=st, key=None):
         config={"displayModeBar": False,"staticPlot": False,
         },
     )
+
+def add_model_curve(plotly_fig, slope, intercept, x_min, x_max, name, color,
+                    line_width=c.standard_line_width, dash='solid', label_position='right'):
+    """Draw one model curve. A slope of None means the curve is VERTICAL, in which
+    case `intercept` is read as the output level it stands at.
+
+    Vertical curves are drawn as shapes, whose extent is taken from whatever is
+    already on the figure — so add the horizontal curves FIRST, or the vertical one
+    comes out as a stub spanning a single y value."""
+    if slope is None:
+        return add_vertical_line(plotly_fig, intercept, name=name, color=color,
+                                 dash=dash, line_width=line_width, name_position='top')
+    return add_line_to_plot(plotly_fig, slope, intercept, x_min, x_max, name=name,
+                            color=color, line_width=line_width, dash=dash,
+                            label_position=label_position)
+
 
 # ―――― Open-economy model ―――――――――――――――――――――――――――――――――――――――――――――――――――
 # Five equations, nothing calibrated and no free coefficients:

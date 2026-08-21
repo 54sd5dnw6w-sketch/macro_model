@@ -419,10 +419,14 @@ if phase == "idle":
     STMP_color, STMP_name, STMP_lw = "#F58518", "MP", c.standard_line_width
     STIA_color, STIA_name, STIA_lw = "#54A24B", "IA", c.standard_line_width
     STIS_color, STIS_name, STIS_lw = "#4C78A8", "IS", c.standard_line_width
+    STAD_color, STAD_name, STAD_lw = "#B279A2", "AD", c.standard_line_width
+    STFX_color, STFX_name, STFX_lw = "#E45756", "FX", c.standard_line_width
 else:
     STMP_color, STMP_name, STMP_lw = "#FAD7B0", "STMP", c.thin_line_width
     STIA_color, STIA_name, STIA_lw = "#CDEACB", "STIA", c.thin_line_width
     STIS_color, STIS_name, STIS_lw = "#AEC7E8", "STIS", c.thin_line_width
+    STAD_color, STAD_name, STAD_lw = "#E0C6DA", "STAD", c.thin_line_width
+    STFX_color, STFX_name, STFX_lw = "#F5B8B7", "STFX", c.thin_line_width
 
 # ―――― Static (short-run) curves: rest while idle, shocked after Play ――――――――――――――――
 # Before Play the diagrams show the pre-shock resting equilibrium (Y=Ȳ, π=πᵃ, r=rᵃ);
@@ -473,11 +477,16 @@ with tab1:
     r_Y_fig = h.create_linear_plot(x_label="", y_label="r - interest rate")
     h.add_line_to_plot(r_Y_fig, sIS_slope, sIS_int, x_lo, x_hi, name=STIS_name, color=STIS_color, line_width=STIS_lw)
     h.add_line_to_plot(r_Y_fig, sMP_slope, sMP_int, x_lo, x_hi, name=STMP_name, color=STMP_color, line_width=STMP_lw)
-    h.add_line_to_plot(r_Y_fig, 0, sFX, x_lo, x_hi, name='FX', color="#E45756")
+    h.add_line_to_plot(r_Y_fig, 0, sFX, x_lo, x_hi, name=STFX_name, color=STFX_color, line_width=STFX_lw)
 
     if phase != "idle":
         h.add_line_to_plot(r_Y_fig, IS_slope, IS_intercept_cur, x_lo, x_hi, name="LTIS", color="#4C78A8", line_width=c.thin_line_width)
         h.add_line_to_plot(r_Y_fig, MP_slope, MP_intercept_cur, x_lo, x_hi, name="LTMP", color="#F58518", line_width=c.thin_line_width)
+        # FX is the world rate: it takes its new value the moment the shock lands and
+        # then stays put. STFX and LTFX therefore sit on top of each other for the
+        # whole run — which is the point. Nothing abroad moves to meet the domestic
+        # economy; all of the adjusting has to happen at home.
+        h.add_line_to_plot(r_Y_fig, 0, r_foreign, x_lo, x_hi, name="LTFX", color="#E45756", line_width=c.thin_line_width)
         h.add_vertical_line(r_Y_fig, Y_cur, y_max=r_cur, name=f"Y ({Y_cur:.2f})", name_position='bottom', color='#B0B0B0', dash='dot')
     else:
         h.add_vertical_line(r_Y_fig, sY, y_max=sFX, name=f"Y ({sY:.2f})", name_position='bottom', color='#B0B0B0', dash='dot')
@@ -490,23 +499,31 @@ with tab1:
     # ―――― π–Y diagram ――――――――――――――――
     pi_Y_fig = h.create_linear_plot(x_label="Y - Output", y_label="𝜋 - inflation")
     h.add_line_to_plot(pi_Y_fig, 0, sIA, x_lo, x_hi, name=STIA_name, color=STIA_color, line_width=STIA_lw)
-    # Under the hard peg r cannot respond and wʳ is fixed within the period, so
-    # demand does not depend on current inflation at all — AD is VERTICAL. Drawing
-    # it as a sloped line would imply a stabiliser that regime does not have.
-    if sAD_slope is None:
-        h.add_vertical_line(pi_Y_fig, sAD_int, name='AD', color="#B279A2", dash='solid')
-    else:
-        h.add_line_to_plot(pi_Y_fig, sAD_slope, sAD_int, x_lo, x_hi, name='AD', color="#B279A2")
 
     if phase != "idle":
         h.add_line_to_plot(pi_Y_fig, 0, pi_cur, x_lo, x_hi, name="LTIA", color="#54A24B", line_width=c.thin_line_width)
-        h.add_vertical_line(pi_Y_fig, Y_cur, y_max=pi_cur, name=f"Y ({Y_cur:.2f})", name_position='bottom', color='#B0B0B0', dash='dot')
-    else:
-        h.add_vertical_line(pi_Y_fig, sY, y_max=sIA, name=f"Y ({sY:.2f})", name_position='bottom', color='#B0B0B0', dash='dot')
 
     # PPP-curve: horizontal at foreign inflation πᵃ (the long-run anchor). Labelled
     # on the left so it doesn't collide with the IA label on the right.
     h.add_line_to_plot(pi_Y_fig, 0, pi_foreign, x_lo, x_hi, dash='dash', name=f"PPP ({pi_foreign:.1f})", color="#999999", line_width=c.thin_line_width, label_position='left')
+
+    # AD comes AFTER the horizontals: under the hard peg it is a vertical shape, and
+    # a vertical is sized from whatever is already on the figure.
+    #
+    # Under either peg the AD intercept depends on the real exchange rate, which
+    # drifts every period — so STAD (frozen where the shock put it) and LTAD (where
+    # it is now) genuinely separate, and watching LTAD slide back toward STAD's
+    # starting place IS the adjustment. Under a float the AD does not depend on wʳ
+    # at all, so the two coincide and the pair reads as one curve.
+    h.add_model_curve(pi_Y_fig, sAD_slope, sAD_int, x_lo, x_hi, name=STAD_name, color=STAD_color, line_width=STAD_lw)
+    if phase != "idle":
+        h.add_model_curve(pi_Y_fig, AD_slope, AD_intercept, x_lo, x_hi, name="LTAD", color="#B279A2", line_width=c.thin_line_width)
+
+    if phase != "idle":
+        h.add_vertical_line(pi_Y_fig, Y_cur, y_max=pi_cur, name=f"Y ({Y_cur:.2f})", name_position='bottom', color='#B0B0B0', dash='dot')
+    else:
+        h.add_vertical_line(pi_Y_fig, sY, y_max=sIA, name=f"Y ({sY:.2f})", name_position='bottom', color='#B0B0B0', dash='dot')
+
     h.add_vertical_line(pi_Y_fig, Ybar, name=f'Ȳ ({Ybar})', color='#555555', dash='8px,5px')
     h.show_plotly_fig(pi_Y_fig, height=360, column_to_plot=diagrams, key="oe_piY")
 
