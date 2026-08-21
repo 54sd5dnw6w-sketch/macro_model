@@ -414,43 +414,39 @@ const = max(abs(Y_shock), abs(Ybar), abs(Ybar - Y_shock)) * 1.3
 const = max(const, 0.5)
 x_lo, x_hi = Ybar - const, Ybar + const
 
-# ―――― Curve styling: idle = bold single curves, otherwise ST/LT split ――――――――――――――――
-if phase == "idle":
-    STMP_color, STMP_name, STMP_lw = "#F58518", "MP", c.standard_line_width
-    STIA_color, STIA_name, STIA_lw = "#54A24B", "IA", c.standard_line_width
-    STIS_color, STIS_name, STIS_lw = "#4C78A8", "IS", c.standard_line_width
-    STAD_color, STAD_name, STAD_lw = "#B279A2", "AD", c.standard_line_width
-    STFX_color, STFX_name, STFX_lw = "#E45756", "FX", c.standard_line_width
-else:
-    STMP_color, STMP_name, STMP_lw = "#FAD7B0", "STMP", c.thin_line_width
-    STIA_color, STIA_name, STIA_lw = "#CDEACB", "STIA", c.thin_line_width
-    STIS_color, STIS_name, STIS_lw = "#AEC7E8", "STIS", c.thin_line_width
-    STAD_color, STAD_name, STAD_lw = "#E0C6DA", "STAD", c.thin_line_width
-    STFX_color, STFX_name, STFX_lw = "#F5B8B7", "STFX", c.thin_line_width
+# ―――― Curve positions in each phase ――――――――――――――――
+# Every curve is held in three positions and the phase decides which are drawn:
+#   initial — the pre-shock resting point (period 0)
+#   short   — the period-1 impact, frozen where the shock put it
+#   long    — where the curve is right now
+# idle shows `initial` alone; Play adds `short` and keeps `initial` as a dotted
+# ghost so it is obvious which curves moved; Continue drops `initial` and brings
+# out `long`, which then drifts away from `short` period by period.
+show_initial = phase == "short_term_paused"
+show_long = phase in ("adjusting", "done")
 
-# ―――― Static (short-run) curves: rest while idle, shocked after Play ――――――――――――――――
-# Before Play the diagrams show the pre-shock resting equilibrium (Y=Ȳ, π=πᵃ, r=rᵃ);
-# the curves jump to the shocked position only once Play is pressed.
-if phase == "idle":
-    sIS_slope, sIS_int = -1 / PHI_BASE, (OMEGA_BASE + PSI_BASE * WR_BASELINE) / PHI_BASE
-    sMP_slope, sMP_int = LP_BASE / Ybar, RP_BASE - LP_BASE + LI_BASE * PIA_BASE
-    sFX = RA_BASE
-    _P0 = h.OEParams(OMEGA_BASE, PHI_BASE, PSI_BASE, RP_BASE, LP_BASE, LI_BASE,
-                     RA_BASE, PIA_BASE, GAMMA_BASE, 0.0, Ybar)
-    sAD_slope, sAD_int = h.oe_ad_curve(_P0, oe_regime, WR_BASELINE)
-    sIA, sY = PIA_BASE, Ybar
-else:
-    sIS_slope, sIS_int = IS_slope, IS_intercept_shock
-    sMP_slope, sMP_int = MP_slope, MP_intercept_shock
-    # The FX curve is the INTEREST-PARITY constraint r = rᵃ, not the operating
-    # point. Drawing it at the CB's own (sterilised) rate made the constraint
-    # appear to move to meet the operating point, hiding the very gap that
-    # generates the reserve flows sterilisation is about. It is always rᵃ.
-    sFX = r_foreign
-    # Short-run (shocked) AD. Under either peg the AD sits where the PERIOD-1
-    # real-exchange-rate state puts it.
-    sAD_slope, sAD_int = AD_slope_sr, AD_intercept_sr
-    sIA, sY = pi_0, Y_shock
+_P0 = h.OEParams(OMEGA_BASE, PHI_BASE, PSI_BASE, RP_BASE, LP_BASE, LI_BASE,
+                 RA_BASE, PIA_BASE, GAMMA_BASE, 0.0, Ybar)
+init_IS = (-1 / PHI_BASE, (OMEGA_BASE + PSI_BASE * WR_BASELINE) / PHI_BASE)
+init_MP = (LP_BASE / Ybar, RP_BASE - LP_BASE + LI_BASE * PIA_BASE)
+init_FX = (0.0, RA_BASE)
+init_AD = h.oe_ad_curve(_P0, oe_regime, WR_BASELINE)
+init_IA = (0.0, PIA_BASE)
+
+st_IS, st_MP = (IS_slope, IS_intercept_shock), (MP_slope, MP_intercept_shock)
+st_AD, st_IA = (AD_slope_sr, AD_intercept_sr), (0.0, pi_0)
+lt_IS, lt_MP = (IS_slope, IS_intercept_cur), (MP_slope, MP_intercept_cur)
+lt_AD, lt_IA = (AD_slope, AD_intercept), (0.0, pi_cur)
+
+# The FX curve is the INTEREST-PARITY constraint r = rᵃ, never the operating point.
+# It takes its new value the moment the shock lands and then stays put, so its FX₁
+# and FX∞ positions are the same line — which is the message: nothing abroad moves
+# to meet the domestic economy.
+st_FX = lt_FX = (0.0, r_foreign)
+
+# Operating point marker.
+sY, sIA = (Ybar, PIA_BASE) if phase == "idle" else (Y_cur, pi_cur)
+sFX = RA_BASE if phase == "idle" else r_foreign
 
 # ―――― Tabs ――――――――――――――――
 # Settings gets its own right-aligned row; the tabs stay at FULL width. Wrapping
@@ -479,18 +475,11 @@ with tab1:
     # No x-title on the upper chart: it shares the axis with the one below it, and
     # dropping the repeat binds the two into a single block.
     r_Y_fig = h.create_linear_plot(x_label="", y_label="r - interest rate")
-    h.add_line_to_plot(r_Y_fig, sIS_slope, sIS_int, x_lo, x_hi, name=STIS_name, color=STIS_color, line_width=STIS_lw)
-    h.add_line_to_plot(r_Y_fig, sMP_slope, sMP_int, x_lo, x_hi, name=STMP_name, color=STMP_color, line_width=STMP_lw)
-    h.add_line_to_plot(r_Y_fig, 0, sFX, x_lo, x_hi, name=STFX_name, color=STFX_color, line_width=STFX_lw)
+    h.add_curve_set(r_Y_fig, 'IS', x_lo, x_hi, init_IS, st_IS, lt_IS, show_initial, show_long)
+    h.add_curve_set(r_Y_fig, 'MP', x_lo, x_hi, init_MP, st_MP, lt_MP, show_initial, show_long)
+    h.add_curve_set(r_Y_fig, 'FX', x_lo, x_hi, init_FX, st_FX, lt_FX, show_initial, show_long)
 
     if phase != "idle":
-        h.add_line_to_plot(r_Y_fig, IS_slope, IS_intercept_cur, x_lo, x_hi, name="LTIS", color="#4C78A8", line_width=c.thin_line_width)
-        h.add_line_to_plot(r_Y_fig, MP_slope, MP_intercept_cur, x_lo, x_hi, name="LTMP", color="#F58518", line_width=c.thin_line_width)
-        # FX is the world rate: it takes its new value the moment the shock lands and
-        # then stays put. STFX and LTFX therefore sit on top of each other for the
-        # whole run — which is the point. Nothing abroad moves to meet the domestic
-        # economy; all of the adjusting has to happen at home.
-        h.add_line_to_plot(r_Y_fig, 0, r_foreign, x_lo, x_hi, name="LTFX", color="#E45756", line_width=c.thin_line_width)
         h.add_vertical_line(r_Y_fig, Y_cur, y_max=r_cur, name=f"Y ({Y_cur:.2f})", name_position='bottom', color='#B0B0B0', dash='dot')
     else:
         h.add_vertical_line(r_Y_fig, sY, y_max=sFX, name=f"Y ({sY:.2f})", name_position='bottom', color='#B0B0B0', dash='dot')
@@ -502,10 +491,7 @@ with tab1:
 
     # ―――― π–Y diagram ――――――――――――――――
     pi_Y_fig = h.create_linear_plot(x_label="Y - Output", y_label="𝜋 - inflation")
-    h.add_line_to_plot(pi_Y_fig, 0, sIA, x_lo, x_hi, name=STIA_name, color=STIA_color, line_width=STIA_lw)
-
-    if phase != "idle":
-        h.add_line_to_plot(pi_Y_fig, 0, pi_cur, x_lo, x_hi, name="LTIA", color="#54A24B", line_width=c.thin_line_width)
+    h.add_curve_set(pi_Y_fig, 'IA', x_lo, x_hi, init_IA, st_IA, lt_IA, show_initial, show_long)
 
     # PPP-curve: horizontal at foreign inflation πᵃ (the long-run anchor). Labelled
     # on the left so it doesn't collide with the IA label on the right.
@@ -513,15 +499,7 @@ with tab1:
 
     # AD comes AFTER the horizontals: under the hard peg it is a vertical shape, and
     # a vertical is sized from whatever is already on the figure.
-    #
-    # Under either peg the AD intercept depends on the real exchange rate, which
-    # drifts every period — so STAD (frozen where the shock put it) and LTAD (where
-    # it is now) genuinely separate, and watching LTAD slide back toward STAD's
-    # starting place IS the adjustment. Under a float the AD does not depend on wʳ
-    # at all, so the two coincide and the pair reads as one curve.
-    h.add_model_curve(pi_Y_fig, sAD_slope, sAD_int, x_lo, x_hi, name=STAD_name, color=STAD_color, line_width=STAD_lw)
-    if phase != "idle":
-        h.add_model_curve(pi_Y_fig, AD_slope, AD_intercept, x_lo, x_hi, name="LTAD", color="#B279A2", line_width=c.thin_line_width)
+    h.add_curve_set(pi_Y_fig, 'AD', x_lo, x_hi, init_AD, st_AD, lt_AD, show_initial, show_long)
 
     if phase != "idle":
         h.add_vertical_line(pi_Y_fig, Y_cur, y_max=pi_cur, name=f"Y ({Y_cur:.2f})", name_position='bottom', color='#B0B0B0', dash='dot')
@@ -535,8 +513,10 @@ with tab1:
     if level == 'Advanced':
         # Equations plus the live readouts. π* is deliberately absent: the long-run
         # line under this panel already reports where inflation ends.
-        _ad_line = (f"vertical at Y = {sAD_int:.2f}" if sAD_slope is None
-                    else f"𝜋 = {sAD_slope:.2f}·Y + {sAD_int:.2f}")
+        _ad_slope, _ad_int = (init_AD if phase == "idle" else
+                              (st_AD if show_initial else lt_AD))
+        _ad_line = (f"vertical at Y = {_ad_int:.2f}" if _ad_slope is None
+                    else f"𝜋 = {_ad_slope:.2f}·Y + {_ad_int:.2f}")
         _fx_line = (f'<b style="color:#E45756;">FX:</b> r set by the bank = {r_cur:.2f}'
                     if peg_steril else
                     f'<b style="color:#E45756;">FX:</b> r = rᵃ = {r_foreign:.2f}')

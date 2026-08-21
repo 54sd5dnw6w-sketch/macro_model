@@ -325,28 +325,45 @@ else:
 
 x_lo, x_hi = c.Y_potential - const, c.Y_potential + const
 
-# ―――― Curve styling: idle = bold single curves, otherwise ST/LT split ――――――――――――――――
-if phase == "idle":
-    STMP_color, STMP_name, STMP_lw = "#F58518", "MP", c.standard_line_width
-    STIA_color, STIA_name, STIA_lw = "#54A24B", "IA", c.standard_line_width
-else:
-    STMP_color, STMP_name, STMP_lw = "#FAD7B0", "STMP", c.thin_line_width
-    STIA_color, STIA_name, STIA_lw = "#CDEACB", "STIA", c.thin_line_width
+# ―――― Curve positions in each phase ――――――――――――――――
+# Every curve is held in three positions and the phase decides which are drawn:
+#   initial — the pre-shock resting point (period 0)
+#   short   — the period-1 impact, frozen where the shock put it
+#   long    — where the curve is right now
+# idle shows `initial` alone; Play adds `short` and keeps `initial` as a dotted
+# ghost so it is obvious which curves moved; Continue drops `initial` and brings
+# out `long`, which then drifts away from `short` period by period.
+show_initial = phase == "short_term_paused"
+show_long = phase in ("adjusting", "done")
 
-# ―――― Static (short-run) curves: rest while idle, shocked after Play ――――――――――――――――
-# Before Play the diagrams show the pre-shock resting equilibrium (Y=Ȳ, π=3, r=3.5);
-# the curves jump to the shocked position only once Play is pressed.
-if phase == "idle":
-    sIS_slope, sIS_int = -1.0, 4.5                       # IS at ω=4.5, φ=1
-    sMP_slope, sMP_int = 0.5 / c.Y_potential, 3.0        # MP through (Ȳ, 3.5)
-    sAD_slope = (sIS_slope - 0.5 / c.Y_potential) / 0.5
-    sAD_int   = (4.5 - 2.0 + 0.5) / 0.5
-    sIA_pi, sY = PI_BASELINE, c.Y_potential
-else:
-    sIS_slope, sIS_int = IS_slope, IS_intercept
-    sMP_slope, sMP_int = MP_slope, MP_intercept_shock
-    sAD_slope, sAD_int = AD_slope, AD_intercept
-    sIA_pi, sY = pi_shock, Y_shock
+# Pre-shock resting point, at the default parameters (ω=4.5, φ=1, r'=2, λ=0.5).
+init_IS = (-1.0, 4.5)
+init_MP = (0.5 / c.Y_potential, 3.0)
+init_AD = ((init_IS[0] - 0.5 / c.Y_potential) / 0.5, (4.5 - 2.0 + 0.5) / 0.5)
+init_IA = (0.0, PI_BASELINE)
+
+# IS and AD are built from parameters alone, so they do not move DURING a run —
+# only the shock itself displaces them. MP and IA are the ones that travel.
+st_IS = lt_IS = (IS_slope, IS_intercept)
+st_AD = lt_AD = (AD_slope, AD_intercept)
+st_MP, lt_MP = (MP_slope, MP_intercept_shock), (MP_slope, MP_intercept_cur)
+
+
+def _ia_spec(pi_level, y_at):
+    """IA in π–Y space. With the Phillips curve on it is drawn against THIS
+    period's output gap (π = π^e + γ·Ỹ), so it pivots on the operating point
+    instead of lying flat."""
+    if show_phillips:
+        return (pc_slope, pi_level - pc_slope * y_at)
+    return (0.0, pi_level)
+
+
+st_IA = _ia_spec(pi_shock, Y_shock)
+lt_IA = _ia_spec(pi_cur, Y_cur)
+IA_label = "IA(PC)" if show_phillips else "IA"
+
+# Operating point marker.
+sY, sIA_pi = (c.Y_potential, PI_BASELINE) if phase == "idle" else (Y_cur, pi_cur)
 
 # ―――― Tabs ――――――――――――――――
 tab1, tab2 = st.tabs(["📊 Model", "📖 Theory"])
@@ -365,12 +382,10 @@ with tab1:
     # ―――― r–Y diagram ――――――――――――――――
     # The x-title is on the lower chart only: the two share the axis.
     r_Y_fig = h.create_linear_plot(x_label="", y_label="r - interest rate")
-    h.add_line_to_plot(r_Y_fig, sIS_slope, sIS_int, x_lo, x_hi, name='IS', color="#4C78A8")
-    h.add_line_to_plot(r_Y_fig, sMP_slope, sMP_int, x_lo, x_hi,name=STMP_name, color=STMP_color, line_width=STMP_lw)
+    h.add_curve_set(r_Y_fig, 'IS', x_lo, x_hi, init_IS, st_IS, lt_IS, show_initial, show_long)
+    h.add_curve_set(r_Y_fig, 'MP', x_lo, x_hi, init_MP, st_MP, lt_MP, show_initial, show_long)
 
     if phase != "idle":
-        h.add_line_to_plot(r_Y_fig, MP_slope, MP_intercept_cur, x_lo, x_hi,
-                           name="LTMP", color="#F58518", line_width=c.thin_line_width)
         h.add_vertical_line(r_Y_fig, Y_cur, y_max=r_cur,
                             name=f"Y ({Y_cur:.2f})", name_position='bottom', color='#B0B0B0', dash='dot')
     else:
@@ -384,19 +399,11 @@ with tab1:
 
     # ―――― π–Y diagram ――――――――――――――――
     pi_Y_fig = h.create_linear_plot(x_label="Y - Output", y_label="𝜋 - inflation")
-
-    # When "Show the IA as a Phillips Curve" is on, the IA is drawn taking THIS period's output gap (π = π^e + γ·Ỹ) → a positively sloped line pivoting on the operating point, instead of the horizontal (last-period-gap) IA. It therefore still meets AD exactly at the marked output and crosses Ȳ at π^e.
-    STIA_slope = pc_slope if show_phillips else 0.0
-    STIA_int   = (sIA_pi - pc_slope * sY) if show_phillips else sIA_pi
-    h.add_line_to_plot(pi_Y_fig, STIA_slope, STIA_int, x_lo, x_hi,
-                       name=("LTIA(PC)" if show_phillips else STIA_name), color=STIA_color, line_width=STIA_lw)
-    h.add_line_to_plot(pi_Y_fig, sAD_slope, sAD_int, x_lo, x_hi, name='AD', color="#B279A2")
+    h.add_curve_set(pi_Y_fig, 'IA', x_lo, x_hi, init_IA, st_IA, lt_IA,
+                    show_initial, show_long, label=IA_label)
+    h.add_curve_set(pi_Y_fig, 'AD', x_lo, x_hi, init_AD, st_AD, lt_AD, show_initial, show_long)
 
     if phase != "idle":
-        LTIA_slope = pc_slope if show_phillips else 0.0
-        LTIA_int   = (pi_cur - pc_slope * Y_cur) if show_phillips else pi_cur
-        h.add_line_to_plot(pi_Y_fig, LTIA_slope, LTIA_int, x_lo, x_hi,
-                           name=("LTIA(PC)" if show_phillips else "LTIA"), color="#54A24B", line_width=c.thin_line_width)
         h.add_vertical_line(pi_Y_fig, Y_cur, y_max=pi_cur,
                             name=f"Y ({Y_cur:.2f})", name_position='bottom', color='#B0B0B0', dash='dot')
     else:

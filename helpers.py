@@ -47,7 +47,7 @@ def create_linear_plot(x_label="Y", y_label="r"):
     fig.update_layout(xaxis_title=x_label, yaxis_title=y_label,showlegend=False)
     return fig
 
-def add_line_to_plot(plotly_fig, slope, intercept, x_min=0, x_max=10, n_points=100, name='Name', color='blue', line_width=c.standard_line_width, dash='solid', label_position='right'):
+def add_line_to_plot(plotly_fig, slope, intercept, x_min=0, x_max=10, n_points=100, name='Name', color='blue', line_width=c.standard_line_width, dash='solid', label_position='right', label_offset=0):
     x = np.linspace(x_min, x_max, n_points)
     y = slope * x + intercept
     df = pd.DataFrame({"x": x, "y": y})
@@ -69,6 +69,10 @@ def add_line_to_plot(plotly_fig, slope, intercept, x_min=0, x_max=10, n_points=1
         label_x, label_y, label_anchor, label_yshift = x[0], y[0], "left", 9
     else:
         label_x, label_y, label_anchor, label_yshift = x[-1], y[-1], "left", 0
+    # label_offset separates the labels of two curves that sit on top of each other
+    # (an X₁ and an X∞ curve that have not moved apart). Without it the two names
+    # print in exactly the same spot and neither is readable.
+    label_yshift += label_offset
 
     plotly_fig.add_annotation(
         x=label_x,
@@ -82,7 +86,7 @@ def add_line_to_plot(plotly_fig, slope, intercept, x_min=0, x_max=10, n_points=1
 
     return df
 
-def add_vertical_line(plotly_fig, x_value, y_min=None, y_max=None, color="#000000", dash="dash", name="Vertical Line", name_position='top', line_width=None):
+def add_vertical_line(plotly_fig, x_value, y_min=None, y_max=None, color="#000000", dash="dash", name="Vertical Line", name_position='top', line_width=None, label_offset=0):
     def _get_y_bounds(fig):
         yaxis = fig.layout.yaxis
 
@@ -143,6 +147,7 @@ def add_vertical_line(plotly_fig, x_value, y_min=None, y_max=None, color="#00000
         text=name,
         showarrow=False,
         yanchor=yanchor,
+        xshift=label_offset,     # vertical curves separate their labels sideways
         font=dict(color=color),
     )
 
@@ -193,7 +198,8 @@ def show_plotly_fig(fig, height=400, column_to_plot=st, key=None):
     )
 
 def add_model_curve(plotly_fig, slope, intercept, x_min, x_max, name, color,
-                    line_width=c.standard_line_width, dash='solid', label_position='right'):
+                    line_width=c.standard_line_width, dash='solid', label_position='right',
+                    label_offset=0):
     """Draw one model curve. A slope of None means the curve is VERTICAL, in which
     case `intercept` is read as the output level it stands at.
 
@@ -202,10 +208,75 @@ def add_model_curve(plotly_fig, slope, intercept, x_min, x_max, name, color,
     comes out as a stub spanning a single y value."""
     if slope is None:
         return add_vertical_line(plotly_fig, intercept, name=name, color=color,
-                                 dash=dash, line_width=line_width, name_position='top')
+                                 dash=dash, line_width=line_width, name_position='top',
+                                 label_offset=label_offset)
     return add_line_to_plot(plotly_fig, slope, intercept, x_min, x_max, name=name,
                             color=color, line_width=line_width, dash=dash,
-                            label_position=label_position)
+                            label_position=label_position, label_offset=label_offset)
+
+
+# ―――― Curve sets: initial → short run → long run ―――――――――――――――――――――――――――
+# Saturated colour for the curve that is currently LIVE, pale for the ghost it
+# left behind. Both pages share this so the two read as one app.
+CURVE_COLORS = {
+    'IS': ("#4C78A8", "#AEC7E8"),
+    'MP': ("#F58518", "#FAD7B0"),
+    'IA': ("#54A24B", "#CDEACB"),
+    'AD': ("#B279A2", "#E0C6DA"),
+    'FX': ("#E45756", "#F5B8B7"),
+}
+
+# Pixels each of the two visible labels is pushed, in opposite directions. Applied
+# ALWAYS, not only when the curves are close: a threshold would need the axis scale,
+# which is not known at draw time, and a fixed nudge is harmless when they are far
+# apart and exactly what is needed when they coincide.
+LABEL_NUDGE = 11
+
+# Curves are indexed by the period they belong to, not by a ST/LT prefix: X₀ is
+# where the curve rested before the shock, X₁ where the shock put it, X∞ where it
+# is heading. Plotly renders the <sub> tag, so all three indices come out as real
+# subscripts of the same size — plain Unicode has ₀ and ₁ but no subscript ∞,
+# which would leave the third label a full-height mismatch.
+IDX_INITIAL, IDX_SHORT, IDX_LONG = "<sub>0</sub>", "<sub>1</sub>", "<sub>∞</sub>"
+
+
+def add_curve_set(plotly_fig, key, x_min, x_max, initial, short, long_=None,
+                  show_initial=False, show_long=False, label=None):
+    """Draw one model curve in whichever positions the current phase calls for.
+
+    Each position is a (slope, intercept) pair; a slope of None means the curve is
+    vertical and the second element is the output level it stands at.
+
+        idle            one bold curve at `initial` — the pre-shock resting point
+        after Play      `initial` stays as a dotted ghost (X₀), so it is obvious
+                        WHICH curves the shock moved, and `short` is live as X₁
+        after Continue  X₀ drops out, `short` fades to the pale X₁ ghost, and
+                        `long_` emerges on top of it as X∞ and drifts away period
+                        by period. X∞ marks where the curve is HEADING; it only
+                        actually gets there at the end of the run.
+
+    Only ever two curves carry a label at once, so nudging them apart by a fixed
+    ±LABEL_NUDGE is enough to keep both readable when they overlap."""
+    name = key if label is None else label
+    solid, pale = CURVE_COLORS[key]
+
+    if not show_initial and not show_long:
+        return add_model_curve(plotly_fig, *initial, x_min, x_max, name=name,
+                               color=solid, line_width=c.standard_line_width)
+
+    if show_initial:
+        add_model_curve(plotly_fig, *initial, x_min, x_max, name=f"{name}{IDX_INITIAL}",
+                        color=pale, line_width=c.thin_line_width, dash='dot',
+                        label_offset=-LABEL_NUDGE)
+        return add_model_curve(plotly_fig, *short, x_min, x_max, name=f"{name}{IDX_SHORT}",
+                               color=solid, line_width=c.standard_line_width,
+                               label_offset=LABEL_NUDGE)
+
+    add_model_curve(plotly_fig, *short, x_min, x_max, name=f"{name}{IDX_SHORT}",
+                    color=pale, line_width=c.thin_line_width, label_offset=-LABEL_NUDGE)
+    return add_model_curve(plotly_fig, *long_, x_min, x_max, name=f"{name}{IDX_LONG}",
+                           color=solid, line_width=c.standard_line_width,
+                           label_offset=LABEL_NUDGE)
 
 
 # ―――― Open-economy model ―――――――――――――――――――――――――――――――――――――――――――――――――――
