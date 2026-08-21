@@ -457,8 +457,6 @@ else:
 # the tabs in a column instead — st.columns([6,1]) with cols[0].tabs(...) — puts
 # every diagram and panel inside them into that column, which is what made the
 # page stop at the settings border instead of running to the edge.
-h.settings_popover(key_prefix="oe_")
-
 tab1, tab2 = st.tabs(["📊 Model", "📖 Theory"])
 
 with tab2:
@@ -560,7 +558,14 @@ with tab1:
     with cols[1].container(border=True, height="stretch"):
         # The header goes in FIRST: called after st.columns() it lands under the
         # charts instead of on top of them.
-        h.panel_header("Over time")
+        cols_header = st.columns(2)
+        with cols_header[0]:
+            h.panel_header("Over time")
+
+        with cols_header[1]:
+            h.settings_popover(key_prefix="oe_")
+
+
         cols_graphs = st.columns(2)
 
         def _series_chart(y_col, y_title, label, ref_value, ref_label, show_x=False):

@@ -407,7 +407,7 @@ def settings_controls(key_prefix="", stacked=False):
     return changed
 
 
-def settings_popover(label="⚙️ Settings", key_prefix="", ratio=(6, 1)):
+def settings_popover(label="⚙️", key_prefix="", ratio=(6, 1)):
     """Right-aligned Settings popover, meant to sit on its own row ABOVE a tab bar.
 
     Deliberately NOT wrapped around the tabs. Putting the tabs inside a column —
