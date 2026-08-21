@@ -554,36 +554,36 @@ IS_intercept_shock = is_intercept_at(Y_shock, pi_0, WR_BASELINE)
 MP_intercept_shock = r_init - lambda_p + lambda_i * pi_0
 
 
-def spectral_radius():
-    """Largest eigenvalue modulus of the dynamic system actually being simulated.
+# def spectral_radius():
+#     """Largest eigenvalue modulus of the dynamic system actually being simulated.
+#
+#     Replaces the old check γ < 2·Ȳ·|AD_slope|, which was derived for the float —
+#     a one-state system in π. Both pegs carry a SECOND state, the real exchange
+#     rate, so a 1-D criterion cannot see their stability at all. ρ < 1 ⇔ the run
+#     converges."""
+#     if not fixed_regime:
+#         if AD_slope == 0:
+#             return 0.0
+#         d = 1 - chi / (psi * AD_slope)
+#         return abs((1 + gamma / (Ybar * AD_slope) - chi / (psi * AD_slope)) / d)
+#     # Peg: (π, wʳ) system  M = [[a, b], [−κ, 1]]
+#     k = peg_kappa()
+#     if peg_steril:
+#         D = 1 + phi * lambda_p / Ybar
+#         a = 1 - gamma * phi * lambda_i / (Ybar * D) - chi * k
+#         b = gamma * psi / (Ybar * D)
+#     else:
+#         a = 1 - gamma * psi * THETA_PEG / Ybar - chi * k
+#         b = gamma * psi / Ybar
+#     tr, det = a + 1.0, a + b * k
+#     disc = tr * tr - 4 * det
+#     if disc >= 0:
+#         root = disc ** 0.5
+#         return max(abs((tr + root) / 2), abs((tr - root) / 2))
+#     return abs(det) ** 0.5
 
-    Replaces the old check γ < 2·Ȳ·|AD_slope|, which was derived for the float —
-    a one-state system in π. Both pegs carry a SECOND state, the real exchange
-    rate, so a 1-D criterion cannot see their stability at all. ρ < 1 ⇔ the run
-    converges."""
-    if not fixed_regime:
-        if AD_slope == 0:
-            return 0.0
-        d = 1 - chi / (psi * AD_slope)
-        return abs((1 + gamma / (Ybar * AD_slope) - chi / (psi * AD_slope)) / d)
-    # Peg: (π, wʳ) system  M = [[a, b], [−κ, 1]]
-    k = peg_kappa()
-    if peg_steril:
-        D = 1 + phi * lambda_p / Ybar
-        a = 1 - gamma * phi * lambda_i / (Ybar * D) - chi * k
-        b = gamma * psi / (Ybar * D)
-    else:
-        a = 1 - gamma * psi * THETA_PEG / Ybar - chi * k
-        b = gamma * psi / Ybar
-    tr, det = a + 1.0, a + b * k
-    disc = tr * tr - 4 * det
-    if disc >= 0:
-        root = disc ** 0.5
-        return max(abs((tr + root) / 2), abs((tr - root) / 2))
-    return abs(det) ** 0.5
 
-
-convergence_ok = spectral_radius() < 1.0
+# convergence_ok = spectral_radius() < 1.0
 
 # ―――― Medium: concise dynamic description ――――――――――――――――
 if level == 'Medium':
@@ -802,9 +802,9 @@ with tab1:
         # settle, a peg that cannot be held, and — at Medium/Advanced, where the
         # panel lists settings instead of telling a story — a policy switched off by
         # the chosen regime. Nothing here repeats the panel.
-        if not convergence_ok:
-            st.warning("⚠️ **These settings never settle.** Output and inflation keep swinging "
-                       "instead of coming to rest. Try a smaller γ" + (" or χ." if chi else "."))
+        # if not convergence_ok:
+        #     st.warning("⚠️ **These settings never settle.** Output and inflation keep swinging "
+        #                "instead of coming to rest. Try a smaller γ" + (" or χ." if chi else "."))
 
         if peg_unsustainable:
             st.warning(f"⚠️ **This fixed rate cannot be held forever.** The bank ends up holding "
