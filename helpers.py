@@ -188,3 +188,162 @@ def show_plotly_fig(fig, height=400, column_to_plot=st, key=None):
         config={"displayModeBar": False,"staticPlot": False,
         },
     )
+
+# ―――― Open-economy model ―――――――――――――――――――――――――――――――――――――――――――――――――――
+# Lambsdorff & Giamattei, "International Monetary Economics", ch. 4-5. The model
+# is exactly the book's five equations — no damping coefficients, no calibration:
+#
+#   IS   Y = ω − φ·r + ψ·wʳ                            (eq. 4.1)
+#   MP   r = r' + λ_P·Ỹ + λ_I·π                        (eq. 4.2)
+#   FX   r = rᵃ                                        (eq. 3.9, static expectations)
+#   IA   π = π₋₁ + γ·Ỹ₋₁ + χ·(wʳ − wʳ₋₁)               (eq. 5.1 / 5.2)
+#   PPP  wʳ = wʳ₋₁·(1+πᵃ)/(1+π)                        (eq. 2.5, nominal rate pegged)
+#
+# The PPP line is the whole peg mechanism: with the nominal rate w held fixed,
+# wʳ = w·pᵃ/p, so the real rate keeps moving for as long as domestic inflation
+# differs from foreign inflation. It is ONE law — the same equation supplies both
+# the within-period response of wʳ to π and the carry-over drift between periods.
+# (An earlier version split it into two tuned coefficients, θ and κ. Neither is in
+# the book; both are gone.)
+#
+# CONSEQUENCE, and it is the book's own finding rather than a defect: how well the
+# adjustment behaves depends entirely on what stabilises demand in each regime.
+#   • Float          — the Taylor rule works, so π converges geometrically.
+#   • Sterilised peg — the bank keeps its rule, so output returns to potential
+#                      quickly while prices grind back over a much longer span.
+#   • Hard peg       — r is pinned to rᵃ and the Taylor rule is abandoned (§5.2),
+#                      so nothing damps the cycle. Output overshoots and the run
+#                      does not settle. That is the chapter's point: a peg without
+#                      sterilisation "increases the economy's vulnerability".
+
+OE_FLOAT, OE_PEG, OE_PEG_STER = 'float', 'hard', 'ster'
+
+
+class OEParams:
+    """Structural parameters of the open-economy model, all book symbols."""
+
+    def __init__(self, omega, phi, psi, r_init, lambda_p, lambda_i,
+                 r_foreign, pi_foreign, gamma, chi=0.0, Ybar=1.0):
+        self.omega, self.phi, self.psi = omega, phi, psi
+        self.r_init, self.lambda_p, self.lambda_i = r_init, lambda_p, lambda_i
+        self.r_foreign, self.pi_foreign = r_foreign, pi_foreign
+        self.gamma, self.chi, self.Ybar = gamma, chi, Ybar
+
+
+def oe_ppp_next(p, wr, pi):
+    """Exact PPP: wʳ = wʳ₋₁·(1+πᵃ)/(1+π) — the nominal rate is pegged, so the real
+    rate drifts with the inflation differential. Inflation is in percent."""
+    return wr * (1.0 + p.pi_foreign / 100.0) / (1.0 + pi / 100.0)
+
+
+def oe_baseline_wr(p):
+    """Pre-shock real exchange rate: IS solved at Y = Ȳ and r = rᵃ."""
+    return (p.Ybar - p.omega + p.phi * p.r_foreign) / p.psi
+
+
+def oe_operating_point(p, regime, pi, wr_state):
+    """(Y, r, wʳ) for the current period, given predetermined inflation π and the
+    carried-over real exchange rate.
+
+    Float — the nominal rate is free, so FX binds (r = rᵃ) and output comes from
+    MP ∩ FX. wʳ then jumps to whatever makes IS pass through that point.
+    Sterilised peg — the bank offsets the reserve flows and keeps its own rule, so
+    output comes from IS ∩ MP at the pegged wʳ.
+    Hard peg — reserve flows drag r to rᵃ and the Taylor rule is abandoned, so
+    output is read straight off IS at the pegged wʳ."""
+    if regime == OE_FLOAT:
+        # rᵃ = r' + λ_P·(Y−Ȳ)/Ȳ + λ_I·π  solved for Y
+        Y = p.Ybar + p.Ybar * (p.r_foreign - p.r_init - p.lambda_i * pi) / p.lambda_p
+        return Y, p.r_foreign, (Y - p.omega + p.phi * p.r_foreign) / p.psi
+
+    wr = wr_state
+    if regime == OE_PEG_STER:
+        D = 1.0 + p.phi * p.lambda_p / p.Ybar
+        Y = (p.omega - p.phi * p.r_init + p.phi * p.lambda_p
+             - p.phi * p.lambda_i * pi + p.psi * wr) / D
+        r = p.r_init + p.lambda_p * (Y - p.Ybar) / p.Ybar + p.lambda_i * pi
+        return Y, r, wr
+
+    Y = p.omega - p.phi * p.r_foreign + p.psi * wr
+    return Y, p.r_foreign, wr
+
+
+def oe_wr_next(p, regime, wr, pi_next, Y_next=None):
+    """The real exchange rate that will apply next period."""
+    if regime == OE_FLOAT:
+        return (Y_next - p.omega + p.phi * p.r_foreign) / p.psi
+    return oe_ppp_next(p, wr, pi_next)
+
+
+def oe_next_inflation(p, regime, pi, Y, wr):
+    """IA curve, eq. (5.2):  π₊₁ = π + γ·Ỹ + χ·(wʳ₊₁ − wʳ).
+
+    With χ = 0 (the default, and all of ch. 4-5.4) this is the plain output-gap
+    rule of eq. (5.1). With χ > 0 the imported-inflation channel of §5.5 is live;
+    wʳ₊₁ is contemporaneous with π₊₁, so the two are solved together."""
+    base = pi + p.gamma * (Y - p.Ybar) / p.Ybar
+    if p.chi == 0.0:
+        return base
+
+    if regime == OE_FLOAT:
+        # wʳ₊₁ is linear in π₊₁: Y(π) off the float's AD, then IS solved for wʳ.
+        b = -p.Ybar * p.lambda_i / (p.lambda_p * p.psi)
+        W0 = (p.Ybar + p.Ybar * (p.r_foreign - p.r_init) / p.lambda_p
+              - p.omega + p.phi * p.r_foreign) / p.psi
+        return (base + p.chi * (W0 - wr)) / (1.0 - p.chi * b)
+
+    # Peg: wʳ₊₁ = wr·(1+πᵃ)/(1+π₊₁). Substituting into the IA curve and clearing
+    # the denominator gives a quadratic in π₊₁; take the root nearest `base`.
+    k = 1.0 + p.pi_foreign / 100.0
+    b_ = 100.0 - base + p.chi * wr
+    c_ = -100.0 * (base + p.chi * wr * (k - 1.0))
+    disc = b_ * b_ - 4.0 * c_
+    if disc < 0:
+        return base
+    root = disc ** 0.5
+    r1, r2 = (-b_ + root) / 2.0, (-b_ - root) / 2.0
+    return r1 if abs(r1 - base) <= abs(r2 - base) else r2
+
+
+def oe_ad_curve(p, regime, wr_state):
+    """AD in π–Y space as (slope, intercept). A slope of None means the curve is
+    VERTICAL, returned instead as (None, Y).
+
+    Float — AD is MP ∩ FX, so ω drops out entirely and fiscal policy is fully
+    crowded out (§4.5).
+    Sterilised peg — AD is IS ∩ MP at the pegged wʳ, steeper than the float's, and
+    it shifts as wʳ drifts. ω is present, so fiscal policy works.
+    Hard peg — r cannot respond and wʳ is fixed within the period, so demand does
+    not depend on current inflation at all: AD is vertical. Every bit of the
+    adjustment has to come through accumulated price differences, which is exactly
+    why the book calls this regime slow and dangerous."""
+    if regime == OE_FLOAT:
+        return (-p.lambda_p / (p.lambda_i * p.Ybar),
+                (p.r_foreign - p.r_init + p.lambda_p) / p.lambda_i)
+    if regime == OE_PEG_STER:
+        D = 1.0 + p.phi * p.lambda_p / p.Ybar
+        return (-D / (p.phi * p.lambda_i),
+                (p.omega - p.phi * p.r_init + p.phi * p.lambda_p
+                 + p.psi * wr_state) / (p.phi * p.lambda_i))
+    return (None, p.omega - p.phi * p.r_foreign + p.psi * wr_state)
+
+
+def oe_is_intercept(p, wr):
+    """IS intercept in the r–Y diagram at a given real exchange rate."""
+    return (p.omega + p.psi * wr) / p.phi
+
+
+def oe_longrun(p, regime):
+    """(π*, r*, wʳ*) where the economy comes to rest.
+
+    Under EITHER peg the nominal rate is fixed, so wʳ is at rest only when
+    π = πᵃ — a pegged economy cannot hold an inflation rate of its own. Under a
+    float the Taylor rule sets π* instead, and ω is absent from it."""
+    if regime == OE_FLOAT:
+        pi_star = (p.r_foreign - p.r_init) / p.lambda_i
+        r_star = p.r_foreign
+    else:
+        pi_star = p.pi_foreign
+        r_star = (p.r_init + p.lambda_i * p.pi_foreign
+                  if regime == OE_PEG_STER else p.r_foreign)
+    return pi_star, r_star, (p.Ybar - p.omega + p.phi * r_star) / p.psi
