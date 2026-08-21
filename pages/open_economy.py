@@ -212,7 +212,8 @@ with st.sidebar:
             play_clicked = False
             st.button("▶▶ Paused", disabled=True, width="stretch")
         else:
-            play_clicked = st.button("⏵ Play", type="primary", width="stretch")
+            play_clicked = st.button("↻ Play again" if phase == "done" else "⏵ Play",
+                                     type="primary", width="stretch")
     with bcol2:
         reset_clicked = st.button("↺ Reset", on_click=reset_all, width="stretch", disabled=is_running,
                                   help="Clear the run and restore all shock/parameter values to their defaults.")
@@ -396,7 +397,11 @@ if continue_clicked and phase == "short_term_paused":
     st.rerun()
 
 # ―――― Play: initialize period 0 and period 1 ――――――――――――――――
-if play_clicked and phase == "idle":
+# Also fires from "done", so Play restarts a finished run instead of doing nothing:
+# the block below rebuilds the whole run state from scratch, so replaying is just
+# running it again. A run saved with "Remember this run" is deliberately kept, so
+# the replay is drawn against it.
+if play_clicked and phase in ("idle", "done"):
     st.session_state.oe_phase = "short_term_paused"
     st.session_state.oe_pi_prev = pi_0
     st.session_state.oe_wr_prev = WR_BASELINE
