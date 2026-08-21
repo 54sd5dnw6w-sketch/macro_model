@@ -1,3 +1,5 @@
+from contextlib import nullcontext
+
 import numpy as np
 import streamlit as st
 import pandas as pd
@@ -363,3 +365,56 @@ def oe_longrun(p, regime):
         r_star = (p.r_init + p.lambda_i * p.pi_foreign
                   if regime == OE_PEG_STER else p.r_foreign)
     return pi_star, r_star, (p.Ybar - p.omega + p.phi * r_star) / p.psi
+
+
+# ―――― Settings ―――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――
+SPEED_LABELS = {"Slow": 0.2, "Normal": 0.04, "Fast": 0.02, "Very Fast": 0.01}
+
+
+def settings_controls(key_prefix="", stacked=False):
+    """The simulation settings, rendered wherever they are wanted.
+
+    Lives here so the Settings PAGE and the in-page Settings popover show one set
+    of controls instead of two that can drift apart. `key_prefix` keeps the widget
+    keys distinct between the two — Streamlit raises a duplicate-key error if the
+    same widget is rendered twice in one run. `stacked` puts the inputs one above
+    the other, which is what a narrow popover needs."""
+    current_speed = st.session_state.get("setting_speed", c.speed)
+    current_label = min(SPEED_LABELS, key=lambda k: abs(SPEED_LABELS[k] - current_speed))
+    saved_iters = st.session_state.get("setting_iterations", c.iteration_count)
+
+    # A narrow popover stacks the inputs; nullcontext stands in for a column so
+    # both layouts run through the same `with` block (the st module itself is not
+    # a context manager).
+    holders = (nullcontext(), nullcontext()) if stacked else st.columns(2)
+    with holders[0]:
+        iterations = st.number_input(
+            "Number of iterations", min_value=5, max_value=200, step=1, value=saved_iters,
+            key=f"{key_prefix}set_iterations",
+            help="How many periods the model runs after the initial shock.")
+    with holders[1]:
+        speed_choice = st.select_slider(
+            "Animation speed", options=list(SPEED_LABELS.keys()), value=current_label,
+            key=f"{key_prefix}set_speed",
+            help="Controls the delay between animation steps.")
+
+    changed = (iterations != saved_iters or SPEED_LABELS[speed_choice] != current_speed)
+    if st.button("Save settings", type="primary", disabled=not changed,
+                 key=f"{key_prefix}set_save", width="stretch"):
+        st.session_state.setting_iterations = iterations
+        st.session_state.setting_speed = SPEED_LABELS[speed_choice]
+        st.rerun()
+    return changed
+
+
+def settings_popover(label="⚙️ Settings", key_prefix="", ratio=(6, 1)):
+    """Right-aligned Settings popover, meant to sit on its own row ABOVE a tab bar.
+
+    Deliberately NOT wrapped around the tabs. Putting the tabs inside a column —
+    st.columns([6,1]) with cols[0].tabs(...) — confines every diagram, panel and
+    chart drawn inside those tabs to that column's width, which is what makes the
+    page stop short of the vertical border instead of running to the edge. The
+    settings control gets a column; the tabs stay at full width."""
+    _, right = st.columns(ratio, vertical_alignment="top")
+    with right.popover(label, width="stretch"):
+        settings_controls(key_prefix=key_prefix, stacked=True)

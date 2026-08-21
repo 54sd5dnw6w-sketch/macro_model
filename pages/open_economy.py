@@ -453,6 +453,12 @@ else:
     sIA, sY = pi_0, Y_shock
 
 # ―――― Tabs ――――――――――――――――
+# Settings gets its own right-aligned row; the tabs stay at FULL width. Wrapping
+# the tabs in a column instead — st.columns([6,1]) with cols[0].tabs(...) — puts
+# every diagram and panel inside them into that column, which is what made the
+# page stop at the settings border instead of running to the edge.
+h.settings_popover(key_prefix="oe_")
+
 tab1, tab2 = st.tabs(["📊 Model", "📖 Theory"])
 
 with tab2:
