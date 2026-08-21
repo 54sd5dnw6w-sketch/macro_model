@@ -190,37 +190,36 @@ def show_plotly_fig(fig, height=400, column_to_plot=st, key=None):
     )
 
 # ―――― Open-economy model ―――――――――――――――――――――――――――――――――――――――――――――――――――
-# Lambsdorff & Giamattei, "International Monetary Economics", ch. 4-5. The model
-# is exactly the book's five equations — no damping coefficients, no calibration:
+# Five equations, nothing calibrated and no free coefficients:
 #
-#   IS   Y = ω − φ·r + ψ·wʳ                            (eq. 4.1)
-#   MP   r = r' + λ_P·Ỹ + λ_I·π                        (eq. 4.2)
-#   FX   r = rᵃ                                        (eq. 3.9, static expectations)
-#   IA   π = π₋₁ + γ·Ỹ₋₁ + χ·(wʳ − wʳ₋₁)               (eq. 5.1 / 5.2)
-#   PPP  wʳ = wʳ₋₁·(1+πᵃ)/(1+π)                        (eq. 2.5, nominal rate pegged)
+#   IS   Y = ω − φ·r + ψ·wʳ
+#   MP   r = r' + λ_P·Ỹ + λ_I·π
+#   FX   r = rᵃ                                  (static exchange-rate expectations)
+#   IA   π = π₋₁ + γ·Ỹ₋₁ + χ·(wʳ − wʳ₋₁)
+#   PPP  wʳ = wʳ₋₁·(1+πᵃ)/(1+π)                  (nominal exchange rate pegged)
 #
 # The PPP line is the whole peg mechanism: with the nominal rate w held fixed,
 # wʳ = w·pᵃ/p, so the real rate keeps moving for as long as domestic inflation
 # differs from foreign inflation. It is ONE law — the same equation supplies both
 # the within-period response of wʳ to π and the carry-over drift between periods.
-# (An earlier version split it into two tuned coefficients, θ and κ. Neither is in
-# the book; both are gone.)
+# Do not split it into separate within-period and drift coefficients: tuning them
+# apart is what previously turned an exact identity into a fitted parameter.
 #
-# CONSEQUENCE, and it is the book's own finding rather than a defect: how well the
-# adjustment behaves depends entirely on what stabilises demand in each regime.
+# CONSEQUENCE: how well the adjustment behaves depends entirely on what stabilises
+# demand in each regime.
 #   • Float          — the Taylor rule works, so π converges geometrically.
 #   • Sterilised peg — the bank keeps its rule, so output returns to potential
 #                      quickly while prices grind back over a much longer span.
-#   • Hard peg       — r is pinned to rᵃ and the Taylor rule is abandoned (§5.2),
-#                      so nothing damps the cycle. Output overshoots and the run
-#                      does not settle. That is the chapter's point: a peg without
-#                      sterilisation "increases the economy's vulnerability".
+#   • Hard peg       — r is pinned to rᵃ and the Taylor rule is abandoned, so
+#                      nothing damps the cycle. Output overshoots and the run does
+#                      not settle. That is a property of the regime, not a defect
+#                      in the code: with a vertical AD there is no stabiliser left.
 
 OE_FLOAT, OE_PEG, OE_PEG_STER = 'float', 'hard', 'ster'
 
 
 class OEParams:
-    """Structural parameters of the open-economy model, all book symbols."""
+    """Structural parameters of the open-economy model."""
 
     def __init__(self, omega, phi, psi, r_init, lambda_p, lambda_i,
                  r_foreign, pi_foreign, gamma, chi=0.0, Ybar=1.0):
@@ -276,11 +275,11 @@ def oe_wr_next(p, regime, wr, pi_next, Y_next=None):
 
 
 def oe_next_inflation(p, regime, pi, Y, wr):
-    """IA curve, eq. (5.2):  π₊₁ = π + γ·Ỹ + χ·(wʳ₊₁ − wʳ).
+    """IA curve:  π₊₁ = π + γ·Ỹ + χ·(wʳ₊₁ − wʳ).
 
-    With χ = 0 (the default, and all of ch. 4-5.4) this is the plain output-gap
-    rule of eq. (5.1). With χ > 0 the imported-inflation channel of §5.5 is live;
-    wʳ₊₁ is contemporaneous with π₊₁, so the two are solved together."""
+    With χ = 0 (the default) this is the plain output-gap rule. With χ > 0 the
+    imported-inflation channel is live; wʳ₊₁ is contemporaneous with π₊₁, so the
+    two have to be solved together rather than in sequence."""
     base = pi + p.gamma * (Y - p.Ybar) / p.Ybar
     if p.chi == 0.0:
         return base
@@ -310,13 +309,13 @@ def oe_ad_curve(p, regime, wr_state):
     VERTICAL, returned instead as (None, Y).
 
     Float — AD is MP ∩ FX, so ω drops out entirely and fiscal policy is fully
-    crowded out (§4.5).
+    crowded out.
     Sterilised peg — AD is IS ∩ MP at the pegged wʳ, steeper than the float's, and
     it shifts as wʳ drifts. ω is present, so fiscal policy works.
     Hard peg — r cannot respond and wʳ is fixed within the period, so demand does
     not depend on current inflation at all: AD is vertical. Every bit of the
-    adjustment has to come through accumulated price differences, which is exactly
-    why the book calls this regime slow and dangerous."""
+    adjustment has to come through accumulated price differences, which is what
+    makes this regime both slow and badly exposed to a shock."""
     if regime == OE_FLOAT:
         return (-p.lambda_p / (p.lambda_i * p.Ybar),
                 (p.r_foreign - p.r_init + p.lambda_p) / p.lambda_i)

@@ -6,24 +6,20 @@ import plotly.express as px
 import config as c
 import helpers as h
 
-# ―――― Open-economy consensus model ――――――――――――――――
-# Lambsdorff & Giamattei, "International Monetary Economics", ch. 4-5.
+# ―――― Open-economy model ――――――――――――――――
+# The MODEL lives in helpers.py (h.oe_*): five equations — IS, MP, FX, IA and PPP
+# — with no damping coefficients and nothing calibrated. This file holds only the
+# UI: the parameter widgets, the regime choice, the diagrams and the narration.
 #
-# The MODEL lives in helpers.py (h.oe_*): it is exactly the book's five
-# equations — IS (4.1), MP (4.2), FX (3.9), IA (5.1/5.2) and PPP (2.5) — with no
-# damping coefficients and nothing calibrated. This file holds only the UI: the
-# parameter widgets, the regime choice, the diagrams and the narration.
+# The peg mechanism is the exact law wʳ = wʳ₋₁·(1+πᵃ)/(1+π): with the nominal rate
+# held fixed, the real rate keeps moving for as long as domestic inflation differs
+# from foreign inflation. One law, no free parameters.
 #
-# The peg mechanism is the exact PPP law wʳ = wʳ₋₁·(1+πᵃ)/(1+π): with the nominal
-# rate held fixed, the real rate keeps moving for as long as domestic inflation
-# differs from foreign inflation. One law, no free parameters.
-#
-# ―――― χ: imported inflation (book §5.5) ――――――――――――――――
+# ―――― χ: imported inflation ――――――――――――――――
 # χ is the pass-through of a change in the real exchange rate to domestic prices
 # (large for a CPI basket, small for the GDP deflator). It is an EXTENSION: every
-# headline result of chapters 4-5.4 — full crowding out under a float above all —
-# is derived with χ = 0, which is why χ defaults to 0 here and is offered only at
-# the Advanced level.
+# headline result — full crowding out under a float above all — holds with χ = 0,
+# which is why χ defaults to 0 here and is offered only at the Advanced level.
 
 # ―――― Fixed pre-shock baseline (period 0 of the charts) ――――――――――――――――
 # Default parameters below give the resting point Y=Ȳ, π=πᵃ=3, r=rᵃ=2, wʳ=1.
@@ -120,7 +116,7 @@ with st.sidebar:
     phi = PHI_BASE; psi = PSI_BASE; lambda_p = LP_BASE; lambda_i = LI_BASE
     gamma = GAMMA_BASE; pi_foreign = PIA_BASE; eta = 0.0; inflation_shock = 0.0
     omega = OMEGA_BASE; r_init = RP_BASE; r_foreign = RA_BASE; pi_0_override = None
-    chi = 0.0                      # imported-inflation pass-through (§5.5) — Advanced only
+    chi = 0.0                      # imported-inflation pass-through — Advanced only
 
     if level == 'Easy':
         st.markdown('##### Please Select the shock:')
@@ -237,30 +233,30 @@ IS_slope = -1 / phi
 MP_slope = lambda_p / Ybar
 
 # ―――― Exchange-rate regime ――――――――――――――――
-# Each regime abandons ONE corner of the impossible trinity (§4.4), and that
-# choice is what drives every difference below.
+# Each regime abandons ONE corner of the impossible trinity, and that choice is
+# what drives every difference below.
 #
-# FLEXIBLE (Pₓ) — gives up CONTROL OF THE EXCHANGE RATE. The nominal rate floats,
-#   so interest parity binds: r = rᵃ. Output comes from MP∩FX, so ω drops out of
-#   AD entirely and FISCAL POLICY IS FULLY CROWDED OUT (§4.5, §5.2). Monetary and
-#   foreign-rate shocks are permanent → π* = (rᵃ − r')/λ_I, generally ≠ πᵃ, which
-#   the book reaches through a crawling peg.
+# FLEXIBLE — gives up CONTROL OF THE EXCHANGE RATE. The nominal rate floats, so
+#   interest parity binds: r = rᵃ. Output comes from MP∩FX, so ω drops out of AD
+#   entirely and FISCAL POLICY IS FULLY CROWDED OUT. Monetary and foreign-rate
+#   shocks are permanent → π* = (rᵃ − r')/λ_I, generally ≠ πᵃ, which means the
+#   currency slides at that differential forever.
 #
-# FIXED – NO STERILIZATION (Pₒ) — gives up MONETARY AUTONOMY. Reserve flows are
-#   left to run, so they drag r to rᵃ and the Taylor rule is abandoned (§5.2).
-#   Fiscal policy has its full IS multiplier — the strongest of the three. But
-#   nothing responds to inflation within the period: r cannot move and wʳ is a
-#   carried-over state, so AD IS VERTICAL. The entire adjustment must come from
-#   accumulated price differences, which is why the book calls this regime slow
-#   and "worrying", and why the simulated run overshoots rather than settling.
+# FIXED – NO STERILIZATION — gives up MONETARY AUTONOMY. Reserve flows are left to
+#   run, so they drag r to rᵃ and the Taylor rule is abandoned. Fiscal policy has
+#   its full IS multiplier — the strongest of the three. But nothing responds to
+#   inflation within the period: r cannot move and wʳ is a carried-over state, so
+#   AD IS VERTICAL. The entire adjustment must come from accumulated price
+#   differences, which is why this regime is slow and why a run overshoots rather
+#   than settling.
 #
-# FIXED – WITH STERILIZATION (Pₛ) — gives up FREE MOVEMENT OF CAPITAL. The bank
-#   offsets the reserve flows and so keeps its own rate: r = r' + λ_P·Ỹ + λ_I·π.
-#   Output comes from IS∩MP at the pegged wʳ, giving a STEEPER AD than the float.
-#   Fiscal policy works and the economy is insulated from rᵃ. The catch is that
-#   holding r away from rᵃ means capital keeps crossing the border, so the book is
-#   explicit that this point requires capital controls in the long run (§4.4) —
-#   it is NOT a way to have all three at once.
+# FIXED – WITH STERILIZATION — gives up FREE MOVEMENT OF CAPITAL. The bank offsets
+#   the reserve flows and so keeps its own rate: r = r' + λ_P·Ỹ + λ_I·π. Output
+#   comes from IS∩MP at the pegged wʳ, giving a STEEPER AD than the float. Fiscal
+#   policy works and the economy is insulated from rᵃ. The catch is that holding r
+#   away from rᵃ means capital keeps crossing the border, so this corner has to be
+#   held shut with capital controls in the long run — it is NOT a way to have all
+#   three at once.
 #
 # Under EITHER peg the nominal rate is fixed, so wʳ = w·pᵃ/p keeps drifting until
 # π = πᵃ: a pegged economy cannot hold an inflation rate of its own.
@@ -292,10 +288,10 @@ P = h.OEParams(omega=omega, phi=phi, psi=psi, r_init=r_init, lambda_p=lambda_p,
 pi_eq, peg_lr_rate, WR_LONGRUN = h.oe_longrun(P, oe_regime)
 PI_BASELINE = pi_foreign
 
-# ―――― Is the peg actually defensible? (§4.4) ――――――――――――――――
+# ―――― Is the peg actually defensible? ――――――――――――――――
 # Under sterilisation the bank holds r = r' + λ_I·πᵃ in the long run. Whenever that
 # differs from rᵃ, capital keeps flowing and reserves move without bound — which is
-# precisely why the book places capital controls at this corner of the trinity.
+# precisely why capital controls sit at this corner of the trinity.
 peg_unsustainable = peg_steril and abs(peg_lr_rate - r_foreign) > 1e-6
 
 # The hard peg has no stabiliser at all: r is pinned to rᵃ and AD is vertical, so
@@ -444,8 +440,8 @@ else:
     sMP_slope, sMP_int = MP_slope, MP_intercept_shock
     # The FX curve is the INTEREST-PARITY constraint r = rᵃ, not the operating
     # point. Drawing it at the CB's own (sterilised) rate made the constraint
-    # appear to move to meet Pₛ, hiding the very gap that generates the reserve
-    # flows the sterilisation story is about (§4.5, §5.3). It is always rᵃ.
+    # appear to move to meet the operating point, hiding the very gap that
+    # generates the reserve flows sterilisation is about. It is always rᵃ.
     sFX = r_foreign
     # Short-run (shocked) AD. Under either peg the AD sits where the PERIOD-1
     # real-exchange-rate state puts it.
@@ -598,8 +594,8 @@ with tab1:
                        "pinned to rᵃ and the Taylor rule is abandoned, so nothing responds to inflation "
                        "within the period — the AD curve is vertical. The only correcting force is the "
                        "slow drift of the real exchange rate, so output overshoots potential and swings "
-                       "back and forth instead of coming to rest. That is the book's finding, not a "
-                       "glitch: a peg without sterilisation leaves the economy badly exposed to a shock.")
+                       "back and forth instead of coming to rest. That is a property of the regime, not "
+                       "a glitch: a peg without sterilisation leaves the economy badly exposed to a shock.")
 
         if level != 'Easy':
             if monetary_neutralised:

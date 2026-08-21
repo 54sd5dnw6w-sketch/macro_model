@@ -688,9 +688,9 @@ THEORY_REST = r"""
 Note the third column carefully. Sterilisation is **not** a way of having all three
 at once. The bank keeps its interest rate and its exchange rate, but the moment its
 rule calls for an $r$ different from $r^a$, capital keeps crossing the border and
-reserves drain without limit. The book is explicit that this corner has to be held
-shut with capital controls in the long run — which is exactly the corner being given
-up. Reserves buy time; they do not buy the third objective.
+reserves drain without limit. That corner has to be held shut with capital controls
+in the long run — which is exactly the corner being given up. Reserves buy time; they
+do not buy the third objective.
 
 **Why fiscal policy does nothing under a flexible rate.** Higher spending pulls the
 interest rate up, money flows in, the currency strengthens, and exports fall by exactly
