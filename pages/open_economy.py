@@ -22,11 +22,29 @@ import helpers as h
 # which is why χ defaults to 0 here and is offered only at the Advanced level.
 
 # ―――― Fixed pre-shock baseline (period 0 of the charts) ――――――――――――――――
-# Default parameters below give the resting point Y=Ȳ, π=πᵃ=3, r=rᵃ=2, wʳ=1.
-PHI_BASE, PSI_BASE, OMEGA_BASE = 1.0, 1.0, 2.0
-RP_BASE, LP_BASE, LI_BASE, GAMMA_BASE = 0.5, 0.5, 0.5, 0.5
-RA_BASE, PIA_BASE = 2.0, 3.0
-WR_BASELINE = (c.Y_potential - OMEGA_BASE + PHI_BASE * RA_BASE) / PSI_BASE   # → 1.0
+# Output is an index with Ȳ = 100, so one unit of Y is one per cent of potential
+# and the gap is in percentage points. The defaults below are chosen to read like
+# a real economy at rest: Y = 100, π = πᵃ = 2 %, r = rᵃ = 2 %, wʳ = 100.
+#
+#   φ = 1.00  a 1 pp rise in the real rate costs 1 % of potential output
+#   ψ = 0.25  a 1 % real depreciation adds 0.25 % to output (net-export channel)
+#   λ_P = 0.5 Taylor weight on a gap in per cent
+#   λ_I = 0.75 real-rate response to inflation (nominal response 1.75)
+#   γ = 0.4   Phillips slope: 1 point of gap moves next period's inflation 0.4 pp
+#   r' = rᵃ − λ_I·πᵃ = 0.5 is what puts the resting point exactly at Y = Ȳ
+#   ω = Ȳ + φ·rᵃ − ψ·wʳ* = 77 does the same for the IS curve
+PHI_BASE, PSI_BASE, OMEGA_BASE = 1.0, 0.25, 77.0
+RP_BASE, LP_BASE, LI_BASE, GAMMA_BASE = 0.5, 0.5, 0.75, 0.4
+RA_BASE, PIA_BASE = 2.0, 2.0
+WR_BASELINE = (c.Y_potential - OMEGA_BASE + PHI_BASE * RA_BASE) / PSI_BASE   # → 100.0
+
+# ―――― Shock sizes (Easy mode) ――――――――――――――――
+# Sized so the impact reads like something that happens to a real economy: a
+# demand swing of 1.5 % of GDP, a 50 bp policy move at home or abroad, a 1 pp
+# import-price shock. Each one moves output by roughly half a point to a point
+# and a half — small enough to be realistic, large enough to see.
+FISCAL_SHOCK, MONETARY_SHOCK = 1.5, 0.5
+FOREIGN_SHOCK, IMPORTED_SHOCK = 0.5, 1.0
 
 
 # ―――― Session State ――――――――――――――――
@@ -35,6 +53,7 @@ h.session_init(
     oe_pi_prev=None,
     oe_wr_prev=None,        # real-exchange-rate state (fixed peg without sterilization)
     oe_iter_counter=0,
+    oe_peg_broke=False,     # unsterilised peg amplified until the model left its range
     oe_iteration_df=pd.DataFrame(columns=["Iteration", "Output", "Inflation", "RealFX", "Rate"]),
     oe_locked_df=None,
 )
@@ -60,6 +79,7 @@ def reset():
     st.session_state.oe_pi_prev = None
     st.session_state.oe_wr_prev = None
     st.session_state.oe_iter_counter = 0
+    st.session_state.oe_peg_broke = False
     st.session_state.oe_iteration_df = pd.DataFrame(columns=["Iteration", "Output", "Inflation", "RealFX", "Rate"])
 
 
@@ -104,7 +124,9 @@ with st.sidebar:
                           help=("Flexible: the currency is free to move, which cancels out demand "
                                 "changes but lets interest-rate changes work. "
                                 "Fixed – no sterilization: the currency is held, so demand changes "
-                                "have their full effect and monetary policy has none. "
+                                "have their full effect, monetary policy has none, and the interest "
+                                "rate is left to the FX market — where it moves the wrong way and "
+                                "amplifies the shock. "
                                 "Fixed – with sterilization: the currency is held and the bank offsets "
                                 "the money flows, so it keeps its own interest rate — for as long as "
                                 "its reserves last."))
@@ -127,34 +149,36 @@ with st.sidebar:
                                        'Imported Inflation Shock', 'Imported Deflation Shock'],
                               disabled=is_running or is_paused, on_change=reset, key="oe_shock")
         if shock_type == 'Expansionary Fiscal Shock':
-            omega = OMEGA_BASE + 0.5
+            omega = OMEGA_BASE + FISCAL_SHOCK
         elif shock_type == 'Contractionary Fiscal Shock':
-            omega = OMEGA_BASE - 0.5
+            omega = OMEGA_BASE - FISCAL_SHOCK
         elif shock_type == 'Expansionary Monetary Shock':
-            r_init = RP_BASE - 0.3
+            r_init = RP_BASE - MONETARY_SHOCK
         elif shock_type == 'Contractionary Monetary Shock':
-            r_init = RP_BASE + 0.3
+            r_init = RP_BASE + MONETARY_SHOCK
         elif shock_type == 'Rising Foreign Interest Rate':
-            r_foreign = RA_BASE + 0.3
+            r_foreign = RA_BASE + FOREIGN_SHOCK
         elif shock_type == 'Falling Foreign Interest Rate':
-            r_foreign = RA_BASE - 0.3
+            r_foreign = RA_BASE - FOREIGN_SHOCK
         elif shock_type == 'Imported Inflation Shock':
-            inflation_shock = 0.5
+            inflation_shock = IMPORTED_SHOCK
         elif shock_type == 'Imported Deflation Shock':
-            inflation_shock = -0.5
+            inflation_shock = -IMPORTED_SHOCK
         # One story, for the regime actually selected — the pop-ups below never repeat it.
         text_to_show = c.oe_shock_panel(shock_type, regime)
 
     elif level == 'Medium':
-        omega = st.slider(r'$\omega$:', on_change=reset, min_value=0.5, max_value=4.0, step=0.1,
+        omega = st.slider(r'$\omega$:', on_change=reset,
+                          min_value=OMEGA_BASE - 4.0, max_value=OMEGA_BASE + 4.0, step=0.25,
                           value=OMEGA_BASE, key="oe_m_omega",
                           help=r"IS Curve: $Y = \omega - \varphi r + \psi w^r$")
-        r_init = st.slider(r"$r'$ (%):", on_change=reset, min_value=-0.5, max_value=1.5, step=0.1,
+        r_init = st.slider(r"$r'$ (%):", on_change=reset, min_value=-1.0, max_value=2.0, step=0.1,
                            value=RP_BASE, key="oe_m_rinit",
                            help=r"MP Curve: $r = r' + \lambda_P \tilde Y + \lambda_I \pi$")
-        r_foreign = st.slider(r"$r^a$ (%) - abroad:", on_change=reset, min_value=1.0, max_value=3.0, step=0.1,
+        r_foreign = st.slider(r"$r^a$ (%) - abroad:", on_change=reset, min_value=0.0, max_value=4.0, step=0.1,
                               value=RA_BASE, key="oe_m_rforeign",
-                              help=r"FX Curve: $r = r^a$ under a flexible exchange rate")
+                              help=r"FX Curve: $r = r^a$ under a flexible exchange rate; "
+                                   r"$r = r^a + (\pi^a - \pi)$ under a peg")
         inflation_shock = st.slider(r"Imported inflation (%):", on_change=reset, min_value=-2.0, max_value=2.0,
                                     step=0.25, value=0.0, key="oe_m_infl",
                                     help="A one-off jump in import prices, which lands directly on inflation. "
@@ -162,40 +186,58 @@ with st.sidebar:
 
     elif level == 'Advanced':
         st.markdown('##### IS Curve')
-        phi = st.number_input(r'$\varphi$ :', on_change=reset, min_value=0.1, step=0.1, value=PHI_BASE,
-                              key="oe_a_phi", help=r"IS Curve: $Y = \omega - \varphi r + \psi w^r$")
-        psi = st.number_input(r'$\psi$ :', on_change=reset, min_value=0.1, step=0.1, value=PSI_BASE,
-                              key="oe_a_psi", help=r"Real-exchange-rate sensitivity of demand")
-        omega = st.number_input(r'$\omega$ :', on_change=reset, min_value=0.0, step=0.5, value=OMEGA_BASE,
-                                key="oe_a_omega", help=r"IS Curve: $Y = \omega - \varphi r + \psi w^r$")
+        phi = st.number_input(r'$\varphi$ :', on_change=reset, min_value=0.1, max_value=3.0, step=0.1,
+                              value=PHI_BASE, key="oe_a_phi",
+                              help=r"IS Curve: $Y = \omega - \varphi r + \psi w^r$. Output cost of a "
+                                   r"1 pp rise in the real rate, in per cent of potential.")
+        psi = st.number_input(r'$\psi$ :', on_change=reset, min_value=0.05, max_value=1.0, step=0.05,
+                              value=PSI_BASE, key="oe_a_psi",
+                              help=r"Output gain from a 1 % real depreciation ($w^r$ is an index at 100). "
+                                   r"0.25 is a normal net-export elasticity; above ~0.5 trade dominates "
+                                   r"everything else.")
+        omega = st.number_input(r'$\omega$ :', on_change=reset, min_value=60.0, max_value=95.0, step=0.5,
+                                value=OMEGA_BASE, key="oe_a_omega",
+                                help=r"IS Curve: $Y = \omega - \varphi r + \psi w^r$. One unit is one "
+                                     r"per cent of potential output.")
         st.markdown("<hr style='margin: 2px 0; border: none; border-top: 1px solid #ccc;'>", unsafe_allow_html=True)
         st.markdown('##### MP Curve')
         r_init = st.number_input(r"$r'$ :", on_change=reset, step=0.1, value=RP_BASE, key="oe_a_rinit",
                                  help=r"MP Curve: $r = r' + \lambda_P \tilde Y + \lambda_I \pi$")
-        lambda_p = st.number_input(r'$\lambda_P$ :', on_change=reset, min_value=0.1, max_value=10.0, step=0.1,
-                                   value=LP_BASE, key="oe_a_lp", help=r"MP Curve output-gap weight")
-        lambda_i = st.number_input(r'$\lambda_I$ :', on_change=reset, min_value=0.1, max_value=10.0, step=0.1,
-                                   value=LI_BASE, key="oe_a_li", help=r"MP Curve inflation weight")
+        lambda_p = st.number_input(r'$\lambda_P$ :', on_change=reset, min_value=0.1, max_value=2.0, step=0.05,
+                                   value=LP_BASE, key="oe_a_lp",
+                                   help=r"MP Curve weight on the output gap, in pp of real rate per point "
+                                        r"of gap. 0.5 is the textbook Taylor weight.")
+        lambda_i = st.number_input(r'$\lambda_I$ :', on_change=reset, min_value=0.1, max_value=3.0, step=0.05,
+                                   value=LI_BASE, key="oe_a_li",
+                                   help=r"MP Curve weight on inflation: the REAL rate response. 0.75 here "
+                                        r"means a nominal response of 1.75, comfortably above the Taylor "
+                                        r"principle.")
 
         st.markdown("<hr style='margin: 2px 0; border: none; border-top: 1px solid #ccc;'>", unsafe_allow_html=True)
         st.markdown('##### FX Curve')
         r_foreign = st.number_input(r"$r^a$ (%) - abroad:", on_change=reset, step=0.1, value=RA_BASE,
-                                    key="oe_a_rforeign", help=r"FX Curve: $r = r^a$")
+                                    key="oe_a_rforeign",
+                                    help=r"FX Curve: $1+r = (1+r^a)\,w^{r,e}_{+1}/w^r$ — this is "
+                                         r"$r = r^a$ only when no move in the real exchange rate is "
+                                         r"expected. Under a peg it is $r = r^a + (\pi^a - \pi)$.")
         pi_foreign = st.number_input(r"$\pi^a$ (%) - abroad:", on_change=reset, step=0.1, value=PIA_BASE,
                                      key="oe_a_piforeign", help=r"Long-run domestic inflation anchor")
         st.markdown("<hr style='margin: 2px 0; border: none; border-top: 1px solid #ccc;'>", unsafe_allow_html=True)
         st.markdown('##### IA Curve')
-        gamma = st.number_input(r'$\gamma$ :', on_change=reset, min_value=0.0, step=0.1, value=GAMMA_BASE,
-                                key="oe_a_gamma", help=r"IA curve: $\pi_{t+1} = \pi_t + \gamma \tilde Y_t + \eta$")
+        gamma = st.number_input(r'$\gamma$ :', on_change=reset, min_value=0.0, max_value=1.5, step=0.05,
+                                value=GAMMA_BASE, key="oe_a_gamma",
+                                help=r"IA curve: $\pi_{t+1} = \pi_t + \gamma \tilde Y_t$. Phillips slope "
+                                     r"in pp of inflation per point of output gap.")
         inflation_shock = st.number_input(r"Imported Inflation (%):", on_change=reset, min_value=-3.0, max_value=3.0,
                                           step=0.25, value=0.0, key="oe_a_infl",
                                           help="A one-off jump in import prices. It lands on inflation once "
                                                "and is carried forward from there.")
-        chi = st.number_input(r'$\chi$ (imported inflation):', on_change=reset, min_value=0.0, max_value=2.0,
-                              step=0.1, value=0.0, key="oe_a_chi",
+        chi = st.number_input(r'$\chi$ (imported inflation):', on_change=reset, min_value=0.0, max_value=0.3,
+                              step=0.01, value=0.0, key="oe_a_chi",
                               help=r"How much a move in the exchange rate feeds into domestic prices: a weaker "
-                                   r"currency makes imports dearer straight away. Large if the price index "
-                                   r"contains a lot of imported goods, small if it does not. Leave it at 0 for "
+                                   r"currency makes imports dearer straight away. $w^r$ is an index, so "
+                                   r"$\chi = 0.05$ means a 10 % depreciation adds half a point to inflation. "
+                                   r"Large for a CPI basket, small for the GDP deflator. Leave it at 0 for "
                                    r"the standard results.")
         eta = st.number_input(r'$\eta$ (exogenous shock):', on_change=reset, step=0.1, value=0.0,
                               key="oe_a_eta", help=r"Persistent exogenous price shock each period.")
@@ -231,7 +273,7 @@ sim_speed       = st.session_state.get("setting_speed", c.speed)
 # ―――― Derived Model Parameters ――――――――――――――――
 Ybar = c.Y_potential
 IS_slope = -1 / phi
-MP_slope = lambda_p / Ybar
+MP_slope = lambda_p * h.gap_per_Y(Ybar)      # Ỹ is in points, so d r/d Y = λ_P·100/Ȳ
 
 # ―――― Exchange-rate regime ――――――――――――――――
 # Each regime abandons ONE corner of the impossible trinity, and that choice is
@@ -244,12 +286,15 @@ MP_slope = lambda_p / Ybar
 #   currency slides at that differential forever.
 #
 # FIXED – NO STERILIZATION — gives up MONETARY AUTONOMY. Reserve flows are left to
-#   run, so they drag r to rᵃ and the Taylor rule is abandoned. Fiscal policy has
-#   its full IS multiplier — the strongest of the three. But nothing responds to
-#   inflation within the period: r cannot move and wʳ is a carried-over state, so
-#   AD IS VERTICAL. The entire adjustment must come from accumulated price
-#   differences, which is why this regime is slow and why a run overshoots rather
-#   than settling.
+#   run, the Taylor rule is abandoned and the FX MARKET sets the interest rate.
+#   With the nominal rate pegged the expected real appreciation is just the
+#   inflation differential, so eq. 3.9 becomes r = rᵃ + (πᵃ − π) — the same thing
+#   as i = iᵃ with r = i − π, which is how the book writes it (§5.2, §5.4). r is
+#   therefore NOT stuck at rᵃ: it moves against inflation. Fiscal policy has its
+#   full IS multiplier, and then the real rate pushes the SAME way as the shock —
+#   a slump lowers π, which raises r, which deepens the slump. AD slopes UPWARD
+#   and the rest point is unstable, which is the book's "worrying policy" (§5.2)
+#   and its currency-union divergence (§5.4).
 #
 # FIXED – WITH STERILIZATION — gives up FREE MOVEMENT OF CAPITAL. The bank offsets
 #   the reserve flows and so keeps its own rate: r = r' + λ_P·Ỹ + λ_I·π. Output
@@ -295,14 +340,22 @@ PI_BASELINE = pi_foreign
 # precisely why capital controls sit at this corner of the trinity.
 peg_unsustainable = peg_steril and abs(peg_lr_rate - r_foreign) > 1e-6
 
-# The hard peg has no stabiliser at all: r is pinned to rᵃ and AD is vertical, so
-# the output gap only ever feeds back through the slow drift of wʳ. Flagged so the
-# UI can say the run overshoots instead of pretending it settles.
-peg_undamped = peg_no_steril
+# The hard peg has no stabiliser at all — worse, interest parity is a DEstabiliser:
+# r = rᵃ + (πᵃ − π) moves the real rate against inflation, so every shock feeds on
+# itself. oe_peg_root is the growth factor per period; it exceeds 1 for any φ > 0,
+# so no parameter choice makes this regime settle. Flagged so the UI can say the
+# shock is amplified instead of pretending the economy comes back.
+peg_divergent = peg_no_steril
+peg_root = h.oe_peg_root(P) if peg_no_steril else 1.0
 
 # Where the run ends up — NUMBERS ONLY. The panel above it tells the story in
 # words, so this line must not repeat the mechanism, only state the destination.
-if ppp_regime or abs(pi_eq - pi_foreign) < 0.005:
+if peg_no_steril:
+    longrun_line = (f"<b>Rest point:</b> output Ȳ, inflation {pi_foreign:.2f}%, real exchange rate "
+                    f"{WR_LONGRUN:.2f} — but the economy is not heading there. With the Taylor rule "
+                    f"gone, the FX market sets r = rᵃ + (πᵃ − 𝜋), so any gap widens by about "
+                    f"{(peg_root - 1) * 100:.0f}% a period instead of closing.")
+elif ppp_regime or abs(pi_eq - pi_foreign) < 0.005:
     longrun_line = (f"<b>Long run:</b> output back at Ȳ; inflation at the world rate "
                     f"{pi_foreign:.2f}%; real exchange rate settles at {WR_LONGRUN:.2f}.")
 else:
@@ -341,16 +394,16 @@ else:
 # stay frozen where the shock actually put them while the run advances.
 Y_shock, r_shock, wr_shock = h.oe_operating_point(P, oe_regime, pi_0, WR_BASELINE)
 
-# AD in π–Y space. A slope of None means the curve is VERTICAL (hard peg), in
-# which case the second element is the output level instead of an intercept.
+# AD in π–Y space, as (slope, intercept). It slopes DOWN under a float and under a
+# sterilised peg, and UP (+1/φ) without sterilisation, where interest parity ties
+# r to πᵃ − π so demand rises with inflation.
 AD_slope, AD_intercept = h.oe_ad_curve(P, oe_regime, wr_state if phase != "idle" else WR_BASELINE)
 AD_slope_sr, AD_intercept_sr = h.oe_ad_curve(P, oe_regime, WR_BASELINE)
 
 IS_intercept_cur = h.oe_is_intercept(P, wr_cur)
 IS_intercept_shock = h.oe_is_intercept(P, wr_shock)
-MP_intercept_cur = r_init - lambda_p + lambda_i * pi_cur
-MP_intercept_shock = r_init - lambda_p + lambda_i * pi_0
-MP_intercept_cur = r_init - lambda_p + lambda_i * pi_cur
+MP_intercept_cur = r_init - lambda_p * 100.0 + lambda_i * pi_cur
+MP_intercept_shock = r_init - lambda_p * 100.0 + lambda_i * pi_0
 
 
 # ―――― Medium: concise dynamic description ――――――――――――――――
@@ -403,6 +456,7 @@ if continue_clicked and phase == "short_term_paused":
 # the replay is drawn against it.
 if play_clicked and phase in ("idle", "done"):
     st.session_state.oe_phase = "short_term_paused"
+    st.session_state.oe_peg_broke = False
     st.session_state.oe_pi_prev = pi_0
     st.session_state.oe_wr_prev = WR_BASELINE
     st.session_state.oe_iter_counter = 2
@@ -415,8 +469,14 @@ if play_clicked and phase in ("idle", "done"):
 phase = st.session_state.oe_phase  # re-read after possible update
 
 # ―――― Plot bounds ――――――――――――――――
-const = max(abs(Y_shock), abs(Ybar), abs(Ybar - Y_shock)) * 1.3
-const = max(const, 0.5)
+# Y is an index around 100 and the interesting moves are a point or two, so the
+# window is sized from the ACTION, not from the level: 1.6× the largest gap the
+# run has reached, with a floor of 2 points so a small shock still has room
+# around it. Taking the live point in too lets the window follow a run that keeps
+# widening (the unsterilised peg) instead of letting it walk off the chart.
+MIN_HALF_WINDOW = 2.0
+const = max(MIN_HALF_WINDOW,
+            1.6 * max(abs(Y_shock - Ybar), abs(Y_cur - Ybar)))
 x_lo, x_hi = Ybar - const, Ybar + const
 
 # ―――― Curve positions in each phase ――――――――――――――――
@@ -433,7 +493,7 @@ show_long = phase in ("adjusting", "done")
 _P0 = h.OEParams(OMEGA_BASE, PHI_BASE, PSI_BASE, RP_BASE, LP_BASE, LI_BASE,
                  RA_BASE, PIA_BASE, GAMMA_BASE, 0.0, Ybar)
 init_IS = (-1 / PHI_BASE, (OMEGA_BASE + PSI_BASE * WR_BASELINE) / PHI_BASE)
-init_MP = (LP_BASE / Ybar, RP_BASE - LP_BASE + LI_BASE * PIA_BASE)
+init_MP = (LP_BASE * h.gap_per_Y(Ybar), RP_BASE - LP_BASE * 100.0 + LI_BASE * PIA_BASE)
 init_FX = (0.0, RA_BASE)
 init_AD = h.oe_ad_curve(_P0, oe_regime, WR_BASELINE)
 init_IA = (0.0, PIA_BASE)
@@ -443,11 +503,16 @@ st_AD, st_IA = (AD_slope_sr, AD_intercept_sr), (0.0, pi_0)
 lt_IS, lt_MP = (IS_slope, IS_intercept_cur), (MP_slope, MP_intercept_cur)
 lt_AD, lt_IA = (AD_slope, AD_intercept), (0.0, pi_cur)
 
-# The FX curve is the INTEREST-PARITY constraint r = rᵃ, never the operating point.
-# It takes its new value the moment the shock lands and then stays put, so its FX₁
-# and FX∞ positions are the same line — which is the message: nothing abroad moves
-# to meet the domestic economy.
-st_FX = lt_FX = (0.0, r_foreign)
+# The FX curve is the INTEREST-PARITY constraint of eq. 3.9, never the operating
+# point. Under a FLOAT the expected real exchange rate is the current one, so it
+# sits at rᵃ and stays there. Under EITHER peg the nominal rate is fixed, so the
+# expected real appreciation is the inflation differential and the line sits at
+# rᵃ + (πᵃ − π) — it MOVES as inflation moves, which is the book shifting the FX
+# curve for forward-looking expectations (§4.7, Figure 4.9). Without sterilisation
+# the operating point rides that line; with sterilisation the bank holds its own r
+# and the vertical distance to the line is the reserve flow it has to absorb.
+st_FX = (0.0, h.oe_fx_rate(P, oe_regime, pi_0))
+lt_FX = (0.0, h.oe_fx_rate(P, oe_regime, pi_cur))
 
 # Operating point marker.
 sY, sIA = (Ybar, PIA_BASE) if phase == "idle" else (Y_cur, pi_cur)
@@ -485,14 +550,14 @@ with tab1:
     h.add_curve_set(r_Y_fig, 'FX', x_lo, x_hi, init_FX, st_FX, lt_FX, show_initial, show_long)
 
     if phase != "idle":
-        h.add_vertical_line(r_Y_fig, Y_cur, y_max=r_cur, name=f"Y ({Y_cur:.2f})", name_position='bottom', color='#B0B0B0', dash='dot')
+        h.add_vertical_line(r_Y_fig, Y_cur, y_max=r_cur, name=f"Y ({Y_cur:.1f})", name_position='bottom', color='#B0B0B0', dash='dot')
     else:
-        h.add_vertical_line(r_Y_fig, sY, y_max=sFX, name=f"Y ({sY:.2f})", name_position='bottom', color='#B0B0B0', dash='dot')
+        h.add_vertical_line(r_Y_fig, sY, y_max=sFX, name=f"Y ({sY:.1f})", name_position='bottom', color='#B0B0B0', dash='dot')
 
     h.add_vertical_line(r_Y_fig, Ybar, name=f'Ȳ ({Ybar})', color='#555555', dash='8px,5px')
     h.show_plotly_fig(r_Y_fig, height=340, column_to_plot=diagrams, key="oe_rY")
 
-    output_gap = Y_cur - Ybar
+    output_gap = h.output_gap(Y_cur, Ybar)
 
     # ―――― π–Y diagram ――――――――――――――――
     pi_Y_fig = h.create_linear_plot(x_label="Y - Output", y_label="𝜋 - inflation")
@@ -502,14 +567,14 @@ with tab1:
     # on the left so it doesn't collide with the IA label on the right.
     h.add_line_to_plot(pi_Y_fig, 0, pi_foreign, x_lo, x_hi, dash='dash', name=f"PPP ({pi_foreign:.1f})", color="#999999", line_width=c.thin_line_width, label_position='left')
 
-    # AD comes AFTER the horizontals: under the hard peg it is a vertical shape, and
-    # a vertical is sized from whatever is already on the figure.
+    # AD comes AFTER the horizontals so its label is placed against curves that are
+    # already on the figure.
     h.add_curve_set(pi_Y_fig, 'AD', x_lo, x_hi, init_AD, st_AD, lt_AD, show_initial, show_long)
 
     if phase != "idle":
-        h.add_vertical_line(pi_Y_fig, Y_cur, y_max=pi_cur, name=f"Y ({Y_cur:.2f})", name_position='bottom', color='#B0B0B0', dash='dot')
+        h.add_vertical_line(pi_Y_fig, Y_cur, y_max=pi_cur, name=f"Y ({Y_cur:.1f})", name_position='bottom', color='#B0B0B0', dash='dot')
     else:
-        h.add_vertical_line(pi_Y_fig, sY, y_max=sIA, name=f"Y ({sY:.2f})", name_position='bottom', color='#B0B0B0', dash='dot')
+        h.add_vertical_line(pi_Y_fig, sY, y_max=sIA, name=f"Y ({sY:.1f})", name_position='bottom', color='#B0B0B0', dash='dot')
 
     h.add_vertical_line(pi_Y_fig, Ybar, name=f'Ȳ ({Ybar})', color='#555555', dash='8px,5px')
     h.show_plotly_fig(pi_Y_fig, height=360, column_to_plot=diagrams, key="oe_piY")
@@ -520,20 +585,30 @@ with tab1:
         # line under this panel already reports where inflation ends.
         _ad_slope, _ad_int = (init_AD if phase == "idle" else
                               (st_AD if show_initial else lt_AD))
-        _ad_line = (f"vertical at Y = {_ad_int:.2f}" if _ad_slope is None
-                    else f"𝜋 = {_ad_slope:.2f}·Y + {_ad_int:.2f}")
-        _fx_line = (f'<b style="color:#E45756;">FX:</b> r set by the bank = {r_cur:.2f}'
-                    if peg_steril else
-                    f'<b style="color:#E45756;">FX:</b> r = rᵃ = {r_foreign:.2f}')
+        # Written around Ȳ rather than as a raw intercept: with Y an index at 100
+        # the intercept is a three-digit number that tells the reader nothing.
+        _ad_at_Ybar = _ad_slope * Ybar + _ad_int
+        _ad_line = f"𝜋 = {_ad_at_Ybar:.2f} {_ad_slope:+.2f}·(Y − Ȳ)"
+        # FX is the parity line; under a peg it moves with inflation, and under
+        # sterilisation the bank's own r sits away from it (that gap is the reserve
+        # flow), so both numbers are worth showing.
+        _fx_level = h.oe_fx_rate(P, oe_regime, pi_cur)
+        if peg_steril:
+            _fx_line = (f'<b style="color:#E45756;">FX:</b> parity needs r = {_fx_level:.2f}; '
+                        f'bank holds r = {r_cur:.2f}')
+        elif peg_no_steril:
+            _fx_line = (f'<b style="color:#E45756;">FX:</b> r = rᵃ + (πᵃ − 𝜋) = {_fx_level:.2f}')
+        else:
+            _fx_line = f'<b style="color:#E45756;">FX:</b> r = rᵃ = {r_foreign:.2f}'
         text_to_show = c.oe_panel("Current model", regime, f"""
-            <b style="color:#4C78A8;">IS:</b> Y = {omega:.1f} − {phi:.1f}·r + {psi:.1f}·wʳ<br>
-            <b style="color:#F58518;">MP:</b> r = {MP_slope:.2f}·Y + {MP_intercept_cur:.2f}<br>
+            <b style="color:#4C78A8;">IS:</b> Y = {omega:.1f} − {phi:.2f}·r + {psi:.2f}·wʳ<br>
+            <b style="color:#F58518;">MP:</b> r = {r_init:.2f} + {lambda_p:.2f}·Ỹ + {lambda_i:.2f}·𝜋<br>
             {_fx_line}<br>
             <b style="color:#B279A2;">AD:</b> {_ad_line}<br>
             <b style="color:#54A24B;">IA:</b> 𝜋 = {pi_0:.2f}<br>
             <hr style="margin:4px 0; border:none; border-top:1px solid #ddd;">
-            <b>Output gap (Y − Ȳ):</b> {output_gap:.2f}<br>
-            <b>Real exchange rate wʳ:</b> {wr_cur:.2f}
+            <b>Output gap:</b> {output_gap:+.2f}% of potential<br>
+            <b>Real exchange rate wʳ:</b> {wr_cur:.1f}
         """, "⚙️")
 
     df_now = st.session_state.oe_iteration_df
@@ -573,13 +648,13 @@ with tab1:
             h.show_plotly_fig(fig, height=185 if show_x else 165, key=f"oe_ts_{y_col}")
 
         with cols_graphs[0]:
-            _series_chart("Output",    "Y - Output",           "Y",  Ybar,        "Ȳ")
+            _series_chart("Output",    "Y — output (Ȳ=100)", "Y",  Ybar,        "Ȳ")
             _series_chart("Inflation", "𝜋 - inflation",        "𝜋",  pi_eq,       "𝜋*", show_x=True)
 
         with cols_graphs[1]:
             # Reference is the LONG-RUN wʳ, not the pre-shock one: most shocks move
             # the real exchange rate permanently, so wʳ₀ was the wrong target line.
-            _series_chart("RealFX",    "wʳ - real exch. rate", "wʳ", WR_LONGRUN,  "wʳ*")
+            _series_chart("RealFX",    "wʳ — real exch. rate", "wʳ", WR_LONGRUN,  "wʳ*")
             # r is pegged to rᵃ in every regime except 'fixed with sterilization', where
             # the CB sets its own rate — that is what makes the two pegs differ.
             _series_chart("Rate",      "r - interest rate",    "r", peg_lr_rate, "r*", show_x=True)
@@ -602,13 +677,25 @@ with tab1:
                        f"bank must eventually let the interest rate go (→ **Fixed – no sterilization**) "
                        f"or let the currency go (→ **Flexible**).")
 
-        if peg_undamped and phase != "idle":
-            st.warning("⚠️ **This run does not settle.** With no sterilisation the interest rate is "
-                       "pinned to rᵃ and the Taylor rule is abandoned, so nothing responds to inflation "
-                       "within the period — the AD curve is vertical. The only correcting force is the "
-                       "slow drift of the real exchange rate, so output overshoots potential and swings "
-                       "back and forth instead of coming to rest. That is a property of the regime, not "
-                       "a glitch: a peg without sterilisation leaves the economy badly exposed to a shock.")
+        if peg_divergent and phase != "idle":
+            st.warning(f"⚠️ **This shock feeds on itself.** The Taylor rule is gone, so the FX market "
+                       f"sets the interest rate: the nominal rate is pegged (i = iᵃ), which leaves "
+                       f"r = rᵃ + (πᵃ − 𝜋). A slump pulls inflation below the world rate, so the real "
+                       f"rate RISES and the slump deepens; a boom does the reverse. That is why AD "
+                       f"slopes upward here and why the gap grows about {(peg_root - 1) * 100:.0f}% a "
+                       f"period. Competitiveness does pull the other way — cheaper domestic prices "
+                       f"raise wʳ — but it works through the slow drift of the price level and never "
+                       f"catches up. This is the book's *worrying policy*: a peg without sterilisation "
+                       f"leaves the economy badly exposed to a shock, and it is the same mechanism "
+                       f"that made the Eurozone diverge.")
+
+        if st.session_state.oe_peg_broke:
+            st.error("🛑 **The peg breaks.** The run stopped because output or inflation left the range "
+                     "where a linear IS curve means anything. That is not a numerical glitch — it is "
+                     "where this regime ends up: holding the rate demands an interest rate the economy "
+                     "cannot bear, so the bank either raises it anyway (France 1992) or gives up the "
+                     "peg (the UK on Black Wednesday). A smaller shock — the Medium or Advanced "
+                     "level — takes longer to get there and shows more of the path.")
 
         if level != 'Easy':
             if monetary_neutralised:
@@ -646,11 +733,17 @@ with tab1:
         # the output gap and returns inflation to πᵃ.
         _pi_next = h.oe_next_inflation(P, oe_regime, pi_cur, Y_cur, wr_cur)
         _Y_next, _, _ = h.oe_operating_point(P, oe_regime, _pi_next, wr_cur)
+        _wr_next = h.oe_wr_next(P, oe_regime, wr_cur, _pi_next, _Y_next)
         st.session_state.oe_pi_prev = _pi_next
-        st.session_state.oe_wr_prev = h.oe_wr_next(P, oe_regime, wr_cur, _pi_next, _Y_next)
+        st.session_state.oe_wr_prev = _wr_next
         st.session_state.oe_iter_counter += 1
 
-        if st.session_state.oe_iter_counter >= iteration_count:
+        # An unsterilised peg amplifies without limit, so the run has to be stopped
+        # where the model stops describing anything — see helpers.oe_out_of_range.
+        if peg_divergent and h.oe_out_of_range(P, _Y_next, _pi_next, _wr_next):
+            st.session_state.oe_peg_broke = True
+            st.session_state.oe_phase = "done"
+        elif st.session_state.oe_iter_counter >= iteration_count:
             st.session_state.oe_phase = "done"
 
         time.sleep(sim_speed)

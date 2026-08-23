@@ -279,12 +279,36 @@ def add_curve_set(plotly_fig, key, x_min, x_max, initial, short, long_=None,
                            label_offset=LABEL_NUDGE)
 
 
+# ―――― Units ―――――――――――――――――――――――――――――――――
+# Y is an INDEX with potential Ȳ = 100, so one unit of Y is one per cent of
+# potential output. r, π and the output gap are all in PERCENTAGE POINTS, and the
+# real exchange rate is an index at 100 too.
+#
+# This is what makes the coefficients readable: φ = 1 means "a 1 pp rise in the
+# real interest rate costs 1 % of potential output", λ_P = 0.5 is the textbook
+# Taylor weight on a gap measured in per cent, γ = 0.4 is the Phillips slope in
+# points of inflation per point of gap, and ψ = 0.25 means "a 1 % real
+# depreciation adds 0.25 % to output".
+#
+# The gap therefore has to be scaled: Ỹ = 100·(Y − Ȳ)/Ȳ, NOT (Y − Ȳ)/Ȳ. Anywhere
+# a slope is taken with respect to Y, that same factor of 100/Ȳ appears.
+
+def output_gap(Y, Ybar):
+    """Output gap in percentage points of potential."""
+    return 100.0 * (Y - Ybar) / Ybar
+
+
+def gap_per_Y(Ybar):
+    """d(Ỹ)/dY — turns a coefficient on the gap into a slope in Y."""
+    return 100.0 / Ybar
+
+
 # ―――― Open-economy model ―――――――――――――――――――――――――――――――――――――――――――――――――――
 # Five equations, nothing calibrated and no free coefficients:
 #
 #   IS   Y = ω − φ·r + ψ·wʳ
 #   MP   r = r' + λ_P·Ỹ + λ_I·π
-#   FX   r = rᵃ                                  (static exchange-rate expectations)
+#   FX   1+r = (1+rᵃ)·wʳ,ᵉ₊₁/wʳ                  (eq. 3.9, real interest parity)
 #   IA   π = π₋₁ + γ·Ỹ₋₁ + χ·(wʳ − wʳ₋₁)
 #   PPP  wʳ = wʳ₋₁·(1+πᵃ)/(1+π)                  (nominal exchange rate pegged)
 #
@@ -300,10 +324,14 @@ def add_curve_set(plotly_fig, key, x_min, x_max, initial, short, long_=None,
 #   • Float          — the Taylor rule works, so π converges geometrically.
 #   • Sterilised peg — the bank keeps its rule, so output returns to potential
 #                      quickly while prices grind back over a much longer span.
-#   • Hard peg       — r is pinned to rᵃ and the Taylor rule is abandoned, so
-#                      nothing damps the cycle. Output overshoots and the run does
-#                      not settle. That is a property of the regime, not a defect
-#                      in the code: with a vertical AD there is no stabiliser left.
+#   • Hard peg       — the Taylor rule is abandoned and the FX MARKET sets r. The
+#                      nominal rate is pegged, so the expected real appreciation
+#                      IS the inflation differential and eq. 3.9 collapses to
+#                      r = rᵃ + (πᵃ − π) — identically i = iᵃ with r = i − π, which
+#                      is how the book writes it for a currency union (§5.4). The
+#                      real rate therefore moves AGAINST inflation: a slump that
+#                      lowers π RAISES r and deepens the slump. AD slopes UPWARD
+#                      and the rest point is unstable — see oe_peg_root.
 
 OE_FLOAT, OE_PEG, OE_PEG_STER = 'float', 'hard', 'ster'
 
@@ -330,6 +358,66 @@ def oe_baseline_wr(p):
     return (p.Ybar - p.omega + p.phi * p.r_foreign) / p.psi
 
 
+def oe_fx_rate(p, regime, pi):
+    """The FX-curve level: the real interest rate the FX market imposes, eq. 3.9
+    1+r = (1+rᵃ)·wʳ,ᵉ₊₁/wʳ.
+
+    Float — the book's baseline assumption is wʳ,ᵉ₊₁ = wʳ (§4.7), so r = rᵃ.
+    Peg — the NOMINAL rate is fixed, so wʳ = w·pᵃ/p is expected to move with the
+    inflation differential alone: wʳ,ᵉ₊₁/wʳ = (1+πᵃ)/(1+π), which to first order
+    gives r = rᵃ + (πᵃ − π). The book states exactly this twice: "with a fixed
+    exchange rate, nominal interest rates must be equal (i = iᵃ). The fall in
+    domestic prices then implies a higher real interest rate than abroad" (§5.2),
+    and "r = i − π^ES < r₀ … r = i − π^DE > r₀" for a currency union (§5.4).
+
+    Under a peg this is the position of the FX CURVE in the r–Y diagram, whether or
+    not the bank sterilises. With sterilisation the bank holds its own r and the
+    distance to this line is the reserve flow it has to absorb; without it, the
+    line IS the operating point."""
+    if regime == OE_FLOAT:
+        return p.r_foreign
+    return p.r_foreign + (p.pi_foreign - pi)
+
+
+def oe_peg_root(p):
+    """Dominant eigenvalue of the unsterilised peg, as a growth factor per period.
+
+    State (wʳ, π) with r = rᵃ + (πᵃ − π), the gap in points (Ỹ = 100·(Y−Ȳ)/Ȳ):
+        wʳₜ  = wʳₜ₋₁ − (wʳ*/100)·(πₜ − πᵃ)      exact PPP, linearised
+        πₜ₊₁ = πₜ + γ·(100/Ȳ)·(φ·(πₜ − πᵃ) + ψ·(wʳₜ − wʳ*))
+    The determinant of that matrix is 1 + γφ·100/Ȳ. It exceeds 1 for ANY φ > 0, so the
+    rest point is unstable no matter how the other parameters are set: the trade
+    channel (ψ) changes how fast the shock is amplified, never whether it is. That
+    is the book's own conclusion — "instead of a convergence of living conditions,
+    the analysis shows the opposite, i.e. a divergence" (§5.4). With r pinned at rᵃ
+    instead, the determinant would be exactly 1 — the knife-edge case that swings
+    forever and settles never."""
+    g = gap_per_Y(p.Ybar)
+    a = oe_baseline_wr(p) / 100.0
+    b = p.gamma * p.psi * g
+    c = p.gamma * p.phi * g
+    tr, det = 2.0 + c - a * b, 1.0 + c
+    disc = tr * tr - 4.0 * det
+    if disc < 0:
+        return det ** 0.5                      # complex pair, modulus √det
+    return (abs(tr) + disc ** 0.5) / 2.0
+
+
+def oe_out_of_range(p, Y, pi, wr):
+    """Has the run left the range in which the model says anything?
+
+    Not a model equation and not a damping device: a display guard. The
+    unsterilised peg amplifies without limit, and once output is 8 % away from
+    potential (deeper than any post-war recession), inflation is 10 points away from
+    the world rate, or the real exchange rate has moved by more than a third, the
+    linear IS curve is describing nothing real. In the book that is where the peg goes: the UK gave up
+    on Black Wednesday rather than raise the interest rate the parity condition was
+    demanding (§4.6)."""
+    return (abs(output_gap(Y, p.Ybar)) > 8.0
+            or abs(pi - p.pi_foreign) > 10.0
+            or abs(wr / oe_baseline_wr(p) - 1.0) > 0.35)
+
+
 def oe_operating_point(p, regime, pi, wr_state):
     """(Y, r, wʳ) for the current period, given predetermined inflation π and the
     carried-over real exchange rate.
@@ -338,23 +426,27 @@ def oe_operating_point(p, regime, pi, wr_state):
     MP ∩ FX. wʳ then jumps to whatever makes IS pass through that point.
     Sterilised peg — the bank offsets the reserve flows and keeps its own rule, so
     output comes from IS ∩ MP at the pegged wʳ.
-    Hard peg — reserve flows drag r to rᵃ and the Taylor rule is abandoned, so
-    output is read straight off IS at the pegged wʳ."""
+    Hard peg — reserve flows are left to run, the Taylor rule is abandoned and the
+    FX market sets r, so output comes from IS ∩ FX at the pegged wʳ. FX is eq. 3.9
+    at a fixed nominal rate, r = rᵃ + (πᵃ − π), so r is NOT rᵃ whenever domestic
+    inflation differs from foreign: below πᵃ the currency is appreciating in real
+    terms, investors have to be paid for that, and the real rate rises."""
     if regime == OE_FLOAT:
-        # rᵃ = r' + λ_P·(Y−Ȳ)/Ȳ + λ_I·π  solved for Y
-        Y = p.Ybar + p.Ybar * (p.r_foreign - p.r_init - p.lambda_i * pi) / p.lambda_p
+        # rᵃ = r' + λ_P·Ỹ + λ_I·π  solved for the gap, then for Y
+        gap = (p.r_foreign - p.r_init - p.lambda_i * pi) / p.lambda_p
+        Y = p.Ybar * (1.0 + gap / 100.0)
         return Y, p.r_foreign, (Y - p.omega + p.phi * p.r_foreign) / p.psi
 
     wr = wr_state
     if regime == OE_PEG_STER:
-        D = 1.0 + p.phi * p.lambda_p / p.Ybar
-        Y = (p.omega - p.phi * p.r_init + p.phi * p.lambda_p
+        D = 1.0 + p.phi * p.lambda_p * gap_per_Y(p.Ybar)
+        Y = (p.omega - p.phi * p.r_init + p.phi * p.lambda_p * 100.0
              - p.phi * p.lambda_i * pi + p.psi * wr) / D
-        r = p.r_init + p.lambda_p * (Y - p.Ybar) / p.Ybar + p.lambda_i * pi
+        r = p.r_init + p.lambda_p * output_gap(Y, p.Ybar) + p.lambda_i * pi
         return Y, r, wr
 
-    Y = p.omega - p.phi * p.r_foreign + p.psi * wr
-    return Y, p.r_foreign, wr
+    r = oe_fx_rate(p, regime, pi)
+    return p.omega - p.phi * r + p.psi * wr, r, wr
 
 
 def oe_wr_next(p, regime, wr, pi_next, Y_next=None):
@@ -370,14 +462,14 @@ def oe_next_inflation(p, regime, pi, Y, wr):
     With χ = 0 (the default) this is the plain output-gap rule. With χ > 0 the
     imported-inflation channel is live; wʳ₊₁ is contemporaneous with π₊₁, so the
     two have to be solved together rather than in sequence."""
-    base = pi + p.gamma * (Y - p.Ybar) / p.Ybar
+    base = pi + p.gamma * output_gap(Y, p.Ybar)
     if p.chi == 0.0:
         return base
 
     if regime == OE_FLOAT:
         # wʳ₊₁ is linear in π₊₁: Y(π) off the float's AD, then IS solved for wʳ.
-        b = -p.Ybar * p.lambda_i / (p.lambda_p * p.psi)
-        W0 = (p.Ybar + p.Ybar * (p.r_foreign - p.r_init) / p.lambda_p
+        b = -(p.Ybar / 100.0) * p.lambda_i / (p.lambda_p * p.psi)
+        W0 = (p.Ybar * (1.0 + (p.r_foreign - p.r_init) / (100.0 * p.lambda_p))
               - p.omega + p.phi * p.r_foreign) / p.psi
         return (base + p.chi * (W0 - wr)) / (1.0 - p.chi * b)
 
@@ -402,19 +494,26 @@ def oe_ad_curve(p, regime, wr_state):
     crowded out.
     Sterilised peg — AD is IS ∩ MP at the pegged wʳ, steeper than the float's, and
     it shifts as wʳ drifts. ω is present, so fiscal policy works.
-    Hard peg — r cannot respond and wʳ is fixed within the period, so demand does
-    not depend on current inflation at all: AD is vertical. Every bit of the
-    adjustment has to come through accumulated price differences, which is what
-    makes this regime both slow and badly exposed to a shock."""
+    Hard peg — AD is IS ∩ FX at the pegged wʳ. Interest parity ties r to πᵃ − π,
+    so higher inflation means a LOWER real rate and MORE demand: the curve slopes
+    UPWARD, with slope 1/φ, the mirror image of the float's −λ_P/λ_I. An
+    upward-sloping AD against a horizontal IA is what an unstable equilibrium looks
+    like in this diagram — the operating point runs away from Ȳ instead of towards
+    it. It is not the Taylor-rule AD the book draws as AD₁ in Figure 5.3: that one
+    is the sterilised peg's curve, and the whole point of Figure 5.3 is that Pₒ sits
+    off it, "because the central bank has left its MP-curve" (§5.2)."""
+    g = gap_per_Y(p.Ybar)
     if regime == OE_FLOAT:
-        return (-p.lambda_p / (p.lambda_i * p.Ybar),
-                (p.r_foreign - p.r_init + p.lambda_p) / p.lambda_i)
+        return (-p.lambda_p * g / p.lambda_i,
+                (p.r_foreign - p.r_init + p.lambda_p * 100.0) / p.lambda_i)
     if regime == OE_PEG_STER:
-        D = 1.0 + p.phi * p.lambda_p / p.Ybar
+        D = 1.0 + p.phi * p.lambda_p * g
         return (-D / (p.phi * p.lambda_i),
-                (p.omega - p.phi * p.r_init + p.phi * p.lambda_p
+                (p.omega - p.phi * p.r_init + p.phi * p.lambda_p * 100.0
                  + p.psi * wr_state) / (p.phi * p.lambda_i))
-    return (None, p.omega - p.phi * p.r_foreign + p.psi * wr_state)
+    # Y = ω − φ·(rᵃ + πᵃ − π) + ψ·wʳ, solved for π.
+    return (1.0 / p.phi,
+            (p.r_foreign + p.pi_foreign) - (p.omega + p.psi * wr_state) / p.phi)
 
 
 def oe_is_intercept(p, wr):
@@ -427,7 +526,11 @@ def oe_longrun(p, regime):
 
     Under EITHER peg the nominal rate is fixed, so wʳ is at rest only when
     π = πᵃ — a pegged economy cannot hold an inflation rate of its own. Under a
-    float the Taylor rule sets π* instead, and ω is absent from it."""
+    float the Taylor rule sets π* instead, and ω is absent from it.
+
+    For the unsterilised peg this is where the economy WOULD come to rest, not
+    where it goes: the rest point is unstable (oe_peg_root > 1), so a shock moves
+    the economy away from it."""
     if regime == OE_FLOAT:
         pi_star = (p.r_foreign - p.r_init) / p.lambda_i
         r_star = p.r_foreign
@@ -478,7 +581,7 @@ def settings_controls(key_prefix="", stacked=False):
     return changed
 
 
-def settings_popover(label="⚙️", key_prefix="", ratio=(6, 1)):
+def settings_popover(label="⚙️", key_prefix="", ratio=(4, 1)):
     """Right-aligned Settings popover, meant to sit on its own row ABOVE a tab bar.
 
     Deliberately NOT wrapped around the tabs. Putting the tabs inside a column —
