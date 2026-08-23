@@ -6,6 +6,13 @@ markdown_text = r"""
 
 This model represents a closed economy through four curves that jointly determine output $Y$ and inflation $\pi$ in each period. The economy begins in long-run equilibrium, is disturbed by a shock in period 1, and then returns to equilibrium over the following periods.
 
+**Units.** Output is an **index with potential $\bar{Y} = 100$**, so one unit of $Y$ is one
+per cent of potential output and the gap $\tilde{Y} = 100\,(Y-\bar{Y})/\bar{Y}$ is in
+percentage points — the same units as $r$ and $\pi$. Every coefficient can then be read
+directly: $\varphi = 1$ means *a 1 pp rise in the real rate costs 1 % of potential output*,
+and $\gamma = 0.4$ means *a 1 % output gap moves next period's inflation by 0.4 pp*. The
+economy starts at $Y = 100$, $\pi = 2\%$, $r = 2\%$.
+
 ---
 
 ### Curve Definitions
@@ -17,25 +24,25 @@ $$
 Y = \omega - \phi \, r \qquad \phi > 0
 $$
 
-| Parameter | Meaning |
-|-----------|---------|
-| $\omega$ | Autonomous demand (shifts IS right or left) |
-| $\phi$ | Sensitivity of output to the interest rate |
+| Parameter | Meaning | Default |
+|-----------|---------|---------|
+| $\omega$ | Autonomous demand (shifts IS right or left); one unit = 1 % of potential output | 102 |
+| $\phi$ | Output cost of a 1 pp rise in the real rate, in % of potential | 1.0 |
 
 ---
 
 **MP curve** — *Monetary Policy*
 
-The central bank sets the real interest rate in response to the output gap $\tilde{Y} = \frac{Y - \bar{Y}}{\bar{Y}}$ and to inflation $\pi$. Higher output or higher inflation leads to a higher rate.
+The central bank sets the real interest rate in response to the output gap $\tilde{Y} = 100\,\frac{Y - \bar{Y}}{\bar{Y}}$ (in percentage points) and to inflation $\pi$. Higher output or higher inflation leads to a higher rate.
 $$
 r = r' + \lambda_P \tilde{Y} + \lambda_I \pi \qquad r' > 0,\ \lambda_P \ge 0,\ \lambda_I \ge 0
 $$
 
-| Parameter | Meaning |
-|-----------|---------|
-| $r'$ | Baseline (neutral) real interest rate |
-| $\lambda_P$ | Response to the output gap |
-| $\lambda_I$ | Response to inflation |
+| Parameter | Meaning | Default |
+|-----------|---------|---------|
+| $r'$ | Intercept of the rule — *not* the rate itself; with the defaults it leaves $r = 2\%$ | 0.5 |
+| $\lambda_P$ | Response to the output gap, in pp of real rate per point of gap | 0.5 |
+| $\lambda_I$ | Response to inflation — the **real** rate response, so the nominal one is $1+\lambda_I = 1.75$ | 0.75 |
 
 ---
 
@@ -48,7 +55,7 @@ $$
 
 Beyond the short run the IA curve shifts in each period according to the output gap and to any persistent exogenous price shock. When output exceeds potential, firms raise prices and inflation rises; when output falls short of potential, inflation declines:
 $$
-\boxed{\pi_{t+1} = \pi_t + \gamma \cdot \tilde{Y}_t + \eta = \pi_t + \gamma \cdot \frac{Y_t - \bar{Y}}{\bar{Y}} + \eta}
+\boxed{\pi_{t+1} = \pi_t + \gamma \cdot \tilde{Y}_t + \eta = \pi_t + \gamma \cdot 100\,\frac{Y_t - \bar{Y}}{\bar{Y}} + \eta}
 $$
 
 | Parameter | Meaning |
@@ -64,13 +71,13 @@ The IA curve shifts **upward** when $Y_t > \bar{Y}$ or $\eta > 0$, and **downwar
 The IA equation is evaluated at the *previous* period's output gap, so by the time the diagram is drawn the inflation rate for the period is already determined and IA appears as a **horizontal line**. The Phillips curve states the same relationship as a condition: if current output were $Y$, what would inflation be in the next period?
 
 $$
-\pi_{t+1} = \pi_t + \gamma \cdot \frac{Y - \bar{Y}}{\bar{Y}}
+\pi_{t+1} = \pi_t + \gamma \cdot 100\,\frac{Y - \bar{Y}}{\bar{Y}}
 $$
 
 Rearranged as a function of $Y$:
 
 $$
-\pi_{t+1} = \underbrace{\frac{\gamma}{\bar{Y}}}_{\text{slope}} \cdot Y + \underbrace{(\pi_t - \gamma)}_{\text{intercept}}
+\pi_{t+1} = \underbrace{\frac{100\,\gamma}{\bar{Y}}}_{\text{slope}} \cdot Y + \underbrace{(\pi_t - 100\,\gamma)}_{\text{intercept}}
 $$
 
 This is an **upward-sloping line** in $\pi$–$Y$ space, anchored at $(\bar{Y},\, \pi_t)$: when output equals potential there is no gap, and inflation is unchanged. The IA curve is the Phillips curve evaluated at last period's $Y$ and then held fixed, so the horizontal line marks the value the Phillips curve produced one period earlier.
@@ -96,17 +103,17 @@ $$
 
 **MP** (expanded in $Y$):
 $$
-r = r' + \lambda_P \frac{Y - \bar{Y}}{\bar{Y}} + \lambda_I \pi
+r = r' + \lambda_P \cdot 100\,\frac{Y - \bar{Y}}{\bar{Y}} + \lambda_I \pi
 = \underbrace{\left(r' - \lambda_P + \lambda_I \pi\right)}_{\text{intercept}}
-+ \underbrace{\left(\frac{\lambda_P}{\bar{Y}}\right)}_{\text{slope}} \cdot Y
++ \underbrace{\left(\frac{100\,\lambda_P}{\bar{Y}}\right)}_{\text{slope}} \cdot Y
 $$
 
 **AD** (set $r_{IS} = r_{MP}$ and solve for $\pi$):
 $$
-\frac{\omega}{\phi} - \frac{1}{\phi} Y = r' - \lambda_P + \lambda_I \pi + \frac{\lambda_P}{\bar{Y}} Y \\[6pt]
-\lambda_I \pi = \frac{\omega}{\phi} - \frac{1}{\phi} Y - r' + \lambda_P - \frac{\lambda_P}{\bar{Y}} Y \\[6pt]
-\pi = \underbrace{\left(\frac{\omega}{\phi\lambda_I} + \frac{\lambda_P}{\lambda_I} - \frac{r'}{\lambda_I}\right)}_{\text{intercept}}
-+ \underbrace{\left(- \frac{1}{\phi\lambda_I} - \frac{\lambda_P}{\lambda_I\bar{Y}}\right)}_{\text{slope}} \cdot Y
+\frac{\omega}{\phi} - \frac{1}{\phi} Y = r' - 100\lambda_P + \lambda_I \pi + \frac{100\lambda_P}{\bar{Y}} Y \\[6pt]
+\lambda_I \pi = \frac{\omega}{\phi} - \frac{1}{\phi} Y - r' + 100\lambda_P - \frac{100\lambda_P}{\bar{Y}} Y \\[6pt]
+\pi = \underbrace{\left(\frac{\omega}{\phi\lambda_I} + \frac{100\lambda_P}{\lambda_I} - \frac{r'}{\lambda_I}\right)}_{\text{intercept}}
++ \underbrace{\left(- \frac{1}{\phi\lambda_I} - \frac{100\lambda_P}{\lambda_I\bar{Y}}\right)}_{\text{slope}} \cdot Y
 $$
 
 ---
@@ -115,8 +122,8 @@ $$
 
 The economy returns to equilibrium when $\pi_{t+1} = \pi_t$, which requires $Y_t = \bar{Y}$. Long-run inflation $\pi^*$ is therefore the value at which the AD curve crosses the potential output line $Y = \bar{Y}$:
 $$
-\pi^* = \frac{\omega}{\phi\lambda_I} + \frac{\lambda_P}{\lambda_I} - \frac{r'}{\lambda_I}
-+ \left(- \frac{1}{\phi\lambda_I} - \frac{\lambda_P}{\lambda_I\bar{Y}}\right)\bar{Y}
+\pi^* = \frac{\omega}{\phi\lambda_I} + \frac{100\lambda_P}{\lambda_I} - \frac{r'}{\lambda_I}
++ \left(- \frac{1}{\phi\lambda_I} - \frac{100\lambda_P}{\lambda_I\bar{Y}}\right)\bar{Y}
 $$
 """
 
@@ -129,7 +136,11 @@ standard_line_width = 3
 thin_line_width = 2
 
 
-Y_potential = 1
+# Output is an INDEX: potential = 100, so one unit of Y is one per cent of
+# potential and the output gap Ỹ = 100·(Y−Ȳ)/Ȳ is in percentage points. Every
+# coefficient in both models is calibrated against that reading — see
+# EQUATIONS_CLOSED_ECONOMY.md / EQUATIONS_OPEN_ECONOMY.md.
+Y_potential = 100
 speed = 0.1
 
 iteration_count = 40
@@ -357,9 +368,11 @@ OE_STORY = {
         "cancels fiscal policy out.",
     ('fiscal', 'hard'):
         "The exchange rate cannot move, so the whole impulse lands on output: it {rises_falls} {above_below} "
-        "potential, the strongest fiscal effect of the three regimes. Domestic prices then {outrun_lag} "
-        "foreign ones, competitiveness slowly {worsens_improves} (wʳ {down_up}), and output drifts back "
-        "to potential.",
+        "potential, the strongest fiscal effect of the three regimes. From there it feeds on itself. "
+        "Domestic prices {outrun_lag} foreign ones, and since the peg ties the nominal interest rate to the "
+        "world one, the real rate is r = rᵃ + (πᵃ − 𝜋): it moves {down_up}, the wrong way, and pushes demand "
+        "further {above_below} potential. Competitiveness {worsens_improves} (wʳ {down_up}) and does pull "
+        "back, but only through the slow drift of the price level, so it never catches up.",
     ('fiscal', 'ster'):
         "The exchange rate still cannot move, so output {rises_falls} — but the bank moves its own interest "
         "rate against the shock, so the effect is smaller than without sterilization. Trade then closes the "
@@ -387,8 +400,10 @@ OE_STORY = {
     ('foreign', 'hard'):
         "With the exchange rate fixed nothing softens the blow: the {higher_lower} world rate is imported "
         "directly, borrowing becomes {dearer_cheaper} and output {falls_rises} {below_above} potential — "
-        "the opposite sign to a flexible rate. Domestic prices then {lag_outrun} foreign ones, "
-        "competitiveness {improves_worsens} (wʳ {up_down}), and output returns to potential.",
+        "the opposite sign to a flexible rate. It then gets worse rather than better: domestic prices "
+        "{lag_outrun} foreign ones, so the real rate r = rᵃ + (πᵃ − 𝜋) moves {up_down} again and pushes "
+        "output further {below_above} potential. Competitiveness {improves_worsens} (wʳ {up_down}) is the "
+        "only force pulling back, and it works far too slowly to.",
     ('foreign', 'ster'):
         "The bank offsets the currency flows, so the foreign rate never reaches the economy — <b>output "
         "and inflation do not move at all</b>.",
@@ -398,10 +413,12 @@ OE_STORY = {
         "rate, that leaves output {below_above} potential, and the currency {strengthens_weakens} "
         "(wʳ {down_up}) at the same time. The output gap then pulls inflation back to the world rate.",
     ('imported', 'hard'):
-        "Inflation starts {above_below} the world rate, which leaves output {below_above} potential. "
-        "Domestic prices are now {price_gap} foreign ones, so the currency becomes "
-        "{stronger_weaker} in real terms (wʳ {down_up}) and the output gap slowly brings inflation back "
-        "to the world rate.",
+        "Inflation starts {above_below} the world rate. The peg ties the nominal interest rate to the "
+        "world one, so the real rate r = rᵃ + (πᵃ − 𝜋) moves {down_up} and output lands {above_below} "
+        "potential — the opposite way round from the other two regimes. The gap then pushes inflation "
+        "further {up_down}, which moves the real rate {down_up} again, and the two feed each other. "
+        "Domestic prices are {price_gap} foreign ones, so the currency becomes {stronger_weaker} in real "
+        "terms (wʳ {down_up}): the one force pulling back, and much too slow to.",
     ('imported', 'ster'):
         "Inflation starts {above_below} the world rate, and the bank's own interest-rate response leaves "
         "output {below_above} potential. The output gap then brings inflation back to the world rate, "
@@ -416,7 +433,9 @@ OE_STORY = {
 OE_MEDIUM_NOTE = {
     ('demand', 'float'): "The exchange rate cancels a change in demand out completely — nothing on "
                          "the charts moves except wʳ.",
-    ('demand', 'hard'): "With the exchange rate held fixed, a change in demand has its full effect on output.",
+    ('demand', 'hard'): "With the exchange rate held fixed, a change in demand has its full effect on "
+                        "output — and the interest rate then moves the wrong way, so the gap widens "
+                        "instead of closing.",
     ('demand', 'ster'): "A change in demand moves output, damped by the bank's own interest-rate response.",
     ('monetary', 'float'): "An interest-rate change moves output now, and inflation permanently.",
     ('monetary', 'ster'): "The bank keeps its own interest rate, so it still moves output — by less than "
@@ -424,7 +443,9 @@ OE_MEDIUM_NOTE = {
     ('foreign', 'float'): "A change in the world rate reaches the economy through the currency, and "
                           "output moves with it.",
     ('foreign', 'hard'): "The world rate is imported directly, so output moves the opposite way to a "
-                         "flexible rate.",
+                         "flexible rate — and the gap then widens on its own.",
+    ('imported', 'hard'): "With the nominal rate tied to the world, faster inflation means a LOWER real "
+                          "rate, so the price shock pushes output the opposite way to the other regimes.",
     ('imported', 'float'): "The jump in import prices lands on inflation first; output then moves to bring "
                            "it back.",
 }
@@ -444,9 +465,11 @@ OE_CHART = {
         "{strengthens_weakens} in the same period and pushes it straight back, so the diagram only "
         "ever shows the net position. Y, π and r stay exactly where they were.",
     ('fiscal', 'hard'):
-        "IS shifts {right_left} and Y jumps in period 1. r stays pinned to the red FX line "
-        "throughout. wʳ does not move on impact — it slides {down_up} only once inflation is away "
-        "from the world rate, and that is what walks Y back to potential.",
+        "IS shifts {right_left} and Y jumps in period 1, with r still on the red FX line — inflation "
+        "has not moved yet. From period 2 the FX <b>line itself</b> slides {down_up} as inflation leaves "
+        "the world rate, r rides it down, and Y gets further from Ȳ every period until the run stops. "
+        "wʳ drifts {down_up} by roughly the inflation gap each period, which is all the "
+        "pull-back there is.",
     ('fiscal', 'ster'):
         "IS shifts {right_left} and Y jumps, by less than without sterilization. r leaves the red "
         "FX line — the only regime where it does. wʳ is flat on impact and drifts {down_up} later.",
@@ -468,7 +491,8 @@ OE_CHART = {
     ('foreign', 'hard'):
         "the red FX line shifts {up_down} and r follows it, but <b>IS does not move</b> — the point "
         "just slides along it to the {left_right}, which is why Y goes the opposite way to a "
-        "flexible rate. wʳ then drifts {up_down} and brings Y back.",
+        "flexible rate. The FX line then keeps moving the same way as inflation drifts, so the point "
+        "keeps sliding and Y does not come back. wʳ inches {up_down} against it.",
     ('foreign', 'ster'):
         "<b>only the red FX line moves.</b> Y, π and wʳ stay flat and r stays where the bank put it. "
         "The gap you can see between r and the FX line is the flow the bank is absorbing.",
@@ -478,9 +502,10 @@ OE_CHART = {
         "{below_above} potential. wʳ jumps {down_up} with it and r stays flat at rᵃ; both then work "
         "their way back.",
     ('imported', 'hard'):
-        "the IA line jumps {up_down} and output lands {below_above} potential, with IS pulled "
-        "{left_right} by the {stronger_weaker} currency. r stays pinned to the red FX line, and "
-        "everything drifts back as inflation returns to the world rate.",
+        "the IA line jumps {up_down} and the red FX line jumps {down_up} with it — that is the peg "
+        "leaving r at rᵃ + (πᵃ − 𝜋) — so output lands {above_below} potential. Both lines then keep "
+        "going the same way period after period, with IS pulled {left_right} a little by the "
+        "{stronger_weaker} currency.",
     ('imported', 'ster'):
         "the IA line jumps {up_down} and output lands {below_above} potential, but <b>IS does not "
         "move and wʳ is flat on impact</b> — with the flows sterilized the exchange rate only drifts "
@@ -550,6 +575,12 @@ A closed economy trades with no one. Opening it adds two channels: **goods** can
 abroad and bought from abroad, and **money** can cross the border in search of a better
 interest rate. Almost everything below follows from those two.
 
+**Units.** Output is an **index with potential $\bar{Y} = 100$**, so one unit of $Y$ is one
+per cent of potential and the gap $\tilde{Y} = 100\,(Y-\bar{Y})/\bar{Y}$ is in percentage
+points, like $r$ and $\pi$. The real exchange rate is an index too, $w^r = 100$ at the
+start, so $w^r = 106$ means the currency is 6 % weaker in real terms. The economy starts at
+$Y = 100$, $\pi = \pi^a = 2\%$, $r = r^a = 2\%$.
+
 ---
 
 ### The real exchange rate
@@ -557,7 +588,7 @@ interest rate. Almost everything below follows from those two.
 The new variable is the real exchange rate $w^r$ — how expensive foreign goods are
 compared with domestic ones.
 
-| If $w^r$ **rises** | If $w^r$ **falls** |
+| If $w^r$ **rises** (say 100 → 106) | If $w^r$ **falls** (say 100 → 94) |
 |---|---|
 | the currency is **weaker** (depreciation) | the currency is **stronger** (appreciation) |
 | domestic goods look cheap abroad → exports rise | domestic goods look dear abroad → exports fall |
@@ -580,11 +611,11 @@ $$
 Y = \omega - \varphi \, r + \psi \, w^r \qquad \varphi, \psi > 0
 $$
 
-| Parameter | Meaning |
-|-----------|---------|
-| $\omega$ | Autonomous demand — **government spending enters here**, so this is the fiscal instrument |
-| $\varphi$ | How strongly a high interest rate holds investment back |
-| $\psi$ | How strongly a weak currency lifts net exports |
+| Parameter | Meaning | Default |
+|-----------|---------|---------|
+| $\omega$ | Autonomous demand — **government spending enters here**, so this is the fiscal instrument. One unit = 1 % of potential output | 77 |
+| $\varphi$ | Output cost of a 1 pp rise in the real rate, in % of potential | 1.0 |
+| $\psi$ | Output gain from a 1 % real depreciation — the net-export channel | 0.25 |
 
 The $\psi w^r$ term is the only addition to the closed-economy IS curve, and it accounts
 for most of the difference in behaviour.
@@ -596,28 +627,44 @@ for most of the difference in behaviour.
 The bank raises the rate when the economy runs hot or inflation climbs.
 
 $$
-r = r' + \lambda_P \tilde{Y} + \lambda_I \pi \qquad \tilde{Y} = \frac{Y - \bar{Y}}{\bar{Y}}
+r = r' + \lambda_P \tilde{Y} + \lambda_I \pi \qquad \tilde{Y} = 100\,\frac{Y - \bar{Y}}{\bar{Y}}
 $$
 
-| Parameter | Meaning |
-|-----------|---------|
-| $r'$ | The bank's stance — a **lower** $r'$ is looser policy |
-| $\lambda_P$ | Weight on the output gap |
-| $\lambda_I$ | Weight on inflation |
+| Parameter | Meaning | Default |
+|-----------|---------|---------|
+| $r'$ | The bank's stance — a **lower** $r'$ is looser policy. The intercept of the rule, not the rate: with the defaults it leaves $r = 2\%$ | 0.5 |
+| $\lambda_P$ | Weight on the output gap, in pp of real rate per point of gap | 0.5 |
+| $\lambda_I$ | Weight on inflation — the **real** rate response, so the nominal one is 1.75 | 0.75 |
 
 ---
 
 **FX curve** — *capital mobility*
 
 Money chases the highest return, so the domestic rate is pulled towards the world rate.
+What counts is the return in one currency, so an expected move in the exchange rate is
+part of it:
 
 $$
-r = r^a
+1 + r = (1 + r^a)\,\frac{w^{r,e}_{+1}}{w^r}
 $$
 
-If the domestic rate stood above $r^a$, foreign money would flow in until the difference
-disappeared. Whether this constraint actually binds is exactly what the exchange-rate
-regime decides.
+If nobody expects the real exchange rate to move, this is just $r = r^a$ — the flexible
+case, and the one the book uses through chapter 4.
+
+Under a **peg** it is not. The nominal rate is held, so $w^r = w\,p^a/p$ is expected to
+move with the inflation difference alone, and the parity condition becomes
+
+$$
+r = r^a + (\pi^a - \pi)
+$$
+
+which is the same statement as $i = i^a$ with $r = i - \pi$: pegging fixes the *nominal*
+rate to the world's, so the *real* rate is whatever domestic inflation leaves. Below
+$\pi^a$, prices are falling relative to abroad, the foreign currency is appreciating in
+real terms, investors have to be paid for that, and the real rate is **higher** than the
+world's — in a slump, exactly when it should be lower.
+
+Whether this constraint actually binds is exactly what the exchange-rate regime decides.
 
 ---
 
@@ -630,11 +677,11 @@ $$
 \pi_{t+1} = \pi_t + \gamma \tilde{Y}_t + \chi\,(w^r_{t+1} - w^r_t) + \eta
 $$
 
-| Parameter | Meaning |
-|-----------|---------|
-| $\gamma$ | Speed of adjustment — a higher $\gamma$ converges faster |
-| $\chi$ | How much a move in the exchange rate feeds into prices directly (imports get dearer). 0 by default |
-| $\eta$ | A price shock applied in every period |
+| Parameter | Meaning | Default |
+|-----------|---------|---------|
+| $\gamma$ | Phillips slope: pp of inflation per point of output gap | 0.4 |
+| $\chi$ | How much a move in the exchange rate feeds into prices directly (imports get dearer). $\chi = 0.05$ means a 10 % depreciation adds half a point to inflation | 0 |
+| $\eta$ | A price shock applied in every period | 0 |
 
 Two consequences run through everything. Inflation **cannot jump** in the period a shock
 arrives, since wages and contracts are already agreed — so output moves first and
@@ -645,8 +692,19 @@ inflation follows. And inflation stops moving only once output is back at potent
 **AD curve** — *aggregate demand*
 
 Not a separate assumption: it is IS, MP and FX solved together and drawn in $\pi$–$Y$
-space. It slopes down, and *which* curves go into it depends on the regime — which is why
-it is steeper under a fixed exchange rate than under a flexible one.
+space. *Which* curves go into it depends on the regime, and so does its slope:
+
+| Regime | AD is | Slope |
+|---|---|---|
+| Flexible | MP ∩ FX | down, $-\lambda_P/\lambda_I$ |
+| Fixed – with sterilization | IS ∩ MP | down, steeper |
+| Fixed – no sterilization | IS ∩ FX | **up**, $1/\varphi$ |
+
+The third row is the odd one, and it is the whole character of that regime. With the
+Taylor rule gone, higher inflation no longer brings a higher real rate — under a peg it
+brings a **lower** one, so demand rises with inflation. An AD that slopes up against a
+horizontal IA is a picture of an unstable equilibrium: the economy runs away from
+$\bar{Y}$ rather than towards it.
 
 ---
 
@@ -654,12 +712,19 @@ it is steeper under a fixed exchange rate than under a flexible one.
 
 - **Upper, $r$–$Y$:** IS, MP and the flat FX line. The sideways movement of IS *is* the
   exchange rate doing its work.
-- **Lower, $\pi$–$Y$:** AD slopes down; IA is horizontal, because today's inflation is
-  already determined.
+- **Lower, $\pi$–$Y$:** IA is horizontal, because today's inflation is already
+  determined; AD slopes down in two of the three regimes and up in the third.
 
 A run therefore goes in two stages. The shock lands and the economy moves **sideways**
 along IA — output changes, inflation cannot. Then, period by period, the output gap drags
-IA up or down and the economy **slides along AD** until output is back at $\bar{Y}$.
+IA up or down and the economy **slides along AD**. Where AD slopes down that walk ends at
+$\bar{Y}$; where it slopes up — a peg without sterilization — it goes the other way, and
+each period's gap is bigger than the last.
+
+Note also that under a peg the **red FX line moves**, because the parity condition above
+depends on inflation. Without sterilization the operating point rides that line; with
+sterilization the bank holds its own rate and the vertical gap to the line is the flow of
+reserves it is absorbing.
 
 ---
 
@@ -682,8 +747,17 @@ THEORY_REST = r"""
 | **Gives up** | the stable exchange rate | its own monetary policy | free movement of capital |
 | **Fiscal policy** | no effect at all | strongest of the three | works, damped |
 | **Monetary policy** | works, permanently | no effect at all | works |
-| **Inflation ends at** | its own rate $\pi^*$ | the world rate $\pi^a$ | the world rate $\pi^a$ |
+| **Inflation ends at** | its own rate $\pi^*$ | nowhere — it runs away | the world rate $\pi^a$ |
 | **Held in place by** | nothing — the currency floats | reserve flows setting the rate | capital controls, once $r \neq r^a$ |
+
+The middle column's second row is not a typo. $\pi^a$ is the only rate at which that
+economy could rest, and it is a rest point it moves *away* from: with $r = r^a +
+(\pi^a - \pi)$ the real interest rate always pushes the same way as the shock. The trade
+channel pushes back — cheaper domestic goods mean a higher $w^r$ and more demand — but it
+works through accumulated price differences, a fraction of a percent a period, and never
+catches up. That is the book's *worrying policy*: a peg without sterilization leaves the
+economy badly exposed to a shock. It is also why inflation differences inside a currency
+union widened instead of closing.
 
 Note the third column carefully. Sterilisation is **not** a way of having all three
 at once. The bank keeps its interest rate and its exchange rate, but the moment its
@@ -700,8 +774,11 @@ outward shift — only the net result.
 **Why a fixed rate forces inflation back to the world rate.** By definition
 $w^r = w \cdot p^a / p$. Hold the nominal rate $w$ fixed and let domestic prices rise
 faster than foreign ones, and $w^r$ *must* keep falling. Nothing can be at rest until the
-two inflation rates are equal, so $\pi \to \pi^a$ — slowly, because it works through
-accumulated price differences rather than through a rate that can jump.
+two inflation rates are equal, so $\pi^a$ is the only candidate for the long run — reached
+slowly, because it works through accumulated price differences rather than through a rate
+that can jump. This says where the economy could come to rest, not that it gets there:
+with sterilization the bank's own rule walks it in, and without sterilization the interest
+rate pushes it out.
 
 **Why sterilization is the capital-controls corner.** The bank keeps its own interest rate, so in
 the long run its rule leaves $r = r' + \lambda_I \pi^a$. If that is not equal to $r^a$,
@@ -721,8 +798,10 @@ is gone, one of the two things it was holding on to has to go:
 
 Note that **Fixed – no sterilization does not face this**. It lets the flows change the
 money supply instead of sterilizing them, so they stop by themselves as soon as the domestic
-rate has been pulled level with the world rate — which is exactly why that regime has no
-monetary policy of its own to lose.
+rate has satisfied the parity condition — which is exactly why that regime has no monetary
+policy of its own to lose. It has a different failure instead: the rate the parity
+condition asks for keeps getting further from the rate the economy needs. Britain gave up
+on Black Wednesday rather than pay it; France paid it and took the depression.
 
 This app stops at the break: it draws the path *while* the fixed rate lasts, and warns you
 when your settings put you on that path. To see what comes next, switch the regime in the
@@ -749,7 +828,7 @@ takes over instead, and $\pi \to \pi^a$.
 | **Period 0** | The resting point: $Y = \bar{Y}$, $\pi = \pi^a$, $r = r^a$ — everything still. |
 | **Period 1** — *the impact* | The shock lands. **Output moves, inflation does not.** The run pauses here so the short run can be examined. |
 | **Adjustment** | Press **Continue**. The output gap moves inflation each period and the economy slides along AD. |
-| **Long run** | Output is back at $\bar{Y}$. Inflation settles at the world rate under either fixed rate, and at its own rate under a flexible one. |
+| **Long run** | Output is back at $\bar{Y}$ — under a flexible rate, and under a fixed one with sterilization. Without sterilization there is no long run to reach: the run is stopped once output or inflation leaves the range the model can describe. |
 
 **A useful exercise:** run the *same* shock in all three regimes and compare. **🔖 Remember
 this run** keeps the previous path on the charts in grey.

@@ -29,13 +29,43 @@ def clear_lock():
 
 st.set_page_config(layout="wide", initial_sidebar_state="expanded")
 
+# ―――― Fixed pre-shock baseline ――――――――――――――――
+# Output is an INDEX with potential Ȳ = 100, so one unit of Y is one per cent of
+# potential and the gap Ỹ = 100·(Y−Ȳ)/Ȳ is in percentage points. Every coefficient
+# is calibrated to be read that way (see helpers.output_gap):
+#
+#   φ = 1.00   a 1 pp rise in the real rate costs 1 % of potential output
+#   λ_P = 0.5  Taylor weight on a gap in per cent
+#   λ_I = 0.75 real-rate response to inflation (nominal response 1.75)
+#   γ = 0.4    Phillips slope: 1 point of gap moves next period's inflation 0.4 pp
+#   r' = r* − λ_I·π* = 0.5  and  ω = Ȳ + φ·r* = 102
+#
+# which put the resting point at Y = 100, π* = 2 %, r* = 2 % — an economy at
+# target, not at the arbitrary π = 3, r = 3.5 the old numbers produced.
+PHI_BASE, OMEGA_BASE = 1.0, 102.0
+RP_BASE, LP_BASE, LI_BASE, GAMMA_BASE = 0.5, 0.5, 0.75, 0.4
+
+# Fixed pre-shock (initial) equilibrium — the economy's resting point BEFORE any
+# shock: Y = Ȳ = 100, π = 2.0, r = 2.0 under the default parameters. The
+# time-series charts start here (period 0) and then converge to the NEW long-run
+# equilibrium (pi_eq / r_eq), which differs after demand or monetary shocks.
+_AD_SLOPE_BASE = (-1.0 / PHI_BASE - LP_BASE * h.gap_per_Y(c.Y_potential)) / LI_BASE
+_AD_INT_BASE   = (OMEGA_BASE / PHI_BASE - RP_BASE + LP_BASE * 100.0) / LI_BASE
+PI_BASELINE = _AD_SLOPE_BASE * c.Y_potential + _AD_INT_BASE                      # → 2.0
+R_BASELINE  = RP_BASE + LI_BASE * PI_BASELINE                                    # → 2.0
+
+# ―――― Shock sizes (Easy mode) ――――――――――――――――
+# Sized to look like something that happens to a real economy: a demand swing of
+# 1.5 % of GDP, a 100 bp move in the policy stance, a 1.5 pp price shock. Each
+# moves output by 0.7–1.0 % of potential on impact.
+DEMAND_SHOCK, MONETARY_SHOCK, INFL_SHOCK = 1.5, 1.0, 1.5
+
 # ―――― Medium: when does a slider count as "shocked"? ――――――――――――――――
 # The SAME thresholds pick the descriptive text and decide how many forces are
-# active, so no setting can be active without a description. (They used to differ
-# — text at ω>5 / r'>2.3 but activity at ω>4.6 / r'>2.1 — which left the panel
-# blank for ω between 4.6 and 5, or r' between 2.1 and 2.3.)
-OMEGA_HI, OMEGA_LO = 4.6, 4.4
-RINIT_HI, RINIT_LO = 2.1, 1.9
+# active, so no setting can be active without a description. Half a slider step,
+# so one click of either slider always registers.
+OMEGA_HI, OMEGA_LO = OMEGA_BASE + 0.1, OMEGA_BASE - 0.1
+RINIT_HI, RINIT_LO = RP_BASE + 0.05, RP_BASE - 0.05
 
 # ―――― Sidebar ――――――――――――――――
 st.sidebar.header("Closed Economy")
@@ -60,35 +90,43 @@ with st.sidebar:
                                        'Expansionary Monetary Shock', 'Contractionary Monetary Shock',
                                        'Expansionary Demand Shock', 'Contractionary Demand Shock'],
                               disabled=is_running or is_paused, on_change=reset)
-        phi = 1.0; lambda_p = 0.5; lambda_i = 0.5; gamma = 0.5; eta = 0.0; inflation_shock = 0.0
+        phi = PHI_BASE; lambda_p = LP_BASE; lambda_i = LI_BASE; gamma = GAMMA_BASE
+        eta = 0.0; inflation_shock = 0.0
+        omega = OMEGA_BASE; r_init = RP_BASE; pi_0_override = PI_BASELINE
         if shock_type == 'Upward Inflation Shock':
-            omega = 4.5; r_init = 2.0; pi_0_override = 4.0
+            pi_0_override = PI_BASELINE + INFL_SHOCK
             text_to_show = c.neg_inflation_shock
         elif shock_type == 'Downward Inflation Shock':
-            omega = 4.5; r_init = 2.0; pi_0_override = 2.0
+            pi_0_override = PI_BASELINE - INFL_SHOCK
             text_to_show = c.pos_inflation_shock
         elif shock_type == 'Expansionary Monetary Shock':
-            omega = 4.5; r_init = 1.3; pi_0_override = 3.0
+            r_init = RP_BASE - MONETARY_SHOCK
             text_to_show = c.pos_monetary_shock
         elif shock_type == 'Contractionary Monetary Shock':
-            omega = 4.5; r_init = 2.7; pi_0_override = 3.0
+            r_init = RP_BASE + MONETARY_SHOCK
             text_to_show = c.neg_monetary_shock
         elif shock_type == 'Expansionary Demand Shock':
-            omega = 5.0; r_init = 2.0; pi_0_override = 3.0
+            omega = OMEGA_BASE + DEMAND_SHOCK
             text_to_show = c.pos_demand_shock
         elif shock_type == 'Contractionary Demand Shock':
-            omega = 4.0; r_init = 2.0; pi_0_override = 3.0
+            omega = OMEGA_BASE - DEMAND_SHOCK
             text_to_show = c.neg_demand_shock
         else:
-            omega = 4.5; r_init = 2.0; pi_0_override = None
+            pi_0_override = None
             text_to_show = c.placeholder_shock
 
     elif level == 'Medium':
-        phi = 1.0; lambda_p = 0.5; lambda_i = 0.5; gamma = 0.5
-        omega = st.slider(r'$\omega :$', on_change=reset, min_value=1.0, max_value=8.0, step=0.1, value=4.5,
-                          help=r"IS Curve: $Y = \omega - \phi r$")
-        r_init = st.slider(r"$r' (\%) :$", on_change=reset, min_value=0.1, max_value=3.5, step=0.1, value=2.0,
-                           help=r"MP Curve: $r = r' + \lambda_P \tilde{Y} + \lambda_I \pi$")
+        phi = PHI_BASE; lambda_p = LP_BASE; lambda_i = LI_BASE; gamma = GAMMA_BASE
+        omega = st.slider(r'$\omega :$', on_change=reset,
+                          min_value=OMEGA_BASE - 4.0, max_value=OMEGA_BASE + 4.0, step=0.25,
+                          value=OMEGA_BASE,
+                          help=r"IS Curve: $Y = \omega - \phi r$. One unit is one per cent of "
+                               r"potential output.")
+        r_init = st.slider(r"$r' (\%) :$", on_change=reset, min_value=-1.0, max_value=2.0, step=0.1,
+                           value=RP_BASE,
+                           help=r"MP Curve: $r = r' + \lambda_P \tilde{Y} + \lambda_I \pi$. This is the "
+                                r"rule's intercept, not the rate itself — at the baseline it leaves "
+                                r"$r = 2\%$.")
         inflation_shock = st.slider(r"Initial inflation shock (%):", on_change=reset, min_value=-3.0, max_value=3.0, step=0.25, value=0.0,
                                     help=r"One-off shift of initial inflation away from equilibrium. 0 = no shock. "
                                          r"Distinct from the per-period $\eta$ of the IA curve (Advanced).")
@@ -110,26 +148,39 @@ with st.sidebar:
 
     elif level == 'Advanced':
         st.markdown('##### For IS Curve')
-        phi = st.number_input(r'$\phi :$', on_change=reset, min_value=0.1, step=0.1, value=1.0,
-                              help=r"IS Curve: $Y = \omega - \phi r$")
-        omega = st.number_input(r'$\omega :$', on_change=reset, min_value=0.0, step=0.5, value=4.5,
-                                help=r"IS Curve: $Y = \omega - \phi r$")
+        phi = st.number_input(r'$\phi :$', on_change=reset, min_value=0.1, max_value=3.0, step=0.1,
+                              value=PHI_BASE,
+                              help=r"IS Curve: $Y = \omega - \phi r$. Output cost of a 1 pp rise in the "
+                                   r"real rate, in per cent of potential.")
+        omega = st.number_input(r'$\omega :$', on_change=reset, min_value=90.0, max_value=115.0, step=0.5,
+                                value=OMEGA_BASE,
+                                help=r"IS Curve: $Y = \omega - \phi r$. One unit is one per cent of "
+                                     r"potential output.")
         st.markdown("<hr style='margin: 2px 0; border: none; border-top: 1px solid #ccc;'>", unsafe_allow_html=True)
         st.markdown('##### For MP Curve')
-        r_init = st.number_input(r"$r' (\%) :$", on_change=reset, min_value=0.1, max_value=10.0, step=0.1, value=2.0,
-                                 help=r"MP Curve: $r = r' + \lambda_P \tilde{Y} + \lambda_I \pi$")
-        lambda_p = st.number_input(r'$\lambda_P :$', on_change=reset, min_value=0.0, max_value=10.0, step=0.1, value=0.5,
-                                   help=r"MP Curve: $r = r' + \lambda_P \tilde{Y} + \lambda_I \pi$")
-        lambda_i = st.number_input(r'$\lambda_I :$', on_change=reset, min_value=0.1, max_value=10.0, step=0.1, value=0.5,
-                                   help=r"MP Curve: $r = r' + \lambda_P \tilde{Y} + \lambda_I \pi$")
+        r_init = st.number_input(r"$r' (\%) :$", on_change=reset, min_value=-2.0, max_value=5.0, step=0.1,
+                                 value=RP_BASE,
+                                 help=r"MP Curve intercept: $r = r' + \lambda_P \tilde{Y} + \lambda_I \pi$. "
+                                      r"Not the rate itself — at the baseline it leaves $r = 2\%$.")
+        lambda_p = st.number_input(r'$\lambda_P :$', on_change=reset, min_value=0.0, max_value=2.0, step=0.05,
+                                   value=LP_BASE,
+                                   help=r"Weight on the output gap, in pp of real rate per point of gap. "
+                                        r"0.5 is the textbook Taylor weight.")
+        lambda_i = st.number_input(r'$\lambda_I :$', on_change=reset, min_value=0.1, max_value=3.0, step=0.05,
+                                   value=LI_BASE,
+                                   help=r"Weight on inflation: the REAL rate response. 0.75 here means a "
+                                        r"nominal response of 1.75, above the Taylor principle.")
         inflation_shock = st.number_input(r"Initial inflation shock (%):", on_change=reset, min_value=-3.0, max_value=3.0, step=0.25, value=0.0,
                                            help=r"One-off shift of initial inflation away from equilibrium. 0 = no shock. "
                                                 r"Distinct from the per-period $\eta$ below.")
         pi_0_override = None  # resolved after pi_eq is computed
         st.markdown("<hr style='margin: 2px 0; border: none; border-top: 1px solid #ccc;'>", unsafe_allow_html=True)
         st.markdown('##### For IA Curve')
-        gamma = st.number_input(r'$\gamma :$', on_change=reset, min_value=0.0, step=0.1, value=0.5)
-        eta = st.number_input(r'$\eta$ (exogenous shock):', on_change=reset, step=0.1, value=0.0,
+        gamma = st.number_input(r'$\gamma :$', on_change=reset, min_value=0.0, max_value=1.5, step=0.05,
+                                value=GAMMA_BASE,
+                                help=r"Phillips slope: pp of inflation per point of output gap.")
+        eta = st.number_input(r'$\eta$ (exogenous shock):', on_change=reset,
+                              min_value=-1.0, max_value=1.0, step=0.05, value=0.0,
                               help=r"IA curve: π_{t+1} = π_t + γỸ_t + η. Persistent exogenous price shock each period.")
 
 
@@ -164,24 +215,18 @@ iteration_count = st.session_state.get("setting_iterations", c.iteration_count)
 sim_speed       = st.session_state.get("setting_speed", c.speed)
 
 # ―――― Derived Model Parameters ――――――――――――――――
+GAP = h.gap_per_Y(c.Y_potential)     # Ỹ is in points, so d(Ỹ)/dY = 100/Ȳ
 IS_slope = -1 / phi
 IS_intercept = omega / phi
-MP_slope = lambda_p / c.Y_potential
-AD_slope = (IS_slope - lambda_p / c.Y_potential) / lambda_i
-AD_intercept = (IS_intercept - r_init + lambda_p) / lambda_i
+MP_slope = lambda_p * GAP
+AD_slope = (IS_slope - lambda_p * GAP) / lambda_i
+AD_intercept = (IS_intercept - r_init + lambda_p * 100.0) / lambda_i
 pi_eq = AD_slope * c.Y_potential + AD_intercept   # long-run equilibrium inflation
-r_eq = MP_slope * c.Y_potential + (r_init - lambda_p + lambda_i * pi_eq)   # rate at that point
-
-# Fixed pre-shock (initial) equilibrium — the economy's resting point BEFORE any shock: Y=Ȳ, π=3.0, r=3.5 under the default parameters. The time-series charts start here (period 0) and then converge to the NEW long-run equilibrium (pi_eq / r_eq), which differs after demand or monetary shocks.
-PI_BASELINE = 3.0
-R_BASELINE  = (0.5 / c.Y_potential) * c.Y_potential + (2.0 - 0.5 + 0.5 * PI_BASELINE)  # default params → 3.5
+r_eq = MP_slope * c.Y_potential + (r_init - lambda_p * 100.0 + lambda_i * pi_eq)   # rate at that point
 
 # Medium & Advanced: anchor pi_0 to the FIXED baseline equilibrium (default omega=4.5, r_init=2.0, lambda=0.5 → π=3.0) plus only the inflation shock, so demand/monetary parameters never move the initial inflation — it stays constant unless the user explicitly changes η (inflation shock).
 if level in ('Medium', 'Advanced'):
-    _ad_slope_base = (-1.0 - 0.5) / 0.5          # phi=1, lambda_p=0.5, lambda_i=0.5
-    _ad_int_base   = (4.5 - 2.0 + 0.5) / 0.5     # omega=4.5, r_init=2.0, lambda_p=0.5
-    pi_eq_baseline = _ad_slope_base * c.Y_potential + _ad_int_base
-    pi_0_override  = pi_eq_baseline + inflation_shock
+    pi_0_override = PI_BASELINE + inflation_shock
 
 # pi_0: expected/anchor inflation entering period 1 (immediate post-shock) — falls
 # back to equilibrium if not set. Under the Phillips curve this is π^e (the level
@@ -190,7 +235,7 @@ if level in ('Medium', 'Advanced'):
 pi_0 = pi_0_override if pi_0_override is not None else pi_eq
 
 # Slope of the Phillips curve π = π^e + (γ/Ȳ)·Ỹ
-pc_slope = gamma / c.Y_potential
+pc_slope = gamma * GAP
 
 # pi_e_cur: expected inflation carried into the current animated period (π^e).
 if st.session_state.pi_prev is None:
@@ -211,19 +256,19 @@ def operating_point(pi_expected):
     else:
         pi_ = pi_expected
         Y, _ = h.find_line_intersection(IS_slope, IS_intercept, MP_slope,
-                                        r_init - lambda_p + lambda_i * pi_)
-    r = MP_slope * Y + (r_init - lambda_p + lambda_i * pi_)
+                                        r_init - lambda_p * 100.0 + lambda_i * pi_)
+    r = MP_slope * Y + (r_init - lambda_p * 100.0 + lambda_i * pi_)
     return Y, pi_, r
 
 
 # Current (animated) operating point and the period-1 short-run jump.
 Y_cur, pi_cur, r_cur = operating_point(pi_e_cur)
 Y_shock, pi_shock, r_shock = operating_point(pi_0)
-MP_intercept_cur   = r_init - lambda_p + lambda_i * pi_cur
-MP_intercept_shock = r_init - lambda_p + lambda_i * pi_shock
+MP_intercept_cur   = r_init - lambda_p * 100.0 + lambda_i * pi_cur
+MP_intercept_shock = r_init - lambda_p * 100.0 + lambda_i * pi_shock
 
 # Convergence check: stable if γ < 2·Ȳ·|AD_slope|
-convergence_ok = (gamma < 2 * c.Y_potential * abs(AD_slope)) if AD_slope != 0 else True
+convergence_ok = (gamma < 2 * abs(AD_slope) / GAP) if AD_slope != 0 else True
 
 # ―――― Medium: resolve combined text ――――――――――――――――
 if level == 'Medium':
@@ -238,8 +283,8 @@ if level == 'Medium':
         text_to_show = omega_text + r_text + pi_text
     else:
         # Characterise net outcome from model
-        output_above = Y_shock > c.Y_potential * 1.01
-        output_below = Y_shock < c.Y_potential * 0.99
+        output_above = h.output_gap(Y_shock, c.Y_potential) > 0.1
+        output_below = h.output_gap(Y_shock, c.Y_potential) < -0.1
         pi_above = pi_0 > pi_eq + 0.05
         pi_below = pi_0 < pi_eq - 0.05
 
@@ -300,7 +345,7 @@ if level == 'Medium':
 
 # ―――― Continue: advance from short_term_paused to adjusting ――――――――――――――――
 if continue_clicked and phase == "short_term_paused":
-    st.session_state.pi_prev = pi_0 + gamma * (Y_shock - c.Y_potential) / c.Y_potential + eta
+    st.session_state.pi_prev = pi_0 + gamma * h.output_gap(Y_shock, c.Y_potential) + eta
     st.session_state.phase = "adjusting"
     st.rerun()
 
@@ -322,12 +367,12 @@ if play_clicked and phase in ("idle", "done"):
 phase = st.session_state.phase  # re-read after possible update
 
 # ―――― Plot bounds ――――――――――――――――
-if level != 'Easy':
-    const = max(abs(Y_shock), abs(c.Y_potential), abs(c.Y_potential - Y_shock)) * 1.3
-    const = max(const, 0.5)
-else:
-    const = 1.0
-
+# Y is an index around 100 and the interesting moves are a point or two, so the
+# window is sized from the ACTION, not from the level: 1.6× the largest gap the
+# run reaches, with a floor of 2 points so a small shock still has room around it.
+MIN_HALF_WINDOW = 2.0
+const = max(MIN_HALF_WINDOW,
+            1.6 * max(abs(Y_shock - c.Y_potential), abs(Y_cur - c.Y_potential)))
 x_lo, x_hi = c.Y_potential - const, c.Y_potential + const
 
 # ―――― Curve positions in each phase ――――――――――――――――
@@ -341,10 +386,10 @@ x_lo, x_hi = c.Y_potential - const, c.Y_potential + const
 show_initial = phase == "short_term_paused"
 show_long = phase in ("adjusting", "done")
 
-# Pre-shock resting point, at the default parameters (ω=4.5, φ=1, r'=2, λ=0.5).
-init_IS = (-1.0, 4.5)
-init_MP = (0.5 / c.Y_potential, 3.0)
-init_AD = ((init_IS[0] - 0.5 / c.Y_potential) / 0.5, (4.5 - 2.0 + 0.5) / 0.5)
+# Pre-shock resting point, at the default parameters.
+init_IS = (-1.0 / PHI_BASE, OMEGA_BASE / PHI_BASE)
+init_MP = (LP_BASE * GAP, RP_BASE - LP_BASE * 100.0 + LI_BASE * PI_BASELINE)
+init_AD = (_AD_SLOPE_BASE, _AD_INT_BASE)
 init_IA = (0.0, PI_BASELINE)
 
 # IS and AD are built from parameters alone, so they do not move DURING a run —
@@ -392,15 +437,15 @@ with tab1:
 
     if phase != "idle":
         h.add_vertical_line(r_Y_fig, Y_cur, y_max=r_cur,
-                            name=f"Y ({Y_cur:.2f})", name_position='bottom', color='#B0B0B0', dash='dot')
+                            name=f"Y ({Y_cur:.1f})", name_position='bottom', color='#B0B0B0', dash='dot')
     else:
         h.add_vertical_line(r_Y_fig, sY,
-                            name=f"Y ({sY:.2f})", name_position='bottom', color='#B0B0B0', dash='dot')
+                            name=f"Y ({sY:.1f})", name_position='bottom', color='#B0B0B0', dash='dot')
 
     h.add_vertical_line(r_Y_fig, c.Y_potential, name=f'Ȳ ({c.Y_potential})', color='#555555', dash='8px,5px')
     h.show_plotly_fig(r_Y_fig, height=340, column_to_plot=diagrams, key="ce_rY")
 
-    output_gap = Y_cur - c.Y_potential
+    output_gap = h.output_gap(Y_cur, c.Y_potential)
 
     # ―――― π–Y diagram ――――――――――――――――
     pi_Y_fig = h.create_linear_plot(x_label="Y - Output", y_label="𝜋 - inflation")
@@ -410,34 +455,37 @@ with tab1:
 
     if phase != "idle":
         h.add_vertical_line(pi_Y_fig, Y_cur, y_max=pi_cur,
-                            name=f"Y ({Y_cur:.2f})", name_position='bottom', color='#B0B0B0', dash='dot')
+                            name=f"Y ({Y_cur:.1f})", name_position='bottom', color='#B0B0B0', dash='dot')
     else:
         h.add_vertical_line(pi_Y_fig, sY, y_max=sIA_pi,
-                            name=f"Y ({sY:.2f})", name_position='bottom', color='#B0B0B0', dash='dot')
+                            name=f"Y ({sY:.1f})", name_position='bottom', color='#B0B0B0', dash='dot')
 
     h.add_vertical_line(pi_Y_fig, c.Y_potential, name=f'Ȳ ({c.Y_potential})', color='#555555', dash='8px,5px')
     h.show_plotly_fig(pi_Y_fig, height=360, column_to_plot=diagrams, key="ce_piY")
 
     # ―――― Advanced: equation display ――――――――――――――――
     if level == 'Advanced':
+        # Distance from the NEW equilibrium, not the size of a price shock: a demand
+        # or monetary shock moves π* without touching π₀, and labelling that gap
+        # "shock" read as if a price shock had been applied.
         shock_size = pi_0 - pi_eq
         shock_label = f"+{shock_size:.1f}" if shock_size >= 0 else f"{shock_size:.1f}"
         if show_phillips:
             pi_e = pi_e_cur   # π^e: the level the PC crosses at Ȳ
             ia_line = (f'<b style="color:#54A24B;">IA (Phillips):</b> '
-                       f'𝜋 = {pi_e:.1f} + {gamma:.1f}·Ỹ &nbsp;'
+                       f'𝜋 = {pi_e:.2f} + {gamma:.2f}·Ỹ &nbsp;'
                        f'<span style="color:gray;">(𝜋<sub>expected</sub> at Ȳ)</span>')
         else:
             ia_line = (f'<b style="color:#54A24B;">IA:</b> 𝜋 = {pi_0:.1f} &nbsp;'
-                       f'<span style="color:gray;">(shock: {shock_label})</span>')
+                       f'<span style="color:gray;">({shock_label} from 𝜋*)</span>')
         text_to_show = f"""
-            <b style="color:#4C78A8;">IS:</b> Y = {omega:.1f} − {phi:.1f}·r &nbsp;→&nbsp; r = {IS_slope:.1f}·Y + {IS_intercept:.1f}<br>
-            <b style="color:#F58518;">MP:</b> r = {MP_slope:.1f}·Y + {MP_intercept_cur:.1f}<br>
-            <b style="color:#B279A2;">AD:</b> 𝜋 = {AD_slope:.1f}·Y + {AD_intercept:.1f}<br>
+            <b style="color:#4C78A8;">IS:</b> Y = {omega:.1f} − {phi:.2f}·r<br>
+            <b style="color:#F58518;">MP:</b> r = {r_init:.2f} + {lambda_p:.2f}·Ỹ + {lambda_i:.2f}·𝜋<br>
+            <b style="color:#B279A2;">AD:</b> 𝜋 = {pi_eq:.2f} {AD_slope:+.2f}·(Y − Ȳ)<br>
             {ia_line}<br>
             <hr style="margin:4px 0; border:none; border-top:1px solid #ddd;">
-            <b>Output gap (Y − Ȳ):</b> {output_gap:.1f}<br>
-            <b>r:</b> {r_cur:.1f}
+            <b>Output gap:</b> {output_gap:+.2f}% of potential<br>
+            <b>r:</b> {r_cur:.2f}%
         """
 
     # ―――― Right column ――――――――――――――――
@@ -478,7 +526,7 @@ with tab1:
             last = st.session_state.iteration_df.iloc[-1]
             output_fig.add_annotation(x=last["Iteration"], y=last["Output"], text=f"Y={last['Output']:.2f}", showarrow=False, xanchor="left", yshift=12)
 
-        output_fig.update_layout(xaxis_title="", yaxis_title="Y - Output", showlegend=False)
+        output_fig.update_layout(xaxis_title="", yaxis_title="Y — output (Ȳ=100)", showlegend=False)
         h.add_line_to_plot(output_fig, 0, c.Y_potential, 0, iteration_count,
                            name=f"Ȳ ({c.Y_potential:.2f})", line_width=2, color="#999999", dash='dot')
         h.show_plotly_fig(output_fig, height=180, key="ce_ts_output")
@@ -522,7 +570,7 @@ with tab1:
         # Next period's expected inflation = π^e + γ·Ỹ (+ persistent η). Anchored on
         # π^e (this period's expectation), not the realised π, so the Phillips-curve
         # gap is not double-counted.
-        st.session_state.pi_prev = pi_e_cur + gamma * (Y_cur - c.Y_potential) / c.Y_potential + eta
+        st.session_state.pi_prev = pi_e_cur + gamma * h.output_gap(Y_cur, c.Y_potential) + eta
         st.session_state.iter_counter += 1
 
         if st.session_state.iter_counter >= iteration_count:
