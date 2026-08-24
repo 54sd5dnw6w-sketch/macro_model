@@ -135,11 +135,6 @@ tabs_options = ['📊 Time Model', '🏠 Home', '🧾 Glossary']  #'📊 Data'
 standard_line_width = 3
 thin_line_width = 2
 
-
-# Output is an INDEX: potential = 100, so one unit of Y is one per cent of
-# potential and the output gap Ỹ = 100·(Y−Ȳ)/Ȳ is in percentage points. Every
-# coefficient in both models is calibrated against that reading — see
-# EQUATIONS_CLOSED_ECONOMY.md / EQUATIONS_OPEN_ECONOMY.md.
 Y_potential = 100
 speed = 0.1
 

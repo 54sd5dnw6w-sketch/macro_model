@@ -299,7 +299,7 @@ def output_gap(Y, Ybar):
 
 
 def gap_per_Y(Ybar):
-    """d(Ỹ)/dY — turns a coefficient on the gap into a slope in Y."""
+    """turns a coefficient on the gap into a slope in Y."""
     return 100.0 / Ybar
 
 
