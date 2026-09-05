@@ -29,41 +29,25 @@ def clear_lock():
 
 st.set_page_config(layout="wide", initial_sidebar_state="expanded")
 
-# ―――― Fixed pre-shock baseline ――――――――――――――――
-# Output is an INDEX with potential Ȳ = 100, so one unit of Y is one per cent of
-# potential and the gap Ỹ = 100·(Y−Ȳ)/Ȳ is in percentage points. Every coefficient
-# is calibrated to be read that way (see helpers.output_gap):
-#
-#   φ = 1.00   a 1 pp rise in the real rate costs 1 % of potential output
-#   λ_P = 0.5  Taylor weight on a gap in per cent
-#   λ_I = 0.75 real-rate response to inflation (nominal response 1.75)
-#   γ = 0.4    Phillips slope: 1 point of gap moves next period's inflation 0.4 pp
-#   r' = r* − λ_I·π* = 0.5  and  ω = Ȳ + φ·r* = 102
-#
-# which put the resting point at Y = 100, π* = 2 %, r* = 2 % — an economy at
-# target, not at the arbitrary π = 3, r = 3.5 the old numbers produced.
+# ―――― Default parameters ――――――――――――――――
+# Y is an index at Ȳ = 100 and the gap Ỹ = 100·(Y−Ȳ)/Ȳ is in percentage points.
+# r' = r* − λ_I·π* and ω = Ȳ + φ·r* are what rest the economy at Y = 100, π = 2, r = 2.
 PHI_BASE, OMEGA_BASE = 1.0, 102.0
 RP_BASE, LP_BASE, LI_BASE, GAMMA_BASE = 0.5, 0.5, 0.75, 0.4
 
-# Fixed pre-shock (initial) equilibrium — the economy's resting point BEFORE any
-# shock: Y = Ȳ = 100, π = 2.0, r = 2.0 under the default parameters. The
-# time-series charts start here (period 0) and then converge to the NEW long-run
-# equilibrium (pi_eq / r_eq), which differs after demand or monetary shocks.
+# Period 0 at the default parameters. Recomputed after the sidebar with whatever
+# structural parameters the user set; the Easy level never changes them.
 _AD_SLOPE_BASE = (-1.0 / PHI_BASE - LP_BASE * h.gap_per_Y(c.Y_potential)) / LI_BASE
 _AD_INT_BASE   = (OMEGA_BASE / PHI_BASE - RP_BASE + LP_BASE * 100.0) / LI_BASE
 PI_BASELINE = _AD_SLOPE_BASE * c.Y_potential + _AD_INT_BASE                      # → 2.0
 R_BASELINE  = RP_BASE + LI_BASE * PI_BASELINE                                    # → 2.0
 
 # ―――― Shock sizes (Easy mode) ――――――――――――――――
-# Sized to look like something that happens to a real economy: a demand swing of
-# 1.5 % of GDP, a 100 bp move in the policy stance, a 1.5 pp price shock. Each
-# moves output by 0.7–1.0 % of potential on impact.
+# A 1.5 % of GDP demand swing, a 100 bp policy move, a 1.5 pp price shock.
 DEMAND_SHOCK, MONETARY_SHOCK, INFL_SHOCK = 1.5, 1.0, 1.5
 
-# ―――― Medium: when does a slider count as "shocked"? ――――――――――――――――
-# The SAME thresholds pick the descriptive text and decide how many forces are
-# active, so no setting can be active without a description. Half a slider step,
-# so one click of either slider always registers.
+# Half a slider step, so one click always registers. The same thresholds pick the
+# descriptive text, so no setting can be active without a description.
 OMEGA_HI, OMEGA_LO = OMEGA_BASE + 0.1, OMEGA_BASE - 0.1
 RINIT_HI, RINIT_LO = RP_BASE + 0.05, RP_BASE - 0.05
 
@@ -224,14 +208,21 @@ AD_intercept = (IS_intercept - r_init + lambda_p * 100.0) / lambda_i
 pi_eq = AD_slope * c.Y_potential + AD_intercept   # long-run equilibrium inflation
 r_eq = MP_slope * c.Y_potential + (r_init - lambda_p * 100.0 + lambda_i * pi_eq)   # rate at that point
 
-# Medium & Advanced: anchor pi_0 to the FIXED baseline equilibrium (default omega=4.5, r_init=2.0, lambda=0.5 → π=3.0) plus only the inflation shock, so demand/monetary parameters never move the initial inflation — it stays constant unless the user explicitly changes η (inflation shock).
+# ―――― Period 0: the pre-shock resting point ――――――――――――――――
+# Re-derived with the user's structural parameters (φ, λ_P, λ_I) at DEFAULT policy
+# (ω, r′), so period 0 really is a rest point whatever φ and λ are set to.
+_AD_SLOPE_BASE = (-1.0 / phi - lambda_p * GAP) / lambda_i
+_AD_INT_BASE   = (OMEGA_BASE / phi - RP_BASE + lambda_p * 100.0) / lambda_i
+PI_BASELINE = _AD_SLOPE_BASE * c.Y_potential + _AD_INT_BASE
+R_BASELINE  = RP_BASE + lambda_i * PI_BASELINE
+
+# Anchor π₀ to the baseline plus the price shock alone, so demand and monetary
+# settings never move the starting inflation.
 if level in ('Medium', 'Advanced'):
     pi_0_override = PI_BASELINE + inflation_shock
 
-# pi_0: expected/anchor inflation entering period 1 (immediate post-shock) — falls
-# back to equilibrium if not set. Under the Phillips curve this is π^e (the level
-# the PC crosses at Ȳ); the realised period-1 inflation is higher/lower once the
-# output gap feeds through.
+# Inflation entering period 1. With the Phillips curve on this is π^e, and the
+# realised period-1 inflation moves once the output gap feeds through.
 pi_0 = pi_0_override if pi_0_override is not None else pi_eq
 
 # Slope of the Phillips curve π = π^e + (γ/Ȳ)·Ỹ
@@ -246,10 +237,8 @@ pi_e_cur = st.session_state.pi_prev
 def operating_point(pi_expected):
     """Short-run (Y, π, r) for a given expected inflation π^e.
 
-    Phillips curve ON: inflation reacts to the CURRENT output gap, so (Y, π) is the
-    joint solution of AD and the PC π = π^e + (γ/Ȳ)·Ỹ — inflation moves immediately.
-    Phillips curve OFF (horizontal IA): inflation is predetermined at π^e and only
-    output jumps (IS∩MP)."""
+    Phillips curve on: (Y, π) solves AD together with π = π^e + (γ/Ȳ)·Ỹ.
+    Off: π is predetermined at π^e and only output jumps (IS ∩ MP)."""
     if show_phillips:
         pc_int = pi_expected - pc_slope * c.Y_potential
         Y, pi_ = h.find_line_intersection(AD_slope, AD_intercept, pc_slope, pc_int)
@@ -350,10 +339,8 @@ if continue_clicked and phase == "short_term_paused":
     st.rerun()
 
 # ―――― Play: initialize period 0 and period 1 ――――――――――――――――
-# Also fires from "done", so Play restarts a finished run instead of doing nothing:
-# the block below rebuilds the whole run state from scratch, so replaying is just
-# running it again. A run saved with "Remember this run" is deliberately kept, so
-# the replay is drawn against it.
+# Also fires from "done" so Play restarts a finished run. A saved comparison run
+# is kept, so the replay is drawn against it.
 if play_clicked and phase in ("idle", "done"):
     st.session_state.phase = "short_term_paused"
     st.session_state.pi_prev = pi_0
@@ -367,40 +354,32 @@ if play_clicked and phase in ("idle", "done"):
 phase = st.session_state.phase  # re-read after possible update
 
 # ―――― Plot bounds ――――――――――――――――
-# Y is an index around 100 and the interesting moves are a point or two, so the
-# window is sized from the ACTION, not from the level: 1.6× the largest gap the
-# run reaches, with a floor of 2 points so a small shock still has room around it.
+# Sized from the largest gap the run reaches, with a floor so a small shock has room.
 MIN_HALF_WINDOW = 2.0
 const = max(MIN_HALF_WINDOW,
             1.6 * max(abs(Y_shock - c.Y_potential), abs(Y_cur - c.Y_potential)))
 x_lo, x_hi = c.Y_potential - const, c.Y_potential + const
 
 # ―――― Curve positions in each phase ――――――――――――――――
-# Every curve is held in three positions and the phase decides which are drawn:
-#   initial — the pre-shock resting point (period 0)
-#   short   — the period-1 impact, frozen where the shock put it
-#   long    — where the curve is right now
-# idle shows `initial` alone; Play adds `short` and keeps `initial` as a dotted
-# ghost so it is obvious which curves moved; Continue drops `initial` and brings
-# out `long`, which then drifts away from `short` period by period.
+# initial = period 0, short = the period-1 impact, long = where the curve is now.
 show_initial = phase == "short_term_paused"
 show_long = phase in ("adjusting", "done")
 
-# Pre-shock resting point, at the default parameters.
-init_IS = (-1.0 / PHI_BASE, OMEGA_BASE / PHI_BASE)
-init_MP = (LP_BASE * GAP, RP_BASE - LP_BASE * 100.0 + LI_BASE * PI_BASELINE)
+# Pre-shock resting point: default POLICY (ω, r′), the user's structural parameters.
+init_IS = (-1.0 / phi, OMEGA_BASE / phi)
+init_MP = (MP_slope, RP_BASE - lambda_p * 100.0 + lambda_i * PI_BASELINE)
 init_AD = (_AD_SLOPE_BASE, _AD_INT_BASE)
 init_IA = (0.0, PI_BASELINE)
 
-# IS and AD are built from parameters alone, so they do not move DURING a run —
-# only the shock itself displaces them. MP and IA are the ones that travel.
+# IS and AD depend on parameters alone, so only the shock displaces them; MP and
+# IA are the ones that travel during a run.
 st_IS = lt_IS = (IS_slope, IS_intercept)
 st_AD = lt_AD = (AD_slope, AD_intercept)
 st_MP, lt_MP = (MP_slope, MP_intercept_shock), (MP_slope, MP_intercept_cur)
 
 
 def _ia_spec(pi_level, y_at):
-    """IA in π–Y space. With the Phillips curve on it is drawn against THIS
+    """IA in π–Y space. With the Phillips curve on it is drawn against this
     period's output gap (π = π^e + γ·Ỹ), so it pivots on the operating point
     instead of lying flat."""
     if show_phillips:
@@ -412,7 +391,6 @@ st_IA = _ia_spec(pi_shock, Y_shock)
 lt_IA = _ia_spec(pi_cur, Y_cur)
 IA_label = "IA(PC)" if show_phillips else "IA"
 
-# Operating point marker.
 sY, sIA_pi = (c.Y_potential, PI_BASELINE) if phase == "idle" else (Y_cur, pi_cur)
 
 # ―――― Tabs ――――――――――――――――
@@ -422,9 +400,7 @@ with tab2:
     st.markdown(c.markdown_text)
 
 with tab1:
-    # ―――― Main layout ――――――――――――――――
-    # Same shape as the open-economy page: bordered panels with a header each, so
-    # the two pages read as one app.
+    # Same shape as the open-economy page, so the two read as one app
     cols = st.columns([1.7, 1], gap="small", vertical_alignment="top")
     diagrams = cols[0].container(border=True, height="stretch")
     h.panel_header("Diagrams", diagrams)
@@ -465,9 +441,8 @@ with tab1:
 
     # ―――― Advanced: equation display ――――――――――――――――
     if level == 'Advanced':
-        # Distance from the NEW equilibrium, not the size of a price shock: a demand
-        # or monetary shock moves π* without touching π₀, and labelling that gap
-        # "shock" read as if a price shock had been applied.
+        # Distance from the NEW equilibrium, not the size of a price shock — a
+        # demand or monetary shock moves π* without touching π₀
         shock_size = pi_0 - pi_eq
         shock_label = f"+{shock_size:.1f}" if shock_size >= 0 else f"{shock_size:.1f}"
         if show_phillips:
@@ -497,7 +472,7 @@ with tab1:
                        "instead of coming to rest. Try a smaller γ.")
 
         st.markdown(text_to_show, unsafe_allow_html=True)
-        # Where the run ends up — numbers only. The description above says it in words.
+        # Where the run ends up, numbers only — the description above says it in words
         st.markdown(f"<div style='font-size:12px; color:gray; margin-top:8px;'><b>Long run:</b> "
                     f"output back at Ȳ = {c.Y_potential:.2f}; inflation settles at {pi_eq:.2f}%; "
                     f"interest rate at {r_eq:.2f}%.</div>", unsafe_allow_html=True)
@@ -567,9 +542,8 @@ with tab1:
     if phase == "adjusting":
         new_row_idx = len(st.session_state.iteration_df)
         st.session_state.iteration_df.loc[new_row_idx] = [st.session_state.iter_counter, Y_cur, pi_cur, r_cur]
-        # Next period's expected inflation = π^e + γ·Ỹ (+ persistent η). Anchored on
-        # π^e (this period's expectation), not the realised π, so the Phillips-curve
-        # gap is not double-counted.
+        # Anchored on π^e, not the realised π, so the Phillips-curve gap is not
+        # double-counted
         st.session_state.pi_prev = pi_e_cur + gamma * h.output_gap(Y_cur, c.Y_potential) + eta
         st.session_state.iter_counter += 1
 

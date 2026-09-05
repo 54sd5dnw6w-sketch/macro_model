@@ -109,7 +109,7 @@ thin_line_width = 2
 Y_potential = 100
 speed = 0.1
 
-iteration_count = 40
+iteration_count = 25
 
 
 
@@ -201,9 +201,7 @@ placeholder_shock = """
 """
 
 # ---------- Fiscal Policy (omega) ----------
-# NB: ω is autonomous DEMAND in the IS curve — these are demand-side shifts, not
-# supply shocks. The thresholds that select these texts live in closed_economy.py
-# (OMEGA_HI / OMEGA_LO), so no numeric range is quoted here.
+# The thresholds that pick these texts live in closed_economy.py (OMEGA_HI/LO)
 omega_text_exp = """
 <div style="font-size:17px; font-weight:700; color:#222;">
     Expansionary Demand Shock (↑ω) 🏛️
@@ -290,13 +288,8 @@ empty_placeholder_moderate_level_shock = """
 
 # ―――― Open-economy consensus model ――――――――――――――――
 # ―――― Easy-mode shock panel ――――――――――――――――
-# ONE description per (shock family, regime), assembled by oe_shock_panel(). The
-# regime is chosen in the sidebar, so the panel only ever tells the story of the
-# regime actually running — the info/warning boxes never repeat it.
-#
-# Direction words are substituted rather than written out twice, so an expansion
-# and its mirror image cannot disagree about a sign (a contraction used to be
-# described as an appreciation because both shared one hand-written string).
+# One description per (shock family, regime), assembled by oe_shock_panel().
+# Direction words are substituted, so a shock and its mirror cannot disagree.
 
 OE_SHOCK_META = {
     # shock name                      → (family, direction, emoji)
@@ -316,7 +309,7 @@ OE_REGIME_LABEL = {
     'Fixed – with sterilization': '🛡️ Fixed – with sterilization',
 }
 
-# What the shock is, before any regime enters the picture.
+# What the shock is, before the regime enters
 OE_LEAD = {
     'fiscal': "The government spends {more_less}, which shifts the IS-curve to the {right_left} (ω {up_down}).",
     'monetary': "The central bank takes a {looser_tighter} stance ({down_up} r').",
@@ -325,7 +318,7 @@ OE_LEAD = {
                 "that moves inflation without an output gap first.",
 }
 
-# What the chosen regime then does with it.
+# What the chosen regime does with it
 OE_STORY = {
     ('fiscal', 'float'):
         "The change in demand <i>would</i> push the interest rate {higher_lower}, so money {capital_flow} "
@@ -392,10 +385,8 @@ OE_STORY = {
 }
 
 
-# Medium level: one line per KIND of setting the user has changed, for the regime
-# actually selected. Entries that a pop-up already covers (monetary under a plain
-# fixed rate, the foreign rate when flows are offset) are deliberately absent, so
-# nothing is ever said twice.
+# Medium level: one line per kind of setting changed. Kinds a pop-up already
+# covers have no entry here, so nothing is said twice.
 OE_MEDIUM_NOTE = {
     ('demand', 'float'): "The exchange rate cancels a change in demand out completely — nothing on "
                          "the charts moves except wʳ.",
@@ -419,12 +410,8 @@ OE_MEDIUM_NOTE[('imported', 'hard')] = OE_MEDIUM_NOTE[('imported', 'float')]
 OE_MEDIUM_NOTE[('imported', 'ster')] = OE_MEDIUM_NOTE[('imported', 'float')]
 
 
-# What the user will actually SEE, verified against the simulation rather than
-# against the economics. The two differ often enough to matter: under a float the
-# IS-curve shifts and the appreciation pushes it back inside the same period, so
-# the diagram shows no movement at all, and a description that stops at "spending
-# rises" reads as flatly wrong next to a flat Y line. Where a line refuses to move,
-# say so and say why.
+# What the charts actually show, checked against the simulation — under a float a
+# line can end up not moving at all, and the text has to say so.
 OE_CHART = {
     ('fiscal', 'float'):
         "<b>nothing moves except wʳ.</b> IS does shift {right_left}, but the currency "
@@ -537,171 +524,52 @@ def oe_shock_panel(shock, regime):
 THEORY_INTRO = r"""
 ## Open Economy — Equations
 
-**Units.** Potential output is an index, $\bar{Y} = 100$, so the gap
-$\tilde{Y} = 100\,(Y-\bar{Y})/\bar{Y}$ is in percentage points, like $r$ and $\pi$. The real
-exchange rate $w^r$ is an index too: a **rise** in $w^r$ is a depreciation (weaker currency,
-cheaper exports, more demand). Baseline: $Y = 100$, $\pi = \pi^a = 2\%$, $r = r^a = 2\%$.
-
-### Parameters
+### Variables and parameters
 
 | Symbol | Meaning | Default |
 |---|---|---|
-| $\bar{Y}$ | Potential output (index) | 100 |
+| $Y,\ \bar{Y}$ | Output and potential output (index) | — , 100 |
+| $\tilde{Y}$ | Output gap, $100\,(Y-\bar{Y})/\bar{Y}$, in points | — |
+| $\pi$ | Inflation, % | 2 |
+| $r$ | Real interest rate, % | 2 |
+| $w^r$ | Real exchange rate $w\,p^a/p$ — a **rise** is a depreciation | 100 |
 | $\omega$ | Autonomous demand — the fiscal instrument | 77 |
-| $\phi$ | Output cost of a 1 pp rise in the real rate | 1.0 |
-| $\psi$ | Output gain from a 1 % real depreciation (net exports) | 0.25 |
-| $r'$ | Intercept of the policy rule (not the rate itself) | 0.5 |
+| $\varphi$ | Output cost of a 1 pp rise in $r$ | 1.0 |
+| $\psi$ | Output gain from a 1 % real depreciation | 0.25 |
+| $r'$ | Intercept of the policy rule, not the rate itself | 0.5 |
 | $\lambda_P$ | Policy response to the output gap | 0.5 |
-| $\lambda_I$ | Policy response to inflation (real; nominal is $1+\lambda_I$) | 0.75 |
-| $r^a$ | Foreign real interest rate | 2.0 |
-| $\pi^a$ | Foreign inflation | 2.0 |
+| $\lambda_I$ | Policy response to inflation (real) | 0.75 |
 | $\gamma$ | Phillips slope: pp of inflation per point of gap | 0.4 |
 | $\chi$ | Pass-through of a move in $w^r$ into prices | 0 |
-| $\eta$ | Exogenous price shock, applied every period | 0 |
-| $w^r$ | Real exchange rate, $w^r = w\,p^a/p$ (state variable) | — |
+| $r^a,\ \pi^a$ | Foreign real rate and inflation | 2.0 , 2.0 |
+
+### The five equations
+
+$$
+\textbf{IS}\quad Y = \omega - \varphi\,r + \psi\,w^r
+\qquad\qquad
+\textbf{MP}\quad r = r' + \lambda_P \tilde{Y} + \lambda_I \pi
+$$
+
+$$
+\textbf{FX}\quad 1 + r = (1 + r^a)\,\frac{w^{r,e}_{+1}}{w^r}
+\qquad\qquad
+\textbf{PPP}\quad w^r_t = w^r_{t-1}\,\frac{1 + \pi^a}{1 + \pi_t}
+$$
+
+$$
+\textbf{IA}\quad \pi_{t+1} = \pi_t + \gamma\,\tilde{Y}_t + \chi\,(w^r_{t+1} - w^r_t)
+$$
+
+IS, MP and IA are the same in all three regimes. **AD** is not a separate assumption —
+it is two of the curves above solved together, and *which* two depends on the regime.
 
 ---
 
-### Upper diagram — $r$–$Y$
+### Exchange-rate regimes
 
-**IS**
-
-$$
-Y = \omega - \varphi\,r + \psi\,w^r \qquad \varphi,\ \psi > 0
-$$
-
-$$
-r(Y) \;=\; \underbrace{\frac{\omega + \psi w^r}{\varphi}}_{\text{intercept}}
-\;\underbrace{-\;\frac{1}{\varphi}}_{\text{slope}}\,Y
-$$
-
-**MP**
-
-$$
-r = r' + \lambda_P \tilde{Y} + \lambda_I \pi,
-\qquad \tilde{Y} = 100\,\frac{Y-\bar{Y}}{\bar{Y}}
-$$
-
-$$
-r(Y) \;=\; \underbrace{\bigl(r' - 100\lambda_P + \lambda_I \pi\bigr)}_{\text{intercept}}
-\;+\; \underbrace{\frac{100\lambda_P}{\bar{Y}}}_{\text{slope}}\,Y
-$$
-
-**FX** — real interest parity
-
-$$
-1 + r = (1 + r^a)\,\frac{w^{r,e}_{+1}}{w^r}
-$$
-
-It is horizontal in $Y$ either way; only its level differs.
-
-*Flexible* — nothing is expected to move, $w^{r,e}_{+1} = w^r$:
-
-$$
-r(Y) = r^a \qquad (\text{slope } 0)
-$$
-
-*Fixed* — the **nominal** rate is pegged, so $w^r = w\,p^a/p$ is expected to move with the
-inflation difference alone, $w^{r,e}_{+1}/w^r = (1+\pi^a)/(1+\pi)$, and to first order:
-
-$$
-r(Y) = r^a + (\pi^a - \pi) \qquad (\text{slope } 0)
-$$
-
-The line therefore **moves with inflation** under a peg: below $\pi^a$ the real rate is
-*higher* than the world's.
-
----
-
-### Lower diagram — $\pi$–$Y$
-
-**IA**
-
-$$
-\pi_{t+1} = \pi_t + \gamma\,\tilde{Y}_t + \chi\,(w^r_{t+1} - w^r_t) + \eta
-$$
-
-Today's inflation was fixed by last period's gap, so IA is drawn **flat**:
-
-$$
-\pi(Y) = \pi_t \qquad (\text{slope } 0)
-$$
-
-**PPP** — the peg identity
-
-$$
-w^r_t = w^r_{t-1}\,\frac{1 + \pi^a}{1 + \pi_t}
-$$
-
-With $w$ pegged, $w^r$ stops moving only when $\pi = \pi^a$. That locus does not involve
-$Y$, so PPP is a horizontal line at the foreign inflation rate:
-
-$$
-\pi(Y) = \pi^a \qquad (\text{slope } 0)
-$$
-
-**AD** — not a separate assumption: it is the curves above solved together. *Which* two
-enter depends on the regime.
-
-*Flexible* — MP $\cap$ FX, so $r = r^a$ and $\omega$ drops out:
-
-$$
-r^a = r' + \lambda_P\,100\,\frac{Y-\bar{Y}}{\bar{Y}} + \lambda_I \pi
-\;\Longrightarrow\;
-\pi(Y) = \underbrace{\frac{r^a - r' + 100\lambda_P}{\lambda_I}}_{\text{intercept}}
-\;-\; \underbrace{\frac{100\lambda_P}{\lambda_I \bar{Y}}}_{|\text{slope}|}\,Y
-$$
-
-*Fixed, with sterilization* — IS $\cap$ MP at the pegged $w^r$:
-
-$$
-\frac{\omega + \psi w^r}{\varphi} - \frac{1}{\varphi}Y
-= r' - 100\lambda_P + \lambda_I \pi + \frac{100\lambda_P}{\bar{Y}}Y
-$$
-
-$$
-\pi(Y) = \underbrace{\frac{1}{\lambda_I}\left(\frac{\omega + \psi w^r}{\varphi} - r' + 100\lambda_P\right)}_{\text{intercept}}
-\;-\; \underbrace{\frac{1}{\lambda_I}\left(\frac{1}{\varphi} + \frac{100\lambda_P}{\bar{Y}}\right)}_{|\text{slope}|}\,Y
-$$
-
-*Fixed, no sterilization* — IS $\cap$ FX at the pegged $w^r$, with $r = r^a + (\pi^a - \pi)$:
-
-$$
-Y = \omega - \varphi\bigl(r^a + \pi^a - \pi\bigr) + \psi w^r
-\;\Longrightarrow\;
-\pi(Y) = \underbrace{\left(r^a + \pi^a - \frac{\omega + \psi w^r}{\varphi}\right)}_{\text{intercept}}
-\;+\; \underbrace{\frac{1}{\varphi}}_{\text{slope}}\,Y
-$$
-
-The last slope is **positive**: with the policy rule gone, higher inflation means a *lower*
-real rate and more demand. An upward AD against a flat IA is an unstable rest point.
-
-| Regime | AD is | Slope |
-|---|---|---|
-| Flexible | MP $\cap$ FX | $-\,100\lambda_P/(\lambda_I \bar{Y})$ |
-| Fixed – with sterilization | IS $\cap$ MP | $-\bigl(1/\varphi + 100\lambda_P/\bar{Y}\bigr)/\lambda_I$ |
-| Fixed – no sterilization | IS $\cap$ FX | $+\,1/\varphi$ |
-
----
-
-### Long run
-
-*Flexible* — AD at $Y = \bar{Y}$, with $\omega$ absent:
-
-$$
-\pi^* = \frac{r^a - r'}{\lambda_I}
-$$
-
-*Either peg* — the PPP identity takes over: $\pi \to \pi^a$. Reached with sterilization,
-run away from without it.
-
----
-
-### Exchange-rate Regimes
-
-A country would like a **stable exchange rate**, **free movement of capital**, and a
-**monetary policy of its own**. It can have any two. **Sterilization** is the bank
-offsetting the currency flows so they leave its own interest rate alone.
+A country would like a **stable exchange rate**, **free movement of capital** and a
+**monetary policy of its own**. It can have any two.
 """
 
 
@@ -709,35 +577,46 @@ THEORY_REST = r"""
 | | Flexible | Fixed – no sterilization | Fixed – with sterilization |
 |---|---|---|---|
 | **Gives up** | the stable exchange rate | its own monetary policy | free movement of capital |
-| **Fiscal policy** | no effect at all | strongest of the three | works, damped |
-| **Monetary policy** | works, permanently | no effect at all | works |
-| **Inflation ends at** | its own rate $\pi^*$ | nowhere — it runs away | the world rate $\pi^a$ |
-| **Held in place by** | nothing — the currency floats | reserve flows setting the rate | capital controls, once $r \neq r^a$ |
+| **FX becomes** | $r = r^a$ | $r = r^a + (\pi^a - \pi)$ | $r = r^a + (\pi^a - \pi)$, not met |
+| **Which curve sets $r$** | FX | FX | MP |
+| **Which curve sets $w^r$** | IS — it jumps | PPP — it drifts | PPP — it drifts |
+| **AD is** | MP $\cap$ FX | IS $\cap$ FX | IS $\cap$ MP |
+| **AD slope** | $-100\lambda_P/(\lambda_I\bar{Y})$ | $+1/\varphi$ | $-\bigl(1/\varphi + 100\lambda_P/\bar{Y}\bigr)/\lambda_I$ |
+| **$\omega$ in AD?** | no | yes | yes |
+| **$\pi$ ends at** | $(r^a - r')/\lambda_I$ | — it runs away | $\pi^a$ |
 
-- **Fiscal policy does nothing under a float.** Higher $\omega$ pulls $r$ up, capital flows
-  in, $w^r$ falls, and net exports give back exactly what spending added — $\omega$ is
-  absent from the float's AD.
-- **A peg forces $\pi \to \pi^a$.** With $w$ fixed, $w^r = w\,p^a/p$ keeps moving while
-  $\pi \neq \pi^a$, so nothing can rest until the two inflation rates are equal.
-- **No sterilization is unstable.** $r = r^a + (\pi^a - \pi)$ pushes the real rate the same
-  way as the shock, so the economy moves *away* from $\bar{Y}$. The app stops a run once it
-  leaves the range the linear model can describe.
-- **Sterilization is the capital-controls corner.** In the long run the rule leaves
-  $r = r' + \lambda_I \pi^a$; if that is not $r^a$, reserves drain without limit and only
-  controls hold the peg. The app warns when the settings are in this position.
+**AD, flexible** — MP $\cap$ FX, so $r = r^a$ and $\omega$ drops out:
+
+$$
+\pi(Y) = \frac{r^a - r' + 100\lambda_P}{\lambda_I} \;-\; \frac{100\lambda_P}{\lambda_I \bar{Y}}\,Y
+$$
+
+**AD, fixed with sterilization** — IS $\cap$ MP at the pegged $w^r$:
+
+$$
+\pi(Y) = \frac{1}{\lambda_I}\left(\frac{\omega + \psi w^r}{\varphi} - r' + 100\lambda_P\right)
+\;-\; \frac{1}{\lambda_I}\left(\frac{1}{\varphi} + \frac{100\lambda_P}{\bar{Y}}\right)Y
+$$
+
+**AD, fixed without sterilization** — IS $\cap$ FX at the pegged $w^r$:
+
+$$
+\pi(Y) = r^a + \pi^a - \frac{\omega + \psi w^r}{\varphi} \;+\; \frac{1}{\varphi}\,Y
+$$
+
+The last slope is **positive**: with the policy rule gone, higher inflation means a lower
+real rate and more demand, so the rest point is unstable.
 """
 
 
-# The impossible trinity, one triangle per regime: the two corners it reaches are
-# joined by a solid edge, the one it gives up is crossed out. Built in code rather
-# than hand-written so the three panels cannot drift apart.
+# One triangle per regime: the two corners it reaches are joined, the one it gives
+# up is crossed out.
 TRINITY_SVG = '<svg viewBox="0 0 900 300" width="900" height="300" xmlns="http://www.w3.org/2000/svg" font-family="system-ui, -apple-system, sans-serif">\n<g transform="translate(0,0)">\n<text x="150" y="24" text-anchor="middle" font-size="13" font-weight="600" fill="#555">Flexible</text>\n<line x1="150" y1="78" x2="58" y2="220" stroke="#DDDDDD" stroke-width="1.5" stroke-dasharray="4 4" />\n<line x1="58" y1="220" x2="242" y2="220" stroke="#4C78A8" stroke-width="3" />\n<line x1="150" y1="78" x2="242" y2="220" stroke="#DDDDDD" stroke-width="1.5" stroke-dasharray="4 4" />\n<circle cx="150" cy="78" r="7" fill="#FFFFFF" stroke="#CCCCCC" stroke-width="1.5" />\n<path d="M146,74 L154,82 M154,74 L146,82" stroke="#E45756" stroke-width="1.8" stroke-linecap="round" />\n<circle cx="58" cy="220" r="7" fill="#4C78A8" />\n<circle cx="242" cy="220" r="7" fill="#4C78A8" />\n<text x="150" y="48" text-anchor="middle" font-size="11" fill="#BBBBBB">Stable exchange<tspan x="150" dy="13">rate</tspan></text>\n<text x="58" y="244" text-anchor="middle" font-size="11" fill="#666666">Free movement<tspan x="58" dy="13">of money</tspan></text>\n<text x="242" y="244" text-anchor="middle" font-size="11" fill="#666666">Own monetary<tspan x="242" dy="13">policy</tspan></text>\n<text x="150" y="288" text-anchor="middle" font-size="11" fill="#999">the currency absorbs the shocks</text>\n</g>\n<g transform="translate(300,0)">\n<text x="150" y="24" text-anchor="middle" font-size="13" font-weight="600" fill="#555">Fixed – no sterilization</text>\n<line x1="150" y1="78" x2="58" y2="220" stroke="#4C78A8" stroke-width="3" />\n<line x1="58" y1="220" x2="242" y2="220" stroke="#DDDDDD" stroke-width="1.5" stroke-dasharray="4 4" />\n<line x1="150" y1="78" x2="242" y2="220" stroke="#DDDDDD" stroke-width="1.5" stroke-dasharray="4 4" />\n<circle cx="150" cy="78" r="7" fill="#4C78A8" />\n<circle cx="58" cy="220" r="7" fill="#4C78A8" />\n<circle cx="242" cy="220" r="7" fill="#FFFFFF" stroke="#CCCCCC" stroke-width="1.5" />\n<path d="M238,216 L246,224 M246,216 L238,224" stroke="#E45756" stroke-width="1.8" stroke-linecap="round" />\n<text x="150" y="48" text-anchor="middle" font-size="11" fill="#666666">Stable exchange<tspan x="150" dy="13">rate</tspan></text>\n<text x="58" y="244" text-anchor="middle" font-size="11" fill="#666666">Free movement<tspan x="58" dy="13">of money</tspan></text>\n<text x="242" y="244" text-anchor="middle" font-size="11" fill="#BBBBBB">Own monetary<tspan x="242" dy="13">policy</tspan></text>\n<text x="150" y="288" text-anchor="middle" font-size="11" fill="#999">the world sets the interest rate</text>\n</g>\n<g transform="translate(600,0)">\n<text x="150" y="24" text-anchor="middle" font-size="13" font-weight="600" fill="#555">Fixed – with sterilization</text>\n<line x1="150" y1="78" x2="58" y2="220" stroke="#DDDDDD" stroke-width="1.5" stroke-dasharray="4 4" />\n<line x1="58" y1="220" x2="242" y2="220" stroke="#DDDDDD" stroke-width="1.5" stroke-dasharray="4 4" />\n<line x1="150" y1="78" x2="242" y2="220" stroke="#4C78A8" stroke-width="3" />\n<circle cx="150" cy="78" r="7" fill="#4C78A8" />\n<circle cx="58" cy="220" r="7" fill="#FFFFFF" stroke="#CCCCCC" stroke-width="1.5" />\n<path d="M54,216 L62,224 M62,216 L54,224" stroke="#E45756" stroke-width="1.8" stroke-linecap="round" />\n<circle cx="242" cy="220" r="7" fill="#4C78A8" />\n<text x="150" y="48" text-anchor="middle" font-size="11" fill="#666666">Stable exchange<tspan x="150" dy="13">rate</tspan></text>\n<text x="58" y="244" text-anchor="middle" font-size="11" fill="#BBBBBB">Free movement<tspan x="58" dy="13">of money</tspan></text>\n<text x="242" y="244" text-anchor="middle" font-size="11" fill="#666666">Own monetary<tspan x="242" dy="13">policy</tspan></text>\n<text x="150" y="288" text-anchor="middle" font-size="11" fill="#999">capital controls hold it together</text>\n</g>\n</svg>'
 
 
 # ―――― Pop-ups ―――――――――――――――――――――――――――――――――――
-# Shown ONLY where the main panel does not already say it: at Medium/Advanced the
-# panel lists the settings rather than telling a story, so a policy that cannot
-# work in the chosen regime needs flagging. At Easy the story says it instead.
+# Shown only at Medium/Advanced, where the panel lists settings instead of telling
+# a story, so a policy the regime switches off still gets flagged.
 
 monetary_neutralised_text = """🏦 **Monetary policy has no effect here.** Holding the exchange rate
 fixed pulls the domestic interest rate back to the world rate, so the change in r'
