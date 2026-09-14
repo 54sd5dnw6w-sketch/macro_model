@@ -13,7 +13,7 @@ import helpers as h
 # r' = rᵃ − λ_I·πᵃ and ω = Ȳ + φ·rᵃ − ψ·wʳ* rest the economy at Y = 100, π = 2,
 # r = 2, wʳ = 100. The resting point is solved for, not hard-coded — see "Period 0".
 PHI_BASE, PSI_BASE, OMEGA_BASE = 1.0, 0.25, 77.0
-RP_BASE, LP_BASE, LI_BASE, GAMMA_BASE = 0.5, 0.5, 0.75, 0.4
+RP_BASE, LP_BASE, LI_BASE, GAMMA_BASE = 1.0, 0.5, 0.5, 0.4
 RA_BASE, PIA_BASE = 2.0, 2.0
 
 # ―――― Shock sizes (Easy mode) ――――――――――――――――
@@ -143,7 +143,8 @@ with st.sidebar:
                           min_value=OMEGA_BASE - 4.0, max_value=OMEGA_BASE + 4.0, step=0.25,
                           value=OMEGA_BASE, key="oe_m_omega",
                           help=r"IS Curve: $Y = \omega - \varphi r + \psi w^r$")
-        r_init = st.slider(r"$r'$ (%):", on_change=reset, min_value=-1.0, max_value=2.0, step=0.1,
+        r_init = st.slider(r"$r'$ (%):", on_change=reset,
+                           min_value=RP_BASE - 1.5, max_value=RP_BASE + 1.5, step=0.1,
                            value=RP_BASE, key="oe_m_rinit",
                            help=r"MP Curve: $r = r' + \lambda_P \tilde Y + \lambda_I \pi$")
         r_foreign = st.slider(r"$r^a$ (%) - abroad:", on_change=reset, min_value=0.0, max_value=4.0, step=0.1,
@@ -180,8 +181,8 @@ with st.sidebar:
                                         r"of gap. 0.5 is the textbook Taylor weight.")
         lambda_i = st.number_input(r'$\lambda_I$ :', on_change=reset, min_value=0.1, max_value=3.0, step=0.05,
                                    value=LI_BASE, key="oe_a_li",
-                                   help=r"MP Curve weight on inflation: the REAL rate response. 0.75 here "
-                                        r"means a nominal response of 1.75, comfortably above the Taylor "
+                                   help=r"MP Curve weight on inflation: the REAL rate response. 0.5 here "
+                                        r"means a nominal response of 1.5, comfortably above the Taylor "
                                         r"principle.")
 
         st.markdown("<hr style='margin: 2px 0; border: none; border-top: 1px solid #ccc;'>", unsafe_allow_html=True)

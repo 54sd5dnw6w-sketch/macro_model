@@ -15,9 +15,9 @@ $\pi$. Baseline: $Y = 100$, $\pi = 2\%$, $r = 2\%$.
 | $\bar{Y}$ | Potential output (index) | 100 |
 | $\omega$ | Autonomous demand — the IS shifter | 102 |
 | $\phi$ | Output cost of a 1 pp rise in the real rate | 1.0 |
-| $r'$ | Intercept of the policy rule (not the rate itself) | 0.5 |
+| $r'$ | Intercept of the policy rule (not the rate itself) | 1.0 |
 | $\lambda_P$ | Policy response to the output gap | 0.5 |
-| $\lambda_I$ | Policy response to inflation (real; nominal is $1+\lambda_I$) | 0.75 |
+| $\lambda_I$ | Policy response to inflation (real; nominal is $1+\lambda_I$) | 0.5 |
 | $\gamma$ | Phillips slope: pp of inflation per point of gap | 0.4 |
 | $\eta$ | Exogenous price shock, applied every period | 0 |
 
@@ -536,9 +536,9 @@ THEORY_INTRO = r"""
 | $\omega$ | Autonomous demand — the fiscal instrument | 77 |
 | $\varphi$ | Output cost of a 1 pp rise in $r$ | 1.0 |
 | $\psi$ | Output gain from a 1 % real depreciation | 0.25 |
-| $r'$ | Intercept of the policy rule, not the rate itself | 0.5 |
+| $r'$ | Intercept of the policy rule, not the rate itself | 1.0 |
 | $\lambda_P$ | Policy response to the output gap | 0.5 |
-| $\lambda_I$ | Policy response to inflation (real) | 0.75 |
+| $\lambda_I$ | Policy response to inflation (real) | 0.5 |
 | $\gamma$ | Phillips slope: pp of inflation per point of gap | 0.4 |
 | $\chi$ | Pass-through of a move in $w^r$ into prices | 0 |
 | $r^a,\ \pi^a$ | Foreign real rate and inflation | 2.0 , 2.0 |

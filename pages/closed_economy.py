@@ -33,7 +33,7 @@ st.set_page_config(layout="wide", initial_sidebar_state="expanded")
 # Y is an index at Ȳ = 100 and the gap Ỹ = 100·(Y−Ȳ)/Ȳ is in percentage points.
 # r' = r* − λ_I·π* and ω = Ȳ + φ·r* are what rest the economy at Y = 100, π = 2, r = 2.
 PHI_BASE, OMEGA_BASE = 1.0, 102.0
-RP_BASE, LP_BASE, LI_BASE, GAMMA_BASE = 0.5, 0.5, 0.75, 0.4
+RP_BASE, LP_BASE, LI_BASE, GAMMA_BASE = 1.0, 0.5, 0.5, 0.4
 
 # Period 0 at the default parameters. Recomputed after the sidebar with whatever
 # structural parameters the user set; the Easy level never changes them.
@@ -106,7 +106,8 @@ with st.sidebar:
                           value=OMEGA_BASE,
                           help=r"IS Curve: $Y = \omega - \phi r$. One unit is one per cent of "
                                r"potential output.")
-        r_init = st.slider(r"$r' (\%) :$", on_change=reset, min_value=-1.0, max_value=2.0, step=0.1,
+        r_init = st.slider(r"$r' (\%) :$", on_change=reset,
+                           min_value=RP_BASE - 1.5, max_value=RP_BASE + 1.5, step=0.1,
                            value=RP_BASE,
                            help=r"MP Curve: $r = r' + \lambda_P \tilde{Y} + \lambda_I \pi$. This is the "
                                 r"rule's intercept, not the rate itself — at the baseline it leaves "
@@ -152,8 +153,8 @@ with st.sidebar:
                                         r"0.5 is the textbook Taylor weight.")
         lambda_i = st.number_input(r'$\lambda_I :$', on_change=reset, min_value=0.1, max_value=3.0, step=0.05,
                                    value=LI_BASE,
-                                   help=r"Weight on inflation: the REAL rate response. 0.75 here means a "
-                                        r"nominal response of 1.75, above the Taylor principle.")
+                                   help=r"Weight on inflation: the REAL rate response. 0.5 here means a "
+                                        r"nominal response of 1.5, above the Taylor principle.")
         inflation_shock = st.number_input(r"Initial inflation shock (%):", on_change=reset, min_value=-3.0, max_value=3.0, step=0.25, value=0.0,
                                            help=r"One-off shift of initial inflation away from equilibrium. 0 = no shock. "
                                                 r"Distinct from the per-period $\eta$ below.")
