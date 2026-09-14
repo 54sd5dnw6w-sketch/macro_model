@@ -547,18 +547,22 @@ THEORY_INTRO = r"""
 
 $$
 \textbf{IS}\quad Y = \omega - \varphi\,r + \psi\,w^r
-\qquad\qquad
+$$
+
+$$
 \textbf{MP}\quad r = r' + \lambda_P \tilde{Y} + \lambda_I \pi
 $$
 
 $$
 \textbf{FX}\quad 1 + r = (1 + r^a)\,\frac{w^{r,e}_{+1}}{w^r}
-\qquad\qquad
+$$
+
+$$
 \textbf{PPP}\quad w^r_t = w^r_{t-1}\,\frac{1 + \pi^a}{1 + \pi_t}
 $$
 
 $$
-\textbf{IA}\quad \pi_{t+1} = \pi_t + \gamma\,\tilde{Y}_t + \chi\,(w^r_{t+1} - w^r_t)
+\textbf{IA}\quad \pi_{t+1} = \pi_t + \gamma\,\tilde{Y}_t
 $$
 
 IS, MP and IA are the same in all three regimes. **AD** is not a separate assumption —
@@ -578,30 +582,27 @@ THEORY_REST = r"""
 |---|---|---|---|
 | **Gives up** | the stable exchange rate | its own monetary policy | free movement of capital |
 | **FX becomes** | $r = r^a$ | $r = r^a + (\pi^a - \pi)$ | $r = r^a + (\pi^a - \pi)$, not met |
-| **Which curve sets $r$** | FX | FX | MP |
-| **Which curve sets $w^r$** | IS — it jumps | PPP — it drifts | PPP — it drifts |
 | **AD is** | MP $\cap$ FX | IS $\cap$ FX | IS $\cap$ MP |
-| **AD slope** | $-100\lambda_P/(\lambda_I\bar{Y})$ | $+1/\varphi$ | $-\bigl(1/\varphi + 100\lambda_P/\bar{Y}\bigr)/\lambda_I$ |
-| **$\omega$ in AD?** | no | yes | yes |
-| **$\pi$ ends at** | $(r^a - r')/\lambda_I$ | — it runs away | $\pi^a$ |
+| **AD slope** | $-\lambda_P/(\lambda_I)$ | $1/\varphi$ | $-\bigl(1/\varphi + \lambda_P\bigr)/\lambda_I$ |
 
-**AD, flexible** — MP $\cap$ FX, so $r = r^a$ and $\omega$ drops out:
+
+**AD, flexible** — MP $\cap$ FX, FX: $r = r^a$:
 
 $$
-\pi(Y) = \frac{r^a - r' + 100\lambda_P}{\lambda_I} \;-\; \frac{100\lambda_P}{\lambda_I \bar{Y}}\,Y
+\pi(Y) = \frac{r^a - r' + \lambda_P}{\lambda_I} \;-\; \frac{\lambda_P}{\lambda_I}Y
 $$
 
 **AD, fixed with sterilization** — IS $\cap$ MP at the pegged $w^r$:
 
 $$
-\pi(Y) = \frac{1}{\lambda_I}\left(\frac{\omega + \psi w^r}{\varphi} - r' + 100\lambda_P\right)
-\;-\; \frac{1}{\lambda_I}\left(\frac{1}{\varphi} + \frac{100\lambda_P}{\bar{Y}}\right)Y
+\pi(Y) = \frac{\omega - \varphi r' + \varphi \lambda_P + \psi w^r}{\varphi \lambda_I}
+\;-\; \frac{1 + \varphi \lambda_P}{\varphi \lambda_I}Y
 $$
 
 **AD, fixed without sterilization** — IS $\cap$ FX at the pegged $w^r$:
 
 $$
-\pi(Y) = r^a + \pi^a - \frac{\omega + \psi w^r}{\varphi} \;+\; \frac{1}{\varphi}\,Y
+\pi(Y) = \frac{ - \omega + \varphi r^a + \varphi \pi^a - \psi w^r}{\varphi} \;+\; \frac{1}{\varphi}Y
 $$
 
 The last slope is **positive**: with the policy rule gone, higher inflation means a lower
