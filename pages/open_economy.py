@@ -443,7 +443,11 @@ with tab1:
     r_Y_fig = h.create_linear_plot(x_label="", y_label="r - interest rate")
     h.add_curve_set(r_Y_fig, 'IS', x_lo, x_hi, init_IS, st_IS, lt_IS, show_initial, show_long)
     h.add_curve_set(r_Y_fig, 'MP', x_lo, x_hi, init_MP, st_MP, lt_MP, show_initial, show_long)
-    h.add_curve_set(r_Y_fig, 'FX', x_lo, x_hi, init_FX, st_FX, lt_FX, show_initial, show_long)
+    # The FX label carries its rule: r = rᵃ under a float, so the line never reacts
+    # to domestic inflation, against r = rᵃ+𝜋ᵃ−𝜋 under a peg, where it must.
+    # Labelled left, like PPP below — the suffix would not fit off the right edge.
+    h.add_curve_set(r_Y_fig, 'FX', x_lo, x_hi, init_FX, st_FX, lt_FX, show_initial, show_long,
+                    label_suffix=h.oe_fx_label(oe_regime), label_position='left')
 
     if phase != "idle":
         h.add_vertical_line(r_Y_fig, Y_cur, y_max=r_cur, name=f"Y ({Y_cur:.1f})", name_position='bottom', color='#B0B0B0', dash='dot')
@@ -550,34 +554,31 @@ with tab1:
         h.panel_header("What is happening")
         # Pop-ups: only what the description panel below does not already say
         if peg_unsustainable:
-            st.warning(f"⚠️ **This peg needs capital controls.** The bank ends up holding "
-                       f"r = {peg_lr_rate:.2f} while the world rate is rᵃ = {r_foreign:.2f}, which is "
-                       f"why the operating point sits away from the red FX line. Money keeps crossing "
-                       f"the border, so reserves drain (or pile up) without limit. Sterilisation is not "
-                       f"a way of having all three at once — it is the corner of the trinity where "
-                       f"**free movement of capital** is the objective given up. Without controls the "
-                       f"bank must eventually let the interest rate go (→ **Fixed – no sterilization**) "
-                       f"or let the currency go (→ **Flexible**).")
+            st.warning(f"⚠️ **This peg needs capital controls.** The bank holds r = {peg_lr_rate:.2f} "
+                       f"while the world pays rᵃ = {r_foreign:.2f} — that gap is why the operating "
+                       f"point sits off the red FX line, and it drains (or piles up) reserves without "
+                       f"limit. Sterilisation is the corner of the trinity that gives up **free "
+                       f"movement of capital**. Without controls the bank must eventually release the "
+                       f"interest rate (→ **Fixed – no sterilization**) or the currency (→ **Flexible**).")
 
         if peg_divergent and phase != "idle":
-            st.warning(f"⚠️ **This shock feeds on itself.** The Taylor rule is gone, so the FX market "
-                       f"sets the interest rate: the nominal rate is pegged (i = iᵃ), which leaves "
-                       f"r = rᵃ + (πᵃ − 𝜋). A slump pulls inflation below the world rate, so the real "
-                       f"rate RISES and the slump deepens; a boom does the reverse. That is why AD "
-                       f"slopes upward here and why the gap grows about {(peg_root - 1) * 100:.0f}% a "
-                       f"period. Competitiveness does pull the other way — cheaper domestic prices "
-                       f"raise wʳ — but it works through the slow drift of the price level and never "
-                       f"catches up. This is the book's *worrying policy*: a peg without sterilisation "
-                       f"leaves the economy badly exposed to a shock, and it is the same mechanism "
-                       f"that made the Eurozone diverge.")
+            st.warning(f"⚠️ **This shock feeds on itself.** With the nominal rate pegged (i = iᵃ) the "
+                       f"Taylor rule is gone and the FX market sets r = rᵃ + (πᵃ − 𝜋). A slump pulls "
+                       f"inflation below the world rate, so the real rate **rises** and the slump "
+                       f"deepens — a boom does the reverse. Hence the upward-sloping AD, and a gap "
+                       f"that grows about {(peg_root - 1) * 100:.0f}% a period. Competitiveness pulls "
+                       f"the other way, but only through the slow drift of prices, and never catches "
+                       f"up. This is the mechanism behind the Eurozone's divergence.")
 
         if st.session_state.oe_peg_broke:
-            st.error("🛑 **The peg breaks.** The run stopped because output or inflation left the range "
-                     "where a linear IS curve means anything. That is not a numerical glitch — it is "
-                     "where this regime ends up: holding the rate demands an interest rate the economy "
-                     "cannot bear, so the bank either raises it anyway (France 1992) or gives up the "
-                     "peg (the UK on Black Wednesday). A smaller shock — the Medium or Advanced "
-                     "level — takes longer to get there and shows more of the path.")
+            st.error(f"🛑 **The peg breaks.** Far from potential a linear model describes nothing, so "
+                     f"the run is stopped at an explicit breaking point: output more than "
+                     f"{h.OE_BREAK_GAP:.0f}% from potential, inflation more than {h.OE_BREAK_PI:.0f} "
+                     f"points from the foreign rate, or the real exchange rate more than "
+                     f"{h.OE_BREAK_WR * 100:.0f}% from its initial value. That is the regime's own "
+                     f"result, not a glitch: the bank must either bear the rate the peg demands "
+                     f"(France, 1992) or let the peg go (the UK on Black Wednesday). A smaller shock "
+                     f"takes longer to get there and shows more of the path.")
 
         if level != 'Easy':
             if monetary_neutralised:

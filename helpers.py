@@ -219,31 +219,42 @@ IDX_INITIAL, IDX_SHORT, IDX_LONG = "<sub>0</sub>", "<sub>1</sub>", "<sub>∞</su
 
 
 def add_curve_set(plotly_fig, key, x_min, x_max, initial, short, long_=None,
-                  show_initial=False, show_long=False, label=None):
+                  show_initial=False, show_long=False, label=None, label_suffix="",
+                  label_position='right'):
     """Draw one curve in the positions the current phase calls for.
 
     idle: `initial` alone. After Play: `initial` as a dotted ghost plus `short`.
-    After Continue: `short` as the ghost plus `long_`, which drifts each period."""
+    After Continue: `short` as the ghost plus `long_`, which drifts each period.
+
+    `label_suffix` goes AFTER the period index, so the rule a curve is drawn from
+    can be named without the subscript landing in the middle of it. A long suffix
+    wants `label_position='left'`, which keeps the label inside the plot area
+    instead of running off the right edge into a zero-width margin."""
     name = key if label is None else label
     solid, pale = CURVE_COLORS[key]
 
+    def _nm(index=""):
+        return f"{name}{index}{label_suffix}"
+
     if not show_initial and not show_long:
-        return add_model_curve(plotly_fig, *initial, x_min, x_max, name=name,
-                               color=solid, line_width=c.standard_line_width)
+        return add_model_curve(plotly_fig, *initial, x_min, x_max, name=_nm(),
+                               color=solid, line_width=c.standard_line_width,
+                               label_position=label_position)
 
     if show_initial:
-        add_model_curve(plotly_fig, *initial, x_min, x_max, name=f"{name}{IDX_INITIAL}",
+        add_model_curve(plotly_fig, *initial, x_min, x_max, name=_nm(IDX_INITIAL),
                         color=pale, line_width=c.thin_line_width, dash='dot',
-                        label_offset=-LABEL_NUDGE)
-        return add_model_curve(plotly_fig, *short, x_min, x_max, name=f"{name}{IDX_SHORT}",
+                        label_position=label_position, label_offset=-LABEL_NUDGE)
+        return add_model_curve(plotly_fig, *short, x_min, x_max, name=_nm(IDX_SHORT),
                                color=solid, line_width=c.standard_line_width,
-                               label_offset=LABEL_NUDGE)
+                               label_position=label_position, label_offset=LABEL_NUDGE)
 
-    add_model_curve(plotly_fig, *short, x_min, x_max, name=f"{name}{IDX_SHORT}",
-                    color=pale, line_width=c.thin_line_width, label_offset=-LABEL_NUDGE)
-    return add_model_curve(plotly_fig, *long_, x_min, x_max, name=f"{name}{IDX_LONG}",
+    add_model_curve(plotly_fig, *short, x_min, x_max, name=_nm(IDX_SHORT),
+                    color=pale, line_width=c.thin_line_width,
+                    label_position=label_position, label_offset=-LABEL_NUDGE)
+    return add_model_curve(plotly_fig, *long_, x_min, x_max, name=_nm(IDX_LONG),
                            color=solid, line_width=c.standard_line_width,
-                           label_offset=LABEL_NUDGE)
+                           label_position=label_position, label_offset=LABEL_NUDGE)
 
 
 # ―――― Units ―――――――――――――――――――――――――――――――――
@@ -303,6 +314,15 @@ def oe_fx_rate(p, regime, pi):
     return p.r_foreign + (p.pi_foreign - pi)
 
 
+def oe_fx_label(regime):
+    """What to write after the FX label, so the red line's moves read as the
+    regime's doing and not as a glitch. Under a float the line is rᵃ and never
+    reacts to domestic inflation; under a peg parity ties it to 𝜋ᵃ − 𝜋, so it
+    moves whenever inflation does. Sterilising, the bank does not follow it — the
+    line is the parity requirement and the gap to r is the reserve flow."""
+    return " = rᵃ" if regime == OE_FLOAT else " = rᵃ+𝜋ᵃ−𝜋"
+
+
 def oe_peg_root(p):
     """Dominant eigenvalue of the unsterilised peg, as a growth factor per period.
 
@@ -320,13 +340,18 @@ def oe_peg_root(p):
     return (abs(tr) + disc ** 0.5) / 2.0
 
 
+# Breaking point of a diverging peg: a display guard, not a model equation. The
+# "peg breaks" message quotes these same numbers, so they are named once here.
+OE_BREAK_GAP, OE_BREAK_PI, OE_BREAK_WR = 8.0, 10.0, 0.33
+
+
 def oe_out_of_range(p, Y, pi, wr):
     """Display guard, not a model equation: the unsterilised peg amplifies without
     limit, and past these bounds a linear IS curve describes nothing. Changes no
     path, only where the line stops."""
-    return (abs(output_gap(Y, p.Ybar)) > 8.0
-            or abs(pi - p.pi_foreign) > 10.0
-            or abs(wr / oe_baseline_wr(p) - 1.0) > 0.35)
+    return (abs(output_gap(Y, p.Ybar)) > OE_BREAK_GAP
+            or abs(pi - p.pi_foreign) > OE_BREAK_PI
+            or abs(wr / oe_baseline_wr(p) - 1.0) > OE_BREAK_WR)
 
 
 def oe_operating_point(p, regime, pi, wr_state):
