@@ -278,6 +278,7 @@ def gap_per_Y(Ybar):
 #   IA   π₊₁ = π + γ·Ỹ + η   (η = the one-off imported-inflation shock, on π₀ only)
 #   PPP  wʳ = wʳ₋₁·(1+πᵃ)/(1+π)   — one law: within-period response and drift both
 
+
 OE_FLOAT, OE_PEG, OE_PEG_STER = 'float', 'hard', 'ster'
 
 
