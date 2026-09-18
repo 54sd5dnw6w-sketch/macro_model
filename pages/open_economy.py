@@ -41,7 +41,6 @@ PARAM_KEYS = (
     "oe_m_omega", "oe_m_rinit", "oe_m_rforeign", "oe_m_infl",
     "oe_a_phi", "oe_a_psi", "oe_a_omega", "oe_a_rinit", "oe_a_lp", "oe_a_li",
     "oe_a_rforeign", "oe_a_piforeign", "oe_a_gamma", "oe_a_infl",
-    "oe_a_chi",
 )
 
 
@@ -110,7 +109,6 @@ with st.sidebar:
     phi = PHI_BASE; psi = PSI_BASE; lambda_p = LP_BASE; lambda_i = LI_BASE
     gamma = GAMMA_BASE; pi_foreign = PIA_BASE; inflation_shock = 0.0
     omega = OMEGA_BASE; r_init = RP_BASE; r_foreign = RA_BASE; pi_0_override = None
-    chi = 0.0                      # imported-inflation pass-through, Advanced only
 
     if level == 'Easy':
         st.markdown('##### Please Select the shock:')
@@ -149,8 +147,10 @@ with st.sidebar:
                            help=r"MP Curve: $r = r' + \lambda_P \tilde Y + \lambda_I \pi$")
         r_foreign = st.slider(r"$r^a$ (%) - abroad:", on_change=reset, min_value=0.0, max_value=4.0, step=0.1,
                               value=RA_BASE, key="oe_m_rforeign",
-                              help=r"FX Curve: $r = r^a$ under a flexible exchange rate; "
-                                   r"$r = r^a + (\pi^a - \pi)$ under a peg")
+                              help=r"FX Curve: $r = r^a$ under a flexible exchange rate, "
+                                   r"$r = r^a + (\pi^a - \pi)$ under a peg without sterilization. "
+                                   r"Sterilizing absorbs the relation into the reserve flow, so it "
+                                   r"constrains nothing and is not drawn.")
         inflation_shock = st.slider(r"Imported inflation (%):", on_change=reset, min_value=-2.0, max_value=2.0,
                                     step=0.25, value=0.0, key="oe_m_infl",
                                     help="A one-off jump in import prices, which lands directly on inflation. "
@@ -191,7 +191,9 @@ with st.sidebar:
                                     key="oe_a_rforeign",
                                     help=r"FX Curve: $1+r = (1+r^a)\,w^{r,e}_{+1}/w^r$ — this is "
                                          r"$r = r^a$ only when no move in the real exchange rate is "
-                                         r"expected. Under a peg it is $r = r^a + (\pi^a - \pi)$.")
+                                         r"expected. Under a peg without sterilization it is "
+                                         r"$r = r^a + (\pi^a - \pi)$; under sterilization it is "
+                                         r"absorbed by reserves and does not appear.")
         pi_foreign = st.number_input(r"$\pi^a$ (%) - abroad:", on_change=reset, step=0.1, value=PIA_BASE,
                                      key="oe_a_piforeign", help=r"Long-run domestic inflation anchor")
         st.markdown("<hr style='margin: 2px 0; border: none; border-top: 1px solid #ccc;'>", unsafe_allow_html=True)
@@ -204,13 +206,6 @@ with st.sidebar:
                                           step=0.25, value=0.0, key="oe_a_infl",
                                           help="A one-off jump in import prices. It lands on inflation once "
                                                "and is carried forward from there.")
-        chi = st.number_input(r'$\chi$ (imported inflation):', on_change=reset, min_value=0.0, max_value=0.3,
-                              step=0.01, value=0.0, key="oe_a_chi",
-                              help=r"How much a move in the exchange rate feeds into domestic prices: a weaker "
-                                   r"currency makes imports dearer straight away. $w^r$ is an index, so "
-                                   r"$\chi = 0.05$ means a 10 % depreciation adds half a point to inflation. "
-                                   r"Large for a CPI basket, small for the GDP deflator. Leave it at 0 for "
-                                   r"the standard results.")
 
     # ―――― Play / Reset buttons ――――――――――――――――
     st.sidebar.markdown("<hr style='margin: 2px 0; border: none; border-top: 1px solid #ccc;'>", unsafe_allow_html=True)
@@ -267,7 +262,7 @@ foreign_neutralised = peg_steril and (r_foreign != RA_BASE)
 
 P = h.OEParams(omega=omega, phi=phi, psi=psi, r_init=r_init, lambda_p=lambda_p,
                lambda_i=lambda_i, r_foreign=r_foreign, pi_foreign=pi_foreign,
-               gamma=gamma, chi=chi, Ybar=Ybar)
+               gamma=gamma, Ybar=Ybar)
 
 pi_eq, peg_lr_rate, WR_LONGRUN = h.oe_longrun(P, oe_regime)
 
@@ -277,7 +272,7 @@ pi_eq, peg_lr_rate, WR_LONGRUN = h.oe_longrun(P, oe_regime)
 # be a rest point at the default φ, ψ, λ_I and πᵃ.
 P0 = h.OEParams(omega=OMEGA_BASE, phi=phi, psi=psi, r_init=RP_BASE, lambda_p=lambda_p,
                 lambda_i=lambda_i, r_foreign=RA_BASE, pi_foreign=pi_foreign,
-                gamma=gamma, chi=chi, Ybar=Ybar)
+                gamma=gamma, Ybar=Ybar)
 PI_BASELINE, R_BASELINE, WR_BASELINE = h.oe_longrun(P0, oe_regime)
 
 # Sterilising, the bank ends up holding r = r' + λ_I·πᵃ. If that is not rᵃ, capital
@@ -368,7 +363,7 @@ if level == 'Medium':
 
 # ―――― Continue: advance from short_term_paused to adjusting ――――――――――――――――
 if continue_clicked and phase == "short_term_paused":
-    _pi_next = h.oe_next_inflation(P, oe_regime, pi_0, Y_shock, wr_shock)
+    _pi_next = h.oe_next_inflation(P, pi_0, Y_shock)
     _Y_next, _, _ = h.oe_operating_point(P, oe_regime, _pi_next, wr_shock)
     st.session_state.oe_pi_prev = _pi_next
     st.session_state.oe_wr_prev = h.oe_wr_next(P, oe_regime, wr_shock, _pi_next, _Y_next)
@@ -416,7 +411,8 @@ lt_IS, lt_MP = (IS_slope, IS_intercept_cur), (MP_slope, MP_intercept_cur)
 lt_AD, lt_IA = (AD_slope, AD_intercept), (0.0, pi_cur)
 
 # FX is the parity constraint, not the operating point: fixed at rᵃ under a float,
-# moving with inflation under either peg.
+# moving with inflation under the unsterilised peg. Computed either way; only drawn
+# where the regime leaves it binding (see the r–Y diagram).
 st_FX = (0.0, h.oe_fx_rate(P, oe_regime, pi_0))
 lt_FX = (0.0, h.oe_fx_rate(P, oe_regime, pi_cur))
 
@@ -443,11 +439,16 @@ with tab1:
     r_Y_fig = h.create_linear_plot(x_label="", y_label="r - interest rate")
     h.add_curve_set(r_Y_fig, 'IS', x_lo, x_hi, init_IS, st_IS, lt_IS, show_initial, show_long)
     h.add_curve_set(r_Y_fig, 'MP', x_lo, x_hi, init_MP, st_MP, lt_MP, show_initial, show_long)
-    # The FX label carries its rule: r = rᵃ under a float, so the line never reacts
-    # to domestic inflation, against r = rᵃ+𝜋ᵃ−𝜋 under a peg, where it must.
+    # Sterilising, the bank breaks the arbitrage instead of satisfying it: the free
+    # variable is the stock of reserves, which is not in the diagram, so FX imposes
+    # nothing on r and is absorbed out of the system — no line to draw.
+    # Where it IS drawn, the label carries its rule: r = rᵃ under a float, so the
+    # line never reacts to domestic inflation, against r = rᵃ+𝜋ᵃ−𝜋 under the
+    # unsterilised peg, where parity ties it to the inflation differential.
     # Labelled left, like PPP below — the suffix would not fit off the right edge.
-    h.add_curve_set(r_Y_fig, 'FX', x_lo, x_hi, init_FX, st_FX, lt_FX, show_initial, show_long,
-                    label_suffix=h.oe_fx_label(oe_regime), label_position='left')
+    if not peg_steril:
+        h.add_curve_set(r_Y_fig, 'FX', x_lo, x_hi, init_FX, st_FX, lt_FX, show_initial, show_long,
+                        label_suffix=h.oe_fx_label(oe_regime), label_position='left')
 
     if phase != "idle":
         h.add_vertical_line(r_Y_fig, Y_cur, y_max=r_cur, name=f"Y ({Y_cur:.1f})", name_position='bottom', color='#B0B0B0', dash='dot')
@@ -490,12 +491,11 @@ with tab1:
         # Written around Ȳ — the raw intercept is a meaningless three-digit number
         _ad_at_Ybar = _ad_slope * Ybar + _ad_int
         _ad_line = f"𝜋 = {_ad_at_Ybar:.2f} {_ad_slope:+.2f}·(Y − Ȳ)"
-        # Under sterilisation the bank's own r sits away from the parity line, so
-        # both numbers are worth showing
         _fx_level = h.oe_fx_rate(P, oe_regime, pi_cur)
         if peg_steril:
-            _fx_line = (f'<b style="color:#E45756;">FX:</b> parity needs r = {_fx_level:.2f}; '
-                        f'bank holds r = {r_cur:.2f}')
+            # Absorbed by the reserve flow, so it constrains nothing and is not drawn
+            _fx_line = ('<b style="color:#E45756;">FX:</b> absorbed by reserves '
+                        '— no constraint on r')
         elif peg_no_steril:
             _fx_line = (f'<b style="color:#E45756;">FX:</b> r = rᵃ + (πᵃ − 𝜋) = {_fx_level:.2f}')
         else:
@@ -560,11 +560,13 @@ with tab1:
         # Pop-ups: only what the description panel below does not already say
         if peg_unsustainable:
             st.warning(f"⚠️ **This peg needs capital controls.** The bank holds r = {peg_lr_rate:.2f} "
-                       f"while the world pays rᵃ = {r_foreign:.2f} — that gap is why the operating "
-                       f"point sits off the red FX line, and it drains (or piles up) reserves without "
-                       f"limit. Sterilisation is the corner of the trinity that gives up **free "
-                       f"movement of capital**. Without controls the bank must eventually release the "
-                       f"interest rate (→ **Fixed – no sterilization**) or the currency (→ **Flexible**).")
+                       f"while the world pays rᵃ = {r_foreign:.2f}. Capital keeps crossing the border "
+                       f"on that gap and the bank absorbs it in reserves, which drain (or pile up) "
+                       f"without limit — that reserve flow is the free variable, which is why no FX "
+                       f"line is drawn here. Sterilisation is the corner of the trinity that gives up "
+                       f"**free movement of capital**. Without controls the bank must eventually "
+                       f"release the interest rate (→ **Fixed – no sterilization**) or the currency "
+                       f"(→ **Flexible**).")
 
         if peg_divergent and phase != "idle":
             st.warning(f"⚠️ **This shock feeds on itself.** With the nominal rate pegged (i = iᵃ) the "
@@ -614,7 +616,7 @@ with tab1:
         st.session_state.oe_iteration_df.loc[new_row_idx] = [
             st.session_state.oe_iter_counter, Y_cur, pi_cur, wr_cur, r_cur
         ]
-        _pi_next = h.oe_next_inflation(P, oe_regime, pi_cur, Y_cur, wr_cur)
+        _pi_next = h.oe_next_inflation(P, pi_cur, Y_cur)
         _Y_next, _, _ = h.oe_operating_point(P, oe_regime, _pi_next, wr_cur)
         _wr_next = h.oe_wr_next(P, oe_regime, wr_cur, _pi_next, _Y_next)
         st.session_state.oe_pi_prev = _pi_next

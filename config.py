@@ -424,8 +424,9 @@ OE_CHART = {
         "wʳ drifts {down_up} by roughly the inflation gap each period, which is all the "
         "pull-back there is.",
     ('fiscal', 'ster'):
-        "IS shifts {right_left} and Y jumps, by less than without sterilization. r leaves the red "
-        "FX line — the only regime where it does. wʳ is flat on impact and drifts {down_up} later.",
+        "IS shifts {right_left} and Y jumps, by less than without sterilization. r follows the "
+        "bank's own rule up the MP line — there is no FX line here to hold it down. wʳ is flat "
+        "on impact and drifts {down_up} later.",
 
     ('monetary', 'float'):
         "MP shifts {down_up} and Y jumps, but <b>r stays flat at rᵃ</b>: the bank's stance moved, "
@@ -435,8 +436,9 @@ OE_CHART = {
         "<b>nothing moves at all</b> — not IS, not MP, not one of the four lines below. The change "
         "in r' is undone before it ever reaches the diagram.",
     ('monetary', 'ster'):
-        "MP shifts {down_up} and the point slides along IS, so Y {rises_falls} and r moves away from "
-        "the red FX line. IS itself stays put, and wʳ is flat until inflation leaves the world rate.",
+        "MP shifts {down_up} and the point slides along IS, so Y {rises_falls} and r goes with it — "
+        "the bank keeps its own rate, which is what sterilizing buys. IS itself stays put, and wʳ "
+        "is flat until inflation leaves the world rate.",
 
     ('foreign', 'float'):
         "the red FX line shifts {up_down} and r follows it. IS moves with the currency, Y jumps, and "
@@ -447,8 +449,10 @@ OE_CHART = {
         "flexible rate. The FX line then keeps moving the same way as inflation drifts, so the point "
         "keeps sliding and Y does not come back. wʳ inches {up_down} against it.",
     ('foreign', 'ster'):
-        "<b>only the red FX line moves.</b> Y, π and wʳ stay flat and r stays where the bank put it. "
-        "The gap you can see between r and the FX line is the flow the bank is absorbing.",
+        "<b>nothing moves on either diagram.</b> Y, π, wʳ and r all stay exactly where they were: "
+        "the foreign rate reaches the economy only through FX, and sterilizing absorbs that "
+        "relation into the reserve flow. rᵃ changes, the bank's balance sheet absorbs it, and the "
+        "diagram never sees it.",
 
     ('imported', 'float'):
         "the IA line jumps {up_down} while AD stays where it is, so output slides along AD to "
@@ -540,7 +544,7 @@ THEORY_INTRO = r"""
 | $\lambda_P$ | Policy response to the output gap | 0.5 |
 | $\lambda_I$ | Policy response to inflation (real) | 0.5 |
 | $\gamma$ | Phillips slope: pp of inflation per point of gap | 0.4 |
-| $\chi$ | Pass-through of a move in $w^r$ into prices | 0 |
+| $\eta$ | Exogenous inflation shock — the imported-inflation control | 0 |
 | $r^a,\ \pi^a$ | Foreign real rate and inflation | 2.0 , 2.0 |
 
 ### The five equations
@@ -562,16 +566,12 @@ $$
 $$
 
 $$
-\textbf{IA}\quad \pi_{t+1} = \pi_t + \gamma\,\tilde{Y}_t + \chi\,(w^r_{t+1} - w^r_t)
+\textbf{IA}\quad \pi_{t+1} = \pi_t + \gamma\,\tilde{Y}_t + \eta
 $$
 
-The last term is the exchange-rate pass-through: a weaker currency makes imports dearer
-straight away. $\chi = 0$ unless it is turned on at the **Advanced** level, so every
-standard result comes from the first two terms alone. With $\chi > 0$ the curve is
-implicit — $w^r_{t+1}$ moves with $\pi_{t+1}$ — so IA and PPP are solved together.
-
-A one-off **imported-inflation shock** is not a term in any of these equations: it sets
-$\pi_0$ and IA then carries it forward.
+$\eta$ is the **imported-inflation** control: an exogenous price shock. It is zero in
+every period but the one the shock lands in, where it sets $\pi_0$; from then on IA
+carries it forward through the output gap alone.
 
 IS, MP and IA are the same in all three regimes. **AD** is not a separate assumption —
 it is two of the curves above solved together, and *which* two depends on the regime.
@@ -589,10 +589,21 @@ THEORY_REST = r"""
 | | Flexible | Fixed – no sterilization | Fixed – with sterilization |
 |---|---|---|---|
 | **Gives up** | the stable exchange rate | its own monetary policy | free movement of capital |
-| **FX becomes** | $r = r^a$ | $r = r^a + (\pi^a - \pi)$ | $r = r^a + (\pi^a - \pi)$, not met |
+| **FX becomes** | $r = r^a$ | $r = r^a + (\pi^a - \pi)$ | absent — absorbed by reserves |
 | **AD is** | MP $\cap$ FX | IS $\cap$ FX | IS $\cap$ MP |
 | **AD slope** | $-\lambda_P/(\lambda_I)$ | $1/\varphi$ | $-\bigl(1/\varphi + \lambda_P\bigr)/\lambda_I$ |
 
+Two relations are enough to trace AD, and the regime decides which two: the third is
+satisfied by whatever variable the regime leaves free, and a relation a variable outside
+the diagram can always satisfy places no restriction on the $\pi$–$Y$ plane.
+
+That is why **FX is not drawn under sterilization**. The bank breaks the arbitrage rather
+than satisfying it, and the variable that takes the strain — the stock of reserves on its
+balance sheet — is not in the model at all. So FX is absorbed out of the system, imposes
+nothing on $r$, and there is no line for it in the $r$–$Y$ diagram. Under a float it is
+$r = r^a$; under a peg without sterilization the nominal rate is tied to the foreign one
+and $w^r$ can move only with the inflation differential, which by PPP leaves
+$r = r^a + (\pi^a - \pi)$.
 
 **AD, flexible** — MP $\cap$ FX, FX: $r = r^a$:
 

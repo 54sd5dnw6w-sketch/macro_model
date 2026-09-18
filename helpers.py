@@ -275,7 +275,7 @@ def gap_per_Y(Ybar):
 #   IS   Y = ω − φ·r + ψ·wʳ
 #   MP   r = r' + λ_P·Ỹ + λ_I·π
 #   FX   1+r = (1+rᵃ)·wʳ,ᵉ₊₁/wʳ
-#   IA   π = π₋₁ + γ·Ỹ₋₁ + χ·(wʳ − wʳ₋₁)
+#   IA   π₊₁ = π + γ·Ỹ + η   (η = the one-off imported-inflation shock, on π₀ only)
 #   PPP  wʳ = wʳ₋₁·(1+πᵃ)/(1+π)   — one law: within-period response and drift both
 
 OE_FLOAT, OE_PEG, OE_PEG_STER = 'float', 'hard', 'ster'
@@ -285,11 +285,11 @@ class OEParams:
     """Structural parameters of the open-economy model."""
 
     def __init__(self, omega, phi, psi, r_init, lambda_p, lambda_i,
-                 r_foreign, pi_foreign, gamma, chi=0.0, Ybar=1.0):
+                 r_foreign, pi_foreign, gamma, Ybar=1.0):
         self.omega, self.phi, self.psi = omega, phi, psi
         self.r_init, self.lambda_p, self.lambda_i = r_init, lambda_p, lambda_i
         self.r_foreign, self.pi_foreign = r_foreign, pi_foreign
-        self.gamma, self.chi, self.Ybar = gamma, chi, Ybar
+        self.gamma, self.Ybar = gamma, Ybar
 
 
 def oe_ppp_next(p, wr, pi):
@@ -307,8 +307,8 @@ def oe_fx_rate(p, regime, pi):
 
     Float: no move in wʳ is expected, so r = rᵃ. Peg: the nominal rate is fixed, so
     wʳ,ᵉ₊₁/wʳ = (1+πᵃ)/(1+π) and to first order r = rᵃ + (πᵃ − π). Under
-    sterilisation the bank holds its own r instead, and the gap to this line is the
-    reserve flow it absorbs."""
+    sterilisation the relation is absorbed by the reserve flow and constrains nothing,
+    so this level is not drawn — it is kept only for the regimes where it binds."""
     if regime == OE_FLOAT:
         return p.r_foreign
     return p.r_foreign + (p.pi_foreign - pi)
@@ -317,9 +317,9 @@ def oe_fx_rate(p, regime, pi):
 def oe_fx_label(regime):
     """What to write after the FX label, so the red line's moves read as the
     regime's doing and not as a glitch. Under a float the line is rᵃ and never
-    reacts to domestic inflation; under a peg parity ties it to 𝜋ᵃ − 𝜋, so it
-    moves whenever inflation does. Sterilising, the bank does not follow it — the
-    line is the parity requirement and the gap to r is the reserve flow."""
+    reacts to domestic inflation; under the unsterilised peg parity ties it to
+    𝜋ᵃ − 𝜋, so it moves whenever inflation does. Not called under sterilisation,
+    where FX is absorbed and no line is drawn."""
     return " = rᵃ" if regime == OE_FLOAT else " = rᵃ+𝜋ᵃ−𝜋"
 
 
@@ -384,32 +384,13 @@ def oe_wr_next(p, regime, wr, pi_next, Y_next=None):
     return oe_ppp_next(p, wr, pi_next)
 
 
-def oe_next_inflation(p, regime, pi, Y, wr):
-    """IA curve:  π₊₁ = π + γ·Ỹ + χ·(wʳ₊₁ − wʳ).
+def oe_next_inflation(p, pi, Y):
+    """IA curve:  π₊₁ = π + γ·Ỹ.
 
-    With χ > 0, wʳ₊₁ is contemporaneous with π₊₁, so the two are solved together."""
-    base = pi + p.gamma * output_gap(Y, p.Ybar)
-    if p.chi == 0.0:
-        return base
-
-    if regime == OE_FLOAT:
-        # wʳ₊₁ is linear in π₊₁: Y(π) off the float's AD, then IS solved for wʳ
-        b = -(p.Ybar / 100.0) * p.lambda_i / (p.lambda_p * p.psi)
-        W0 = (p.Ybar * (1.0 + (p.r_foreign - p.r_init) / (100.0 * p.lambda_p))
-              - p.omega + p.phi * p.r_foreign) / p.psi
-        return (base + p.chi * (W0 - wr)) / (1.0 - p.chi * b)
-
-    # Peg: substituting wʳ₊₁ = wr·(1+πᵃ)/(1+π₊₁) into IA and clearing the
-    # denominator gives a quadratic in π₊₁; take the root nearest `base`
-    k = 1.0 + p.pi_foreign / 100.0
-    b_ = 100.0 - base + p.chi * wr
-    c_ = -100.0 * (base + p.chi * wr * (k - 1.0))
-    disc = b_ * b_ - 4.0 * c_
-    if disc < 0:
-        return base
-    root = disc ** 0.5
-    r1, r2 = (-b_ + root) / 2.0, (-b_ - root) / 2.0
-    return r1 if abs(r1 - base) <= abs(r2 - base) else r2
+    η, the exogenous inflation shock of the thesis's (3.10), is applied once to
+    π₀ by the page rather than carried as a term here — it is zero in every other
+    period, so the update itself is the plain output-gap rule."""
+    return pi + p.gamma * output_gap(Y, p.Ybar)
 
 
 def oe_ad_curve(p, regime, wr_state):
