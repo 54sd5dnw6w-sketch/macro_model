@@ -562,8 +562,16 @@ $$
 $$
 
 $$
-\textbf{IA}\quad \pi_{t+1} = \pi_t + \gamma\,\tilde{Y}_t
+\textbf{IA}\quad \pi_{t+1} = \pi_t + \gamma\,\tilde{Y}_t + \chi\,(w^r_{t+1} - w^r_t)
 $$
+
+The last term is the exchange-rate pass-through: a weaker currency makes imports dearer
+straight away. $\chi = 0$ unless it is turned on at the **Advanced** level, so every
+standard result comes from the first two terms alone. With $\chi > 0$ the curve is
+implicit — $w^r_{t+1}$ moves with $\pi_{t+1}$ — so IA and PPP are solved together.
+
+A one-off **imported-inflation shock** is not a term in any of these equations: it sets
+$\pi_0$ and IA then carries it forward.
 
 IS, MP and IA are the same in all three regimes. **AD** is not a separate assumption —
 it is two of the curves above solved together, and *which* two depends on the regime.

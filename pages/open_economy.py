@@ -482,6 +482,11 @@ with tab1:
         # π* is left out: the long-run line under this panel already reports it
         _ad_slope, _ad_int = (init_AD if phase == "idle" else
                               (st_AD if show_initial else lt_AD))
+        # IA is flat, so only its level is worth printing — but take it from the
+        # same phase the green line is drawn at, or mid-run the panel keeps
+        # reporting the period-1 number
+        _ia_level = (init_IA if phase == "idle" else
+                     (st_IA if show_initial else lt_IA))[1]
         # Written around Ȳ — the raw intercept is a meaningless three-digit number
         _ad_at_Ybar = _ad_slope * Ybar + _ad_int
         _ad_line = f"𝜋 = {_ad_at_Ybar:.2f} {_ad_slope:+.2f}·(Y − Ȳ)"
@@ -500,7 +505,7 @@ with tab1:
             <b style="color:#F58518;">MP:</b> r = {r_init:.2f} + {lambda_p:.2f}·Ỹ + {lambda_i:.2f}·𝜋<br>
             {_fx_line}<br>
             <b style="color:#B279A2;">AD:</b> {_ad_line}<br>
-            <b style="color:#54A24B;">IA:</b> 𝜋 = {pi_0:.2f}<br>
+            <b style="color:#54A24B;">IA:</b> 𝜋 = {_ia_level:.2f}<br>
             <hr style="margin:4px 0; border:none; border-top:1px solid #ddd;">
             <b>Output gap:</b> {output_gap:+.2f}% of potential<br>
             <b>Real exchange rate wʳ:</b> {wr_cur:.1f}
