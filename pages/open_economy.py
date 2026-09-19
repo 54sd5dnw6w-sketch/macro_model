@@ -473,13 +473,12 @@ with tab1:
     # Sterilising, the bank breaks the arbitrage instead of satisfying it: the free
     # variable is the stock of reserves, which is not in the diagram, so FX imposes
     # nothing on r and is absorbed out of the system — no line to draw.
-    # Where it IS drawn, the label carries its rule: r = rᵃ under a float, so the
-    # line never reacts to domestic inflation, against r = rᵃ+𝜋ᵃ−𝜋 under the
-    # unsterilised peg, where parity ties it to the inflation differential.
-    # Labelled left, like PPP below — the suffix would not fit off the right edge.
+    # Labelled plainly, like every other curve. The rule behind the line — r = rᵃ
+    # under a float, r = rᵃ + (𝜋ᵃ − 𝜋) under the unsterilised peg, which is why it
+    # moves with inflation — is spelled out in the Advanced panel and the
+    # divergence warning, so the label does not have to carry the equation.
     if not peg_steril:
-        h.add_curve_set(r_Y_fig, 'FX', x_lo, x_hi, init_FX, st_FX, lt_FX, show_initial, show_long,
-                        label_suffix=h.oe_fx_label(oe_regime), label_position='left')
+        h.add_curve_set(r_Y_fig, 'FX', x_lo, x_hi, init_FX, st_FX, lt_FX, show_initial, show_long)
 
     if phase != "idle":
         h.add_vertical_line(r_Y_fig, Y_cur, y_max=r_cur, name=f"Y ({Y_cur:.1f})", name_position='bottom', color='#B0B0B0', dash='dot')

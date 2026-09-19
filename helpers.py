@@ -219,22 +219,21 @@ IDX_INITIAL, IDX_SHORT, IDX_LONG = "<sub>0</sub>", "<sub>1</sub>", "<sub>∞</su
 
 
 def add_curve_set(plotly_fig, key, x_min, x_max, initial, short, long_=None,
-                  show_initial=False, show_long=False, label=None, label_suffix="",
+                  show_initial=False, show_long=False, label=None,
                   label_position='right'):
     """Draw one curve in the positions the current phase calls for.
 
     idle: `initial` alone. After Play: `initial` as a dotted ghost plus `short`.
     After Continue: `short` as the ghost plus `long_`, which drifts each period.
 
-    `label_suffix` goes AFTER the period index, so the rule a curve is drawn from
-    can be named without the subscript landing in the middle of it. A long suffix
-    wants `label_position='left'`, which keeps the label inside the plot area
-    instead of running off the right edge into a zero-width margin."""
+    Keep `label_position='right'`: the two labels are nudged symmetrically about the
+    curve from a base shift of 0, so they clear it evenly. The 'left' base shift is
+    9, which turns the same nudges into -2 (on the line) and +20 (adrift)."""
     name = key if label is None else label
     solid, pale = CURVE_COLORS[key]
 
     def _nm(index=""):
-        return f"{name}{index}{label_suffix}"
+        return f"{name}{index}"
 
     if not show_initial and not show_long:
         return add_model_curve(plotly_fig, *initial, x_min, x_max, name=_nm(),
@@ -313,15 +312,6 @@ def oe_fx_rate(p, regime, pi):
     if regime == OE_FLOAT:
         return p.r_foreign
     return p.r_foreign + (p.pi_foreign - pi)
-
-
-def oe_fx_label(regime):
-    """What to write after the FX label, so the red line's moves read as the
-    regime's doing and not as a glitch. Under a float the line is rᵃ and never
-    reacts to domestic inflation; under the unsterilised peg parity ties it to
-    𝜋ᵃ − 𝜋, so it moves whenever inflation does. Not called under sterilisation,
-    where FX is absorbed and no line is drawn."""
-    return " = rᵃ" if regime == OE_FLOAT else " = rᵃ+𝜋ᵃ−𝜋"
 
 
 def oe_peg_root(p):
