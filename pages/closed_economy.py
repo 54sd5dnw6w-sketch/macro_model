@@ -27,6 +27,18 @@ def clear_lock():
     st.session_state.locked_df = None
 
 
+# Pause/resume mid-run. Callbacks, not return values: a click arriving while the
+# animation sleeps is applied before the next script run, so no step is lost.
+def pause_run():
+    if st.session_state.phase == "adjusting":
+        st.session_state.phase = "run_paused"
+
+
+def resume_run():
+    if st.session_state.phase == "run_paused":
+        st.session_state.phase = "adjusting"
+
+
 st.set_page_config(layout="wide", initial_sidebar_state="expanded")
 
 # ―――― Default parameters ――――――――――――――――
@@ -59,12 +71,14 @@ with st.sidebar:
     phase = st.session_state.phase
     is_running = phase == "adjusting"
     is_paused = phase == "short_term_paused"
+    is_run_paused = phase == "run_paused"      # held mid-run by the user
+    busy = is_running or is_paused or is_run_paused
 
     level = st.selectbox('Control Level', options=['Easy', 'Medium', 'Advanced'],
-                         disabled=is_running or is_paused, on_change=reset)
+                         disabled=busy, on_change=reset)
 
 
-    show_phillips = st.toggle("Show the IA as a Phillips Curve", value=False, disabled=is_running or is_paused) if level == 'Advanced' else False
+    show_phillips = st.toggle("Show the IA as a Phillips Curve", value=False, disabled=busy) if level == 'Advanced' else False
 
     # ―――― Parameter Inputs ――――――――――――――――
     if level == 'Easy':
@@ -73,7 +87,7 @@ with st.sidebar:
                               options=['Upward Inflation Shock', 'Downward Inflation Shock',
                                        'Expansionary Monetary Shock', 'Contractionary Monetary Shock',
                                        'Expansionary Demand Shock', 'Contractionary Demand Shock'],
-                              disabled=is_running or is_paused, on_change=reset)
+                              disabled=busy, on_change=reset)
         phi = PHI_BASE; lambda_p = LP_BASE; lambda_i = LI_BASE; gamma = GAMMA_BASE
         eta = 0.0; inflation_shock = 0.0
         omega = OMEGA_BASE; r_init = RP_BASE; pi_0_override = PI_BASELINE
@@ -176,7 +190,11 @@ with st.sidebar:
     with bcol1:
         if is_running:
             play_clicked = False
-            st.button("⏸ Running…", disabled=True, width="stretch")
+            st.button("⏸ Pause", on_click=pause_run, width="stretch",
+                      help="Hold the run where it is. Resume picks it up from the same period.")
+        elif is_run_paused:
+            play_clicked = False
+            st.button("▶ Resume", type="primary", on_click=resume_run, width="stretch")
         elif is_paused:
             play_clicked = False
             st.button("▶▶ Paused", disabled=True, width="stretch")
@@ -187,10 +205,23 @@ with st.sidebar:
         reset_clicked = st.button("↺ Reset", on_click=reset, width="stretch", disabled=is_running)
 
 
+    # One slot, written on every rerun. Each animation pass ends in st.rerun(),
+    # which aborts the script before Streamlit prunes elements the new run did not
+    # re-render — so a status box from the previous phase would linger on screen.
+    # Writing the slot unconditionally clears whatever the last phase put there.
+    status_slot = st.empty()
     continue_clicked = False
     if is_paused:
-        st.info("**Period 1:** Initial shock, short-run impact shown. Click **Continue** to see the long-run adjustment.")
-        continue_clicked = st.button("▶▶ Continue", type="primary", width="stretch")
+        with status_slot.container():
+            st.info("**Period 1:** Initial shock, short-run impact shown. Click **Continue** to see the long-run adjustment.")
+            continue_clicked = st.button("▶▶ Continue", type="primary", width="stretch")
+    elif is_run_paused:
+        _held_at = (int(st.session_state.iteration_df["Iteration"].iloc[-1])
+                    if not st.session_state.iteration_df.empty else 0)
+        status_slot.info(f"**Paused at period {_held_at}.** **▶ Resume** carries on from here; "
+                         f"**↺ Reset** stops the run for good.")
+    else:
+        status_slot.empty()
 
 
 
@@ -364,7 +395,7 @@ x_lo, x_hi = c.Y_potential - const, c.Y_potential + const
 # ―――― Curve positions in each phase ――――――――――――――――
 # initial = period 0, short = the period-1 impact, long = where the curve is now.
 show_initial = phase == "short_term_paused"
-show_long = phase in ("adjusting", "done")
+show_long = phase in ("adjusting", "run_paused", "done")
 
 # Pre-shock resting point: default POLICY (ω, r′), the user's structural parameters.
 init_IS = (-1.0 / phi, OMEGA_BASE / phi)
