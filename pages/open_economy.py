@@ -24,7 +24,7 @@ FOREIGN_SHOCK, IMPORTED_SHOCK = 0.5, 1.0
 
 # ―――― Session State ――――――――――――――――
 h.session_init(
-    oe_phase="idle",        # idle | short_term_paused | adjusting | done
+    oe_phase="idle",        # idle | short_term_paused | adjusting | run_paused | done
     oe_pi_prev=None,
     oe_wr_prev=None,        # real-exchange-rate state (fixed peg without sterilization)
     oe_iter_counter=0,
@@ -73,6 +73,18 @@ def clear_lock():
     st.session_state.oe_locked_df = None
 
 
+# Pause/resume mid-run. Callbacks, not return values: a click arriving while the
+# animation sleeps is applied before the next script run, so no step is lost.
+def pause_run():
+    if st.session_state.oe_phase == "adjusting":
+        st.session_state.oe_phase = "run_paused"
+
+
+def resume_run():
+    if st.session_state.oe_phase == "run_paused":
+        st.session_state.oe_phase = "adjusting"
+
+
 
 # ―――― MAIN ――――――――――――――――
 st.set_page_config(layout="wide", initial_sidebar_state="expanded")
@@ -85,13 +97,15 @@ with st.sidebar:
     phase = st.session_state.oe_phase
     is_running = phase == "adjusting"
     is_paused = phase == "short_term_paused"
+    is_run_paused = phase == "run_paused"      # held mid-run by the user
+    busy = is_running or is_paused or is_run_paused
 
     level = st.selectbox('Control Level', options=['Easy', 'Medium', 'Advanced'],
-                         disabled=is_running or is_paused, on_change=reset, key="oe_level")
+                         disabled=busy, on_change=reset, key="oe_level")
 
     regime = st.selectbox('Exchange-rate regime',
                           options=['Flexible', 'Fixed – no sterilization', 'Fixed – with sterilization'],
-                          disabled=is_running or is_paused, on_change=reset, key="oe_regime",
+                          disabled=busy, on_change=reset, key="oe_regime",
                           help=("Flexible: the currency is free to move, which cancels out demand "
                                 "changes but lets interest-rate changes work. "
                                 "Fixed – no sterilization: the currency is held, so demand changes "
@@ -117,7 +131,7 @@ with st.sidebar:
                                        'Expansionary Monetary Shock', 'Contractionary Monetary Shock',
                                        'Rising Foreign Interest Rate', 'Falling Foreign Interest Rate',
                                        'Imported Inflation Shock', 'Imported Deflation Shock'],
-                              disabled=is_running or is_paused, on_change=reset, key="oe_shock")
+                              disabled=busy, on_change=reset, key="oe_shock")
         if shock_type == 'Expansionary Fiscal Shock':
             omega = OMEGA_BASE + FISCAL_SHOCK
         elif shock_type == 'Contractionary Fiscal Shock':
@@ -214,7 +228,11 @@ with st.sidebar:
     with bcol1:
         if is_running:
             play_clicked = False
-            st.button("⏸ Running…", disabled=True, width="stretch")
+            st.button("⏸ Pause", on_click=pause_run, width="stretch",
+                      help="Hold the run where it is. Resume picks it up from the same period.")
+        elif is_run_paused:
+            play_clicked = False
+            st.button("▶ Resume", type="primary", on_click=resume_run, width="stretch")
         elif is_paused:
             play_clicked = False
             st.button("▶▶ Paused", disabled=True, width="stretch")
@@ -225,10 +243,23 @@ with st.sidebar:
         reset_clicked = st.button("↺ Reset", on_click=reset_all, width="stretch", disabled=is_running,
                                   help="Clear the run and restore all shock/parameter values to their defaults.")
 
+    # One slot, written on every rerun. Each animation pass ends in st.rerun(),
+    # which aborts the script before Streamlit prunes elements the new run did not
+    # re-render — so a status box from the previous phase would linger on screen.
+    # Writing the slot unconditionally clears whatever the last phase put there.
+    status_slot = st.empty()
     continue_clicked = False
     if is_paused:
-        st.info("**Period 1:** short-run impact shown. Click **Continue** to see the long-run adjustment.")
-        continue_clicked = st.button("▶▶ Continue", type="primary", width="stretch")
+        with status_slot.container():
+            st.info("**Period 1:** short-run impact shown. Click **Continue** to see the long-run adjustment.")
+            continue_clicked = st.button("▶▶ Continue", type="primary", width="stretch")
+    elif is_run_paused:
+        _held_at = (int(st.session_state.oe_iteration_df["Iteration"].iloc[-1])
+                    if not st.session_state.oe_iteration_df.empty else 0)
+        status_slot.info(f"**Paused at period {_held_at}.** **▶ Resume** carries on from here; "
+                         f"**↺ Reset** stops the run for good.")
+    else:
+        status_slot.empty()
 
 
 # ―――― Settings (user-overridable via Settings page) ――――――――――――――――
@@ -397,7 +428,7 @@ x_lo, x_hi = Ybar - const, Ybar + const
 # ―――― Curve positions in each phase ――――――――――――――――
 # initial = period 0, short = the period-1 impact, long = where the curve is now.
 show_initial = phase == "short_term_paused"
-show_long = phase in ("adjusting", "done")
+show_long = phase in ("adjusting", "run_paused", "done")
 
 init_IS = (-1 / phi, (OMEGA_BASE + psi * WR_BASELINE) / phi)
 init_MP = (MP_slope, RP_BASE - lambda_p * 100.0 + lambda_i * PI_BASELINE)
