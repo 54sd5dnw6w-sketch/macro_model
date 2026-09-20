@@ -57,9 +57,11 @@ def add_line_to_plot(plotly_fig, slope, intercept, x_min=0, x_max=10, n_points=1
         )
     )
 
-    # 'left' keeps the label inside the plot so it does not widen the left margin
+    # 'left' keeps the label inside the plot so it does not widen the left margin.
+    # Base shift 0 in both branches, so a nudged pair straddles the curve evenly;
+    # a standalone label that wants clearance passes its own label_offset.
     if label_position == 'left':
-        label_x, label_y, label_anchor, label_yshift = x[0], y[0], "left", 9
+        label_x, label_y, label_anchor, label_yshift = x[0], y[0], "left", 0
     else:
         label_x, label_y, label_anchor, label_yshift = x[-1], y[-1], "left", 0
     label_yshift += label_offset
@@ -226,9 +228,9 @@ def add_curve_set(plotly_fig, key, x_min, x_max, initial, short, long_=None,
     idle: `initial` alone. After Play: `initial` as a dotted ghost plus `short`.
     After Continue: `short` as the ghost plus `long_`, which drifts each period.
 
-    Keep `label_position='right'`: the two labels are nudged symmetrically about the
-    curve from a base shift of 0, so they clear it evenly. The 'left' base shift is
-    9, which turns the same nudges into -2 (on the line) and +20 (adrift)."""
+    Either `label_position` straddles the curve evenly: the ghost is nudged below it
+    and the live label above. 'left' suits a horizontal curve whose right-edge label
+    would collide with the sloped curves' labels."""
     name = key if label is None else label
     solid, pale = CURVE_COLORS[key]
 
@@ -257,22 +259,20 @@ def add_curve_set(plotly_fig, key, x_min, x_max, initial, short, long_=None,
 
 
 # ―――― Units ―――――――――――――――――――――――――――――――――
-# Y and wʳ are indices at 100, r and π are in points, so Ỹ = 100·(Y − Ȳ)/Ȳ and
-# every slope taken with respect to Y carries the same factor of 100/Ȳ.
+# Y and wʳ are indices whose potential level is Ȳ, so one unit of Y is one per cent
+# of potential and the gap Ỹ = Y − Ȳ is already in the same points as r and π.
+# That is the thesis's (3.4) with potential divided out, so no factor of 100 is
+# carried on any slope in Y. The 100s that remain below convert a per-cent rate
+# into a fraction (PPP, and the peg's eigenvalue) and are not Ȳ.
 
 def output_gap(Y, Ybar):
-    """Output gap in percentage points of potential."""
-    return 100.0 * (Y - Ybar) / Ybar
-
-
-def gap_per_Y(Ybar):
-    """Turns a coefficient on the gap into a slope in Y."""
-    return 100.0 / Ybar
+    """Output gap Ỹ, in the same points as r and π."""
+    return Y - Ybar
 
 
 # ―――― Open-economy model ―――――――――――――――――――――――――――――――――――――――――――――――――――
 #   IS   Y = ω − φ·r + ψ·wʳ
-#   MP   r = r' + λ_P·Ỹ + λ_I·π
+#   MP   r = r' + λ_P·Ỹ + λ_I·π      (Ỹ = Y − Ȳ)
 #   FX   1+r = (1+rᵃ)·wʳ,ᵉ₊₁/wʳ
 #   IA   π₊₁ = π + γ·Ỹ + η   (η = the one-off imported-inflation shock, on π₀ only)
 #   PPP  wʳ = wʳ₋₁·(1+πᵃ)/(1+π)   — one law: within-period response and drift both
@@ -320,10 +320,9 @@ def oe_peg_root(p):
     Linearising (wʳ, π) around the rest point gives a matrix with determinant
     1 + γφ·100/Ȳ, which exceeds 1 for any φ > 0 — so this regime never settles,
     whatever the other parameters are. ψ changes how fast, never whether."""
-    g = gap_per_Y(p.Ybar)
-    a = oe_baseline_wr(p) / 100.0
-    b = p.gamma * p.psi * g
-    c = p.gamma * p.phi * g
+    a = oe_baseline_wr(p) / 100.0        # 100 converts π from per cent, not Ȳ
+    b = p.gamma * p.psi
+    c = p.gamma * p.phi
     tr, det = 2.0 + c - a * b, 1.0 + c
     disc = tr * tr - 4.0 * det
     if disc < 0:
@@ -353,13 +352,13 @@ def oe_operating_point(p, regime, pi, wr_state):
     if regime == OE_FLOAT:
         # rᵃ = r' + λ_P·Ỹ + λ_I·π  solved for the gap, then for Y
         gap = (p.r_foreign - p.r_init - p.lambda_i * pi) / p.lambda_p
-        Y = p.Ybar * (1.0 + gap / 100.0)
+        Y = p.Ybar + gap
         return Y, p.r_foreign, (Y - p.omega + p.phi * p.r_foreign) / p.psi
 
     wr = wr_state
     if regime == OE_PEG_STER:
-        D = 1.0 + p.phi * p.lambda_p * gap_per_Y(p.Ybar)
-        Y = (p.omega - p.phi * p.r_init + p.phi * p.lambda_p * 100.0
+        D = 1.0 + p.phi * p.lambda_p
+        Y = (p.omega - p.phi * p.r_init + p.phi * p.lambda_p * p.Ybar
              - p.phi * p.lambda_i * pi + p.psi * wr) / D
         r = p.r_init + p.lambda_p * output_gap(Y, p.Ybar) + p.lambda_i * pi
         return Y, r, wr
@@ -390,14 +389,13 @@ def oe_ad_curve(p, regime, wr_state):
     Float: MP ∩ FX, so ω drops out. Sterilised peg: IS ∩ MP at the pegged wʳ.
     Hard peg: IS ∩ FX, which slopes UPWARD (+1/φ) because parity ties r to πᵃ − π,
     so more inflation means a lower real rate and more demand."""
-    g = gap_per_Y(p.Ybar)
     if regime == OE_FLOAT:
-        return (-p.lambda_p * g / p.lambda_i,
-                (p.r_foreign - p.r_init + p.lambda_p * 100.0) / p.lambda_i)
+        return (-p.lambda_p / p.lambda_i,
+                (p.r_foreign - p.r_init + p.lambda_p * p.Ybar) / p.lambda_i)
     if regime == OE_PEG_STER:
-        D = 1.0 + p.phi * p.lambda_p * g
+        D = 1.0 + p.phi * p.lambda_p
         return (-D / (p.phi * p.lambda_i),
-                (p.omega - p.phi * p.r_init + p.phi * p.lambda_p * 100.0
+                (p.omega - p.phi * p.r_init + p.phi * p.lambda_p * p.Ybar
                  + p.psi * wr_state) / (p.phi * p.lambda_i))
     # Y = ω − φ·(rᵃ + πᵃ − π) + ψ·wʳ, solved for π
     return (1.0 / p.phi,

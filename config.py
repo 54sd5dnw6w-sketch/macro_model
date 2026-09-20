@@ -4,98 +4,107 @@
 markdown_text = r"""
 ## Closed Economy — Equations
 
-**Units.** Potential output is an index, $\bar{Y} = 100$, so the gap
-$\tilde{Y} = 100\,(Y-\bar{Y})/\bar{Y}$ is in percentage points — the same units as $r$ and
-$\pi$. Baseline: $Y = 100$, $\pi = 2\%$, $r = 2\%$.
+The model follows Lambsdorff and Giamattei (2026); the numbering below is that of
+Chapter 3 of the thesis. Potential output is normalised to $\bar{Y} = 1$, so the
+output gap is read directly as a deviation from 1.
+
+> **In the app** potential output is drawn as an index at $100$, so one unit of $Y$ is
+> one per cent of potential, and $r$, $\pi$ and the gap are in per cent. The equations
+> are unchanged — only the scale of the $Y$ axis differs.
 
 ### Parameters
 
-| Symbol | Meaning | Default |
+| Symbol | Meaning | Value |
 |---|---|---|
-| $\bar{Y}$ | Potential output (index) | 100 |
-| $\omega$ | Autonomous demand — the IS shifter | 102 |
-| $\phi$ | Output cost of a 1 pp rise in the real rate | 1.0 |
-| $r'$ | Intercept of the policy rule (not the rate itself) | 1.0 |
-| $\lambda_P$ | Policy response to the output gap | 0.5 |
-| $\lambda_I$ | Policy response to inflation (real; nominal is $1+\lambda_I$) | 0.5 |
-| $\gamma$ | Phillips slope: pp of inflation per point of gap | 0.4 |
-| $\eta$ | Exogenous price shock, applied every period | 0 |
+| $\bar{Y}$ | Potential output | 1 |
+| $\omega$ | Demand effect of impulses — the IS shifter | places period 0 at rest |
+| $\phi$ | Interest-rate responsiveness of demand | 1 |
+| $r'$ | Orientation of central-bank policy | 1 |
+| $\lambda_P$ | The bank's employment preference | 0.5 |
+| $\lambda_I$ | The bank's aversion to inflation | 0.5 |
+| $\gamma$ | Coefficient on the output gap | 0.4 |
+| $\eta$ | Exogenous inflation shock | 0 |
 
 ---
 
-### Upper diagram — $r$–$Y$
+### The three relations and one definition
 
-**IS**
-
-$$
-Y = \omega - \phi\,r \qquad \phi > 0
-$$
+**IS** (3.1) — the goods market
 
 $$
-r(Y) \;=\; \underbrace{\frac{\omega}{\phi}}_{\text{intercept}}
-\;\underbrace{-\;\frac{1}{\phi}}_{\text{slope}}\,Y
+Y_t = \omega - \phi\,r_t
 $$
 
-**MP**
+**MP** (3.2) — the policy rule
 
 $$
-r = r' + \lambda_P \tilde{Y} + \lambda_I \pi,
-\qquad \tilde{Y} = 100\,\frac{Y-\bar{Y}}{\bar{Y}}
+r_t = r' + \lambda_P \tilde{Y}_t + \lambda_I \pi_t
 $$
 
+**IA** (3.3) — inflation adjustment
+
 $$
-r(Y) \;=\; \underbrace{\bigl(r' - 100\lambda_P + \lambda_I \pi\bigr)}_{\text{intercept}}
-\;+\; \underbrace{\frac{100\lambda_P}{\bar{Y}}}_{\text{slope}}\,Y
+\pi_t = \pi_{t-1} + \gamma\,\tilde{Y}_{t-1} + \eta
+$$
+
+**The output gap** (3.4)
+
+$$
+\tilde{Y}_t = \frac{Y_t - \bar{Y}}{\bar{Y}} = Y_t - 1
+$$
+
+Inflation is predetermined within the period, so a shock moves output first and
+inflation only from the next period — which is what makes the model adjust step by
+step rather than jumping to its new rest point.
+
+---
+
+### What the diagrams draw
+
+In the upper $r$–$Y$ diagram, IS and MP are read as $r(Y)$:
+
+$$
+r_{IS}(Y) = \frac{\omega}{\phi} - \frac{1}{\phi}\,Y
+\qquad
+r_{MP}(Y) = \bigl(r' - \lambda_P + \lambda_I \pi\bigr) + \lambda_P\,Y
+$$
+
+In the lower $\pi$–$Y$ diagram, IA is flat at the inflation the previous period left
+behind, $\pi(Y) = \pi_t$. Read instead as a Phillips curve — next period's inflation
+at a current output $Y$ — the same relation slopes up through $(\bar{Y}, \pi_t)$:
+
+$$
+\pi(Y) = \pi_t + \gamma\,\tilde{Y} = \bigl(\pi_t + \eta - \gamma\bigr) + \gamma\,Y
 $$
 
 ---
 
-### Lower diagram — $\pi$–$Y$
+### Aggregate demand
 
-**IA**
+AD is not a fourth assumption: it is IS $\cap$ MP written in inflation–output space,
+eliminating $r$ (derivation in Appendix B).
 
-$$
-\pi_{t+1} = \pi_t + \gamma\,\tilde{Y}_t + \eta
-$$
-
-Today's inflation was fixed by last period's gap, so IA is drawn **flat**:
+**AD** (3.5)
 
 $$
-\pi(Y) = \pi_t \qquad (\text{slope } 0)
+\pi_t = \frac{\omega - \phi r' + \phi\lambda_P}{\phi\lambda_I}
+\;-\; \frac{1 + \phi\lambda_P}{\phi\lambda_I}\,Y_t
 $$
-
-Read as a Phillips curve — next period's inflation at a current output $Y$ — the same
-equation slopes up through $(\bar{Y},\,\pi_t)$:
-
-$$
-\pi(Y) \;=\; \underbrace{\bigl(\pi_t + \eta - 100\gamma\bigr)}_{\text{intercept}}
-\;+\; \underbrace{\frac{100\gamma}{\bar{Y}}}_{\text{slope}}\,Y
-$$
-
-**AD** — IS $\cap$ MP. Set $r_{IS}(Y) = r_{MP}(Y)$ and solve for $\pi$:
-
-$$
-\frac{\omega}{\phi} - \frac{1}{\phi}Y
-= r' - 100\lambda_P + \lambda_I \pi + \frac{100\lambda_P}{\bar{Y}}Y
-$$
-
-$$
-\pi(Y) \;=\;
-\underbrace{\frac{1}{\lambda_I}\left(\frac{\omega}{\phi} - r' + 100\lambda_P\right)}_{\text{intercept}}
-\;-\; \underbrace{\frac{1}{\lambda_I}\left(\frac{1}{\phi} + \frac{100\lambda_P}{\bar{Y}}\right)}_{|\text{slope}|}\,Y
-$$
-
----
 
 ### Long run
 
-Inflation rests when $\pi_{t+1} = \pi_t$, which needs $\tilde{Y} = 0$. So $\pi^*$ is AD
-evaluated at $Y = \bar{Y}$:
+Inflation is at rest only once the output gap is closed. Setting $Y = \bar{Y} = 1$
+in (3.5) gives the equilibrium inflation rate:
+
+**Equilibrium inflation** (3.6)
 
 $$
-\pi^* = \frac{1}{\lambda_I}\left(\frac{\omega - \bar{Y}}{\phi} - r'\right)
-\qquad r^* = r' + \lambda_I \pi^*
+\pi^{*} = \frac{\omega - \phi r' - 1}{\phi\lambda_I}
+\qquad
+r^{*} = r' + \lambda_I \pi^{*}
 $$
+
+The run converges while $\gamma < 2\,|\text{AD slope}|$.
 """
 
 
@@ -528,60 +537,81 @@ def oe_shock_panel(shock, regime):
 THEORY_INTRO = r"""
 ## Open Economy — Equations
 
+The numbering below is that of Chapter 3 of the thesis. Potential output is
+normalised to $\bar{Y} = 1$, so the output gap is a deviation from 1.
+
+> **In the app** $Y$ and $w^r$ are drawn as indices at $100$, so one unit of $Y$ is one
+> per cent of potential, and $r$, $\pi$ and the gap are in per cent. The equations are
+> unchanged — only the scale of the axes differs.
+
 ### Variables and parameters
 
-| Symbol | Meaning | Default |
+| Symbol | Meaning | Value |
 |---|---|---|
-| $Y,\ \bar{Y}$ | Output and potential output (index) | — , 100 |
-| $\tilde{Y}$ | Output gap, $100\,(Y-\bar{Y})/\bar{Y}$, in points | — |
-| $\pi$ | Inflation, % | 2 |
-| $r$ | Real interest rate, % | 2 |
-| $w^r$ | Real exchange rate $w\,p^a/p$ — a **rise** is a depreciation | 100 |
-| $\omega$ | Autonomous demand — the fiscal instrument | 77 |
-| $\varphi$ | Output cost of a 1 pp rise in $r$ | 1.0 |
-| $\psi$ | Output gain from a 1 % real depreciation | 0.25 |
-| $r'$ | Intercept of the policy rule, not the rate itself | 1.0 |
-| $\lambda_P$ | Policy response to the output gap | 0.5 |
-| $\lambda_I$ | Policy response to inflation (real) | 0.5 |
-| $\gamma$ | Phillips slope: pp of inflation per point of gap | 0.4 |
-| $\eta$ | Exogenous inflation shock — the imported-inflation control | 0 |
-| $r^a,\ \pi^a$ | Foreign real rate and inflation | 2.0 , 2.0 |
+| $\bar{Y}$ | Potential output | 1 |
+| $\tilde{Y}$ | Output gap, $(Y-\bar{Y})/\bar{Y} = Y - 1$ | — |
+| $w^r$ | Real exchange rate — a **rise** is a depreciation | — |
+| $\omega$ | Demand effect of impulses — the fiscal instrument | places period 0 at rest |
+| $\varphi$ | Interest-rate responsiveness of demand | 1 |
+| $\psi$ | Sensitivity of net exports to $w^r$ | 0.25 |
+| $r'$ | Orientation of central-bank policy | 1 |
+| $\lambda_P,\ \lambda_I$ | Employment preference, inflation aversion | 0.5 , 0.5 |
+| $\gamma$ | Coefficient on the output gap | 0.4 |
+| $r^a,\ \pi^a$ | Foreign real rate and foreign inflation | 2.0 , 2.0 |
 
-### The five equations
+### The model
+
+**IS** (3.7)
 
 $$
-\textbf{IS}\quad Y = \omega - \varphi\,r + \psi\,w^r
+Y_t = \omega - \varphi\,r_t + \psi\,w^r_t
 $$
 
-$$
-\textbf{MP}\quad r = r' + \lambda_P \tilde{Y} + \lambda_I \pi
-$$
+**MP** (3.8)
 
 $$
-\textbf{FX}\quad 1 + r = (1 + r^a)\,\frac{w^{r,e}_{+1}}{w^r}
+r_t = r' + \lambda_P \tilde{Y}_t + \lambda_I \pi_t
 $$
 
-$$
-\textbf{PPP}\quad w^r_t = w^r_{t-1}\,\frac{1 + \pi^a}{1 + \pi_t}
-$$
+**FX** (3.9) — a domestic asset returns $1 + r_t$, a foreign one $1 + r^a$ plus
+whatever the real exchange rate is expected to do meanwhile, so the two can differ
+only by the expected real depreciation:
 
 $$
-\textbf{IA}\quad \pi_{t+1} = \pi_t + \gamma\,\tilde{Y}_t + \eta
+1 + r_t = (1 + r^a)\,\frac{w^{r,e}_{t+1}}{w^r_t}
 $$
 
-$\eta$ is the **imported-inflation** control: an exogenous price shock. It is zero in
-every period but the one the shock lands in, where it sets $\pi_0$; from then on IA
-carries it forward through the output gap alone.
+**IA** (3.10)
 
-IS, MP and IA are the same in all three regimes. **AD** is not a separate assumption —
-it is two of the curves above solved together, and *which* two depends on the regime.
+$$
+\pi_{t+1} = \pi_t + \gamma\,\tilde{Y}_t
+$$
+
+The real exchange rate is the nominal rate adjusted for the two price levels (3.11).
+When the nominal rate is pegged, holding $w$ fixed and letting the price levels grow
+at their own rates gives:
+
+**PPP** (3.12)
+
+$$
+w^r_t = \frac{1 + \pi^a}{1 + \pi_t}\,w^r_{t-1}
+$$
+
+(3.12) has no free parameters: the real exchange rate keeps drifting for exactly as
+long as domestic inflation differs from foreign inflation, so a pegged economy is at
+rest only when $\pi = \pi^a$. It cannot hold an inflation rate of its own.
+
+IS, MP and IA are the same in all three regimes. **AD** is again not a separate
+assumption — it is (3.7), (3.8) and (3.9) solved together and plotted in
+inflation–output space. But not all three restrict that space at once, and which two
+do depends on the exchange-rate regime.
 
 ---
 
-### Exchange-rate regimes
+### Exchange-rate regimes — the “Unholy Trinity”
 
 A country would like a **stable exchange rate**, **free movement of capital** and a
-**monetary policy of its own**. It can have any two.
+**monetary policy of its own**. It can have any two, never all three.
 """
 
 
@@ -589,43 +619,59 @@ THEORY_REST = r"""
 | | Flexible | Fixed – no sterilization | Fixed – with sterilization |
 |---|---|---|---|
 | **Gives up** | the stable exchange rate | its own monetary policy | free movement of capital |
-| **FX becomes** | $r = r^a$ | $r = r^a + (\pi^a - \pi)$ | absent — absorbed by reserves |
+| **Free variable** | $w^r$ | the interest rate | the stock of reserves |
+| **Relation set aside** | IS | MP | FX |
+| **FX becomes** | $r = r^a$ | $r = r^a + \pi^a - \pi$ | absent — absorbed by reserves |
 | **AD is** | MP $\cap$ FX | IS $\cap$ FX | IS $\cap$ MP |
-| **AD slope** | $-\lambda_P/(\lambda_I)$ | $1/\varphi$ | $-\bigl(1/\varphi + \lambda_P\bigr)/\lambda_I$ |
 
-Two relations are enough to trace AD, and the regime decides which two: the third is
-satisfied by whatever variable the regime leaves free, and a relation a variable outside
-the diagram can always satisfy places no restriction on the $\pi$–$Y$ plane.
+Which relation is set aside follows from the trinity, because the free variable is the
+objective the regime gives up. The relation is not violated: it is satisfied by
+whatever variable the regime has left free, and a relation that a variable outside the
+diagram can always satisfy places no restriction on the $\pi$–$Y$ plane.
 
-That is why **FX is not drawn under sterilization**. The bank breaks the arbitrage rather
-than satisfying it, and the variable that takes the strain — the stock of reserves on its
-balance sheet — is not in the model at all. So FX is absorbed out of the system, imposes
-nothing on $r$, and there is no line for it in the $r$–$Y$ diagram. Under a float it is
-$r = r^a$; under a peg without sterilization the nominal rate is tied to the foreign one
-and $w^r$ can move only with the inflation differential, which by PPP leaves
-$r = r^a + (\pi^a - \pi)$.
-
-**AD, flexible** — MP $\cap$ FX, FX: $r = r^a$:
-
-$$
-\pi(Y) = \frac{r^a - r' + \lambda_P}{\lambda_I} \;-\; \frac{\lambda_P}{\lambda_I}Y
-$$
-
-**AD, fixed with sterilization** — IS $\cap$ MP at the pegged $w^r$:
+Equation (3.9) always says the same thing, but the regime fixes what the expected real
+depreciation is. Under a float the exchange rate jumps at once to the level from which
+no further real movement is expected, so $w^{r,e}_{t+1} = w^r_t$, the ratio is 1, and
+the relation collapses to $r_t = r^a$ — a flat line at the world real rate, with no
+inflation in it. Under a peg **with** sterilisation the bank breaks the arbitrage
+rather than satisfying it, and the variable that takes the strain — the stock of
+reserves on its balance sheet — is not in the model at all, so **no FX line is drawn**.
+Under a peg **without** sterilisation the nominal rate is held fixed, so by (3.12)
 
 $$
-\pi(Y) = \frac{\omega - \varphi r' + \varphi \lambda_P + \psi w^r}{\varphi \lambda_I}
-\;-\; \frac{1 + \varphi \lambda_P}{\varphi \lambda_I}Y
+\frac{w^{r,e}_{t+1}}{w^r_t} = \frac{1 + \pi^a}{1 + \pi_t}
 $$
 
-**AD, fixed without sterilization** — IS $\cap$ FX at the pegged $w^r$:
+Substituting into (3.9) and dropping the second-order term gives
+$r_t = r^a + \pi^a - \pi_t$: with the nominal rate tied to the foreign one, higher
+domestic inflation is simply a lower real interest rate.
+
+---
+
+**AD, flexible** — MP $\cap$ FX (3.13)
 
 $$
-\pi(Y) = \frac{ - \omega + \varphi r^a + \varphi \pi^a - \psi w^r}{\varphi} \;+\; \frac{1}{\varphi}Y
+\pi_t = \frac{r^a - r' + \lambda_P}{\lambda_I} \;-\; \frac{\lambda_P}{\lambda_I}\,Y_t
 $$
 
-The last slope is **positive**: with the policy rule gone, higher inflation means a lower
-real rate and more demand, so the rest point is unstable.
+**AD, fixed with sterilization** — IS $\cap$ MP (3.14)
+
+$$
+\pi_t = \frac{\omega - \varphi r' + \varphi\lambda_P + \psi w^r_t}{\varphi\lambda_I}
+\;-\; \frac{1 + \varphi\lambda_P}{\varphi\lambda_I}\,Y_t
+$$
+
+**AD, fixed without sterilization** — IS $\cap$ FX (3.15)
+
+$$
+\pi_t = \frac{-\omega + \varphi r^a + \varphi\pi^a - \psi w^r_t}{\varphi}
+\;+\; \frac{1}{\varphi}\,Y_t
+$$
+
+The last slope is **positive**: with the policy rule gone, higher inflation means a
+lower real rate and more demand, so the rest point is unstable. Linearising
+$(w^r, \pi)$ around it gives a determinant $1 + \gamma\varphi > 1$ for any
+$\varphi > 0$, so the gap widens every period instead of closing.
 """
 
 

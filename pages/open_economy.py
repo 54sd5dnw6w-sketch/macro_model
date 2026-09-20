@@ -154,72 +154,68 @@ with st.sidebar:
         omega = st.slider(r'$\omega$:', on_change=reset,
                           min_value=OMEGA_BASE - 4.0, max_value=OMEGA_BASE + 4.0, step=0.25,
                           value=OMEGA_BASE, key="oe_m_omega",
-                          help=r"IS Curve: $Y = \omega - \varphi r + \psi w^r$")
+                          help=r"IS: $Y = \omega - \varphi r + \psi w^r$ — demand that depends on neither $r$ "
+                               r"nor $w^r$. Shifts IS sideways.")
         r_init = st.slider(r"$r'$ (%):", on_change=reset,
                            min_value=RP_BASE - 1.5, max_value=RP_BASE + 1.5, step=0.1,
                            value=RP_BASE, key="oe_m_rinit",
-                           help=r"MP Curve: $r = r' + \lambda_P \tilde Y + \lambda_I \pi$")
+                           help=r"MP: $r = r' + \lambda_P \tilde Y + \lambda_I \pi$ — the rule's intercept. "
+                                r"Shifts MP up or down.")
         r_foreign = st.slider(r"$r^a$ (%) - abroad:", on_change=reset, min_value=0.0, max_value=4.0, step=0.1,
                               value=RA_BASE, key="oe_m_rforeign",
-                              help=r"FX Curve: $r = r^a$ under a flexible exchange rate, "
-                                   r"$r = r^a + (\pi^a - \pi)$ under a peg without sterilization. "
-                                   r"Sterilizing absorbs the relation into the reserve flow, so it "
-                                   r"constrains nothing and is not drawn.")
+                              help=r"FX: $r = r^a$ under a float, $r = r^a + \pi^a - \pi$ under a peg without "
+                                   r"sterilisation — the real interest rate abroad.")
         inflation_shock = st.slider(r"Imported inflation (%):", on_change=reset, min_value=-2.0, max_value=2.0,
                                     step=0.25, value=0.0, key="oe_m_infl",
-                                    help="A one-off jump in import prices, which lands directly on inflation. "
-                                         "Positive = prices from abroad rise, negative = they fall.")
+                                    help=r"Imported inflation: a one-off jump added to $\pi_0$.")
 
     elif level == 'Advanced':
         st.markdown('##### IS Curve')
         phi = st.number_input(r'$\varphi$ :', on_change=reset, min_value=0.1, max_value=3.0, step=0.1,
                               value=PHI_BASE, key="oe_a_phi",
-                              help=r"IS Curve: $Y = \omega - \varphi r + \psi w^r$. Output cost of a "
-                                   r"1 pp rise in the real rate, in per cent of potential.")
+                              help=r"IS: $Y = \omega - \varphi r + \psi w^r$ — how much output falls when $r$ "
+                                   r"rises by 1 pp.")
         psi = st.number_input(r'$\psi$ :', on_change=reset, min_value=0.05, max_value=1.0, step=0.05,
                               value=PSI_BASE, key="oe_a_psi",
-                              help=r"Output gain from a 1 % real depreciation ($w^r$ is an index at 100). "
-                                   r"0.25 is a normal net-export elasticity; above ~0.5 trade dominates "
-                                   r"everything else.")
+                              help=r"IS: $Y = \omega - \varphi r + \psi w^r$ — how much output rises with a 1% "
+                                   r"real depreciation.")
         omega = st.number_input(r'$\omega$ :', on_change=reset, min_value=60.0, max_value=95.0, step=0.5,
                                 value=OMEGA_BASE, key="oe_a_omega",
-                                help=r"IS Curve: $Y = \omega - \varphi r + \psi w^r$. One unit is one "
-                                     r"per cent of potential output.")
+                                help=r"IS: $Y = \omega - \varphi r + \psi w^r$ — demand that depends on "
+                                     r"neither $r$ nor $w^r$. Shifts IS sideways.")
         st.markdown("<hr style='margin: 2px 0; border: none; border-top: 1px solid #ccc;'>", unsafe_allow_html=True)
         st.markdown('##### MP Curve')
         r_init = st.number_input(r"$r'$ :", on_change=reset, step=0.1, value=RP_BASE, key="oe_a_rinit",
-                                 help=r"MP Curve: $r = r' + \lambda_P \tilde Y + \lambda_I \pi$")
+                                 help=r"MP: $r = r' + \lambda_P \tilde Y + \lambda_I \pi$ — the rule's "
+                                      r"intercept. Shifts MP up or down.")
         lambda_p = st.number_input(r'$\lambda_P$ :', on_change=reset, min_value=0.1, max_value=2.0, step=0.05,
                                    value=LP_BASE, key="oe_a_lp",
-                                   help=r"MP Curve weight on the output gap, in pp of real rate per point "
-                                        r"of gap. 0.5 is the textbook Taylor weight.")
+                                   help=r"MP: $r = r' + \lambda_P \tilde Y + \lambda_I \pi$ — how hard the "
+                                        r"bank reacts to the output gap.")
         lambda_i = st.number_input(r'$\lambda_I$ :', on_change=reset, min_value=0.1, max_value=3.0, step=0.05,
                                    value=LI_BASE, key="oe_a_li",
-                                   help=r"MP Curve weight on inflation: the REAL rate response. 0.5 here "
-                                        r"means a nominal response of 1.5, comfortably above the Taylor "
-                                        r"principle.")
+                                   help=r"MP: $r = r' + \lambda_P \tilde Y + \lambda_I \pi$ — how hard the "
+                                        r"bank reacts to inflation.")
 
         st.markdown("<hr style='margin: 2px 0; border: none; border-top: 1px solid #ccc;'>", unsafe_allow_html=True)
         st.markdown('##### FX Curve')
         r_foreign = st.number_input(r"$r^a$ (%) - abroad:", on_change=reset, step=0.1, value=RA_BASE,
                                     key="oe_a_rforeign",
-                                    help=r"FX Curve: $1+r = (1+r^a)\,w^{r,e}_{+1}/w^r$ — this is "
-                                         r"$r = r^a$ only when no move in the real exchange rate is "
-                                         r"expected. Under a peg without sterilization it is "
-                                         r"$r = r^a + (\pi^a - \pi)$; under sterilization it is "
-                                         r"absorbed by reserves and does not appear.")
+                                    help=r"FX: $r = r^a$ under a float, $r = r^a + \pi^a - \pi$ under a peg "
+                                         r"without sterilisation — the real interest rate abroad.")
         pi_foreign = st.number_input(r"$\pi^a$ (%) - abroad:", on_change=reset, step=0.1, value=PIA_BASE,
-                                     key="oe_a_piforeign", help=r"Long-run domestic inflation anchor")
+                                     key="oe_a_piforeign", help=r"PPP: $w^r_t = \frac{1 + \pi^a}{1 + \pi_t} "
+                                                                r"w^r_{t-1}$ — foreign inflation, and where a "
+                                                                r"peg's inflation ends up.")
         st.markdown("<hr style='margin: 2px 0; border: none; border-top: 1px solid #ccc;'>", unsafe_allow_html=True)
         st.markdown('##### IA Curve')
         gamma = st.number_input(r'$\gamma$ :', on_change=reset, min_value=0.0, max_value=1.5, step=0.05,
                                 value=GAMMA_BASE, key="oe_a_gamma",
-                                help=r"IA curve: $\pi_{t+1} = \pi_t + \gamma \tilde Y_t$. Phillips slope "
-                                     r"in pp of inflation per point of output gap.")
+                                help=r"IA: $\pi_{t+1} = \pi_t + \gamma \tilde Y_t$ — how much the output gap "
+                                     r"moves inflation.")
         inflation_shock = st.number_input(r"Imported Inflation (%):", on_change=reset, min_value=-3.0, max_value=3.0,
                                           step=0.25, value=0.0, key="oe_a_infl",
-                                          help="A one-off jump in import prices. It lands on inflation once "
-                                               "and is carried forward from there.")
+                                          help=r"Imported inflation: a one-off jump added to $\pi_0$.")
 
     # ―――― Play / Reset buttons ――――――――――――――――
     st.sidebar.markdown("<hr style='margin: 2px 0; border: none; border-top: 1px solid #ccc;'>", unsafe_allow_html=True)
@@ -269,7 +265,7 @@ sim_speed       = st.session_state.get("setting_speed", c.speed)
 # ―――― Derived Model Parameters ――――――――――――――――
 Ybar = c.Y_potential
 IS_slope = -1 / phi
-MP_slope = lambda_p * h.gap_per_Y(Ybar)      # Ỹ is in points, so d r/d Y = λ_P·100/Ȳ
+MP_slope = lambda_p                          # Ỹ = Y − Ȳ is in points already
 
 # ―――― Exchange-rate regime ――――――――――――――――
 # flexible    — r = rᵃ, AD is MP∩FX, so ω drops out of AD
@@ -357,8 +353,8 @@ AD_slope_sr, AD_intercept_sr = h.oe_ad_curve(P, oe_regime, WR_BASELINE)
 
 IS_intercept_cur = h.oe_is_intercept(P, wr_cur)
 IS_intercept_shock = h.oe_is_intercept(P, wr_shock)
-MP_intercept_cur = r_init - lambda_p * 100.0 + lambda_i * pi_cur
-MP_intercept_shock = r_init - lambda_p * 100.0 + lambda_i * pi_0
+MP_intercept_cur = r_init - lambda_p * Ybar + lambda_i * pi_cur
+MP_intercept_shock = r_init - lambda_p * Ybar + lambda_i * pi_0
 
 
 # ―――― Medium: concise dynamic description ――――――――――――――――
@@ -431,7 +427,7 @@ show_initial = phase == "short_term_paused"
 show_long = phase in ("adjusting", "run_paused", "done")
 
 init_IS = (-1 / phi, (OMEGA_BASE + psi * WR_BASELINE) / phi)
-init_MP = (MP_slope, RP_BASE - lambda_p * 100.0 + lambda_i * PI_BASELINE)
+init_MP = (MP_slope, RP_BASE - lambda_p * Ybar + lambda_i * PI_BASELINE)
 init_FX = (0.0, h.oe_fx_rate(P0, oe_regime, PI_BASELINE))
 init_AD = h.oe_ad_curve(P0, oe_regime, WR_BASELINE)
 init_IA = (0.0, PI_BASELINE)
@@ -478,7 +474,8 @@ with tab1:
     # moves with inflation — is spelled out in the Advanced panel and the
     # divergence warning, so the label does not have to carry the equation.
     if not peg_steril:
-        h.add_curve_set(r_Y_fig, 'FX', x_lo, x_hi, init_FX, st_FX, lt_FX, show_initial, show_long)
+        h.add_curve_set(r_Y_fig, 'FX', x_lo, x_hi, init_FX, st_FX, lt_FX, show_initial, show_long,
+                        label_position='left')
 
     if phase != "idle":
         h.add_vertical_line(r_Y_fig, Y_cur, y_max=r_cur, name=f"Y ({Y_cur:.1f})", name_position='bottom', color='#B0B0B0', dash='dot')
@@ -495,7 +492,7 @@ with tab1:
     h.add_curve_set(pi_Y_fig, 'IA', x_lo, x_hi, init_IA, st_IA, lt_IA, show_initial, show_long)
 
     # PPP: horizontal at πᵃ. Labelled left so it misses the IA label on the right.
-    h.add_line_to_plot(pi_Y_fig, 0, pi_foreign, x_lo, x_hi, dash='dash', name=f"PPP ({pi_foreign:.1f})", color="#999999", line_width=c.thin_line_width, label_position='left')
+    h.add_line_to_plot(pi_Y_fig, 0, pi_foreign, x_lo, x_hi, dash='dash', name=f"PPP ({pi_foreign:.1f})", color="#999999", line_width=c.thin_line_width, label_position='left', label_offset=9)
 
     # AD last, so its label is placed against the curves already on the figure
     h.add_curve_set(pi_Y_fig, 'AD', x_lo, x_hi, init_AD, st_AD, lt_AD, show_initial, show_long)

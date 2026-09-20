@@ -49,8 +49,8 @@ RP_BASE, LP_BASE, LI_BASE, GAMMA_BASE = 1.0, 0.5, 0.5, 0.4
 
 # Period 0 at the default parameters. Recomputed after the sidebar with whatever
 # structural parameters the user set; the Easy level never changes them.
-_AD_SLOPE_BASE = (-1.0 / PHI_BASE - LP_BASE * h.gap_per_Y(c.Y_potential)) / LI_BASE
-_AD_INT_BASE   = (OMEGA_BASE / PHI_BASE - RP_BASE + LP_BASE * 100.0) / LI_BASE
+_AD_SLOPE_BASE = (-1.0 / PHI_BASE - LP_BASE) / LI_BASE
+_AD_INT_BASE   = (OMEGA_BASE / PHI_BASE - RP_BASE + LP_BASE * c.Y_potential) / LI_BASE
 PI_BASELINE = _AD_SLOPE_BASE * c.Y_potential + _AD_INT_BASE                      # → 2.0
 R_BASELINE  = RP_BASE + LI_BASE * PI_BASELINE                                    # → 2.0
 
@@ -118,17 +118,16 @@ with st.sidebar:
         omega = st.slider(r'$\omega :$', on_change=reset,
                           min_value=OMEGA_BASE - 4.0, max_value=OMEGA_BASE + 4.0, step=0.25,
                           value=OMEGA_BASE,
-                          help=r"IS Curve: $Y = \omega - \phi r$. One unit is one per cent of "
-                               r"potential output.")
+                          help=r"IS: $Y = \omega - \phi r$ — demand that does not depend on $r$. Shifts IS "
+                               r"sideways.")
         r_init = st.slider(r"$r' (\%) :$", on_change=reset,
                            min_value=RP_BASE - 1.5, max_value=RP_BASE + 1.5, step=0.1,
                            value=RP_BASE,
-                           help=r"MP Curve: $r = r' + \lambda_P \tilde{Y} + \lambda_I \pi$. This is the "
-                                r"rule's intercept, not the rate itself — at the baseline it leaves "
-                                r"$r = 2\%$.")
+                           help=r"MP: $r = r' + \lambda_P \tilde{Y} + \lambda_I \pi$ — the rule's intercept. "
+                                r"Shifts MP up or down.")
         inflation_shock = st.slider(r"Initial inflation shock (%):", on_change=reset, min_value=-3.0, max_value=3.0, step=0.25, value=0.0,
-                                    help=r"One-off shift of initial inflation away from equilibrium. 0 = no shock. "
-                                         r"Distinct from the per-period $\eta$ of the IA curve (Advanced).")
+                                    help=r"Starting inflation only: $\pi_0 = \pi^* +$ this. One-off; 0 = no "
+                                         r"shock.")
         eta = 0
         pi_0_override = None  # resolved after pi_eq is computed
 
@@ -149,38 +148,39 @@ with st.sidebar:
         st.markdown('##### For IS Curve')
         phi = st.number_input(r'$\phi :$', on_change=reset, min_value=0.1, max_value=3.0, step=0.1,
                               value=PHI_BASE,
-                              help=r"IS Curve: $Y = \omega - \phi r$. Output cost of a 1 pp rise in the "
-                                   r"real rate, in per cent of potential.")
+                              help=r"IS: $Y = \omega - \phi r$ — how much output falls when $r$ rises by 1 pp.")
         omega = st.number_input(r'$\omega :$', on_change=reset, min_value=90.0, max_value=115.0, step=0.5,
                                 value=OMEGA_BASE,
-                                help=r"IS Curve: $Y = \omega - \phi r$. One unit is one per cent of "
-                                     r"potential output.")
+                                help=r"IS: $Y = \omega - \phi r$ — demand that does not depend on $r$. Shifts "
+                                     r"IS sideways.")
         st.markdown("<hr style='margin: 2px 0; border: none; border-top: 1px solid #ccc;'>", unsafe_allow_html=True)
         st.markdown('##### For MP Curve')
         r_init = st.number_input(r"$r' (\%) :$", on_change=reset, min_value=-2.0, max_value=5.0, step=0.1,
                                  value=RP_BASE,
-                                 help=r"MP Curve intercept: $r = r' + \lambda_P \tilde{Y} + \lambda_I \pi$. "
-                                      r"Not the rate itself — at the baseline it leaves $r = 2\%$.")
+                                 help=r"MP: $r = r' + \lambda_P \tilde{Y} + \lambda_I \pi$ — the rule's "
+                                      r"intercept. Shifts MP up or down.")
         lambda_p = st.number_input(r'$\lambda_P :$', on_change=reset, min_value=0.0, max_value=2.0, step=0.05,
                                    value=LP_BASE,
-                                   help=r"Weight on the output gap, in pp of real rate per point of gap. "
-                                        r"0.5 is the textbook Taylor weight.")
+                                   help=r"MP: $r = r' + \lambda_P \tilde{Y} + \lambda_I \pi$ — how hard the "
+                                        r"bank reacts to the output gap.")
         lambda_i = st.number_input(r'$\lambda_I :$', on_change=reset, min_value=0.1, max_value=3.0, step=0.05,
                                    value=LI_BASE,
-                                   help=r"Weight on inflation: the REAL rate response. 0.5 here means a "
-                                        r"nominal response of 1.5, above the Taylor principle.")
+                                   help=r"MP: $r = r' + \lambda_P \tilde{Y} + \lambda_I \pi$ — how hard the "
+                                        r"bank reacts to inflation.")
         inflation_shock = st.number_input(r"Initial inflation shock (%):", on_change=reset, min_value=-3.0, max_value=3.0, step=0.25, value=0.0,
-                                           help=r"One-off shift of initial inflation away from equilibrium. 0 = no shock. "
-                                                r"Distinct from the per-period $\eta$ below.")
+                                           help=r"Starting inflation only: $\pi_0 = \pi^* +$ this. One-off; 0 "
+                                                r"= no shock.")
         pi_0_override = None  # resolved after pi_eq is computed
         st.markdown("<hr style='margin: 2px 0; border: none; border-top: 1px solid #ccc;'>", unsafe_allow_html=True)
         st.markdown('##### For IA Curve')
         gamma = st.number_input(r'$\gamma :$', on_change=reset, min_value=0.0, max_value=1.5, step=0.05,
                                 value=GAMMA_BASE,
-                                help=r"Phillips slope: pp of inflation per point of output gap.")
+                                help=r"IA: $\pi_{t+1} = \pi_t + \gamma \tilde{Y}_t + \eta$ — how much the "
+                                     r"output gap moves inflation.")
         eta = st.number_input(r'$\eta$ (exogenous shock):', on_change=reset,
                               min_value=-1.0, max_value=1.0, step=0.05, value=0.0,
-                              help=r"IA curve: π_{t+1} = π_t + γỸ_t + η. Persistent exogenous price shock each period.")
+                              help=r"IA: $\pi_{t+1} = \pi_t + \gamma \tilde{Y}_t + \eta$ — a price shock added "
+                                   r"in every period.")
 
 
     # Play / Reset buttons
@@ -231,20 +231,20 @@ iteration_count = st.session_state.get("setting_iterations", c.iteration_count)
 sim_speed       = st.session_state.get("setting_speed", c.speed)
 
 # ―――― Derived Model Parameters ――――――――――――――――
-GAP = h.gap_per_Y(c.Y_potential)     # Ỹ is in points, so d(Ỹ)/dY = 100/Ȳ
+# Ỹ = Y − Ȳ is already in points, so a coefficient on the gap is a slope in Y
 IS_slope = -1 / phi
 IS_intercept = omega / phi
-MP_slope = lambda_p * GAP
-AD_slope = (IS_slope - lambda_p * GAP) / lambda_i
-AD_intercept = (IS_intercept - r_init + lambda_p * 100.0) / lambda_i
+MP_slope = lambda_p
+AD_slope = (IS_slope - lambda_p) / lambda_i
+AD_intercept = (IS_intercept - r_init + lambda_p * c.Y_potential) / lambda_i
 pi_eq = AD_slope * c.Y_potential + AD_intercept   # long-run equilibrium inflation
-r_eq = MP_slope * c.Y_potential + (r_init - lambda_p * 100.0 + lambda_i * pi_eq)   # rate at that point
+r_eq = MP_slope * c.Y_potential + (r_init - lambda_p * c.Y_potential + lambda_i * pi_eq)   # rate at that point
 
 # ―――― Period 0: the pre-shock resting point ――――――――――――――――
 # Re-derived with the user's structural parameters (φ, λ_P, λ_I) at DEFAULT policy
 # (ω, r′), so period 0 really is a rest point whatever φ and λ are set to.
-_AD_SLOPE_BASE = (-1.0 / phi - lambda_p * GAP) / lambda_i
-_AD_INT_BASE   = (OMEGA_BASE / phi - RP_BASE + lambda_p * 100.0) / lambda_i
+_AD_SLOPE_BASE = (-1.0 / phi - lambda_p) / lambda_i
+_AD_INT_BASE   = (OMEGA_BASE / phi - RP_BASE + lambda_p * c.Y_potential) / lambda_i
 PI_BASELINE = _AD_SLOPE_BASE * c.Y_potential + _AD_INT_BASE
 R_BASELINE  = RP_BASE + lambda_i * PI_BASELINE
 
@@ -258,7 +258,7 @@ if level in ('Medium', 'Advanced'):
 pi_0 = pi_0_override if pi_0_override is not None else pi_eq
 
 # Slope of the Phillips curve π = π^e + (γ/Ȳ)·Ỹ
-pc_slope = gamma * GAP
+pc_slope = gamma
 
 # pi_e_cur: expected inflation carried into the current animated period (π^e).
 if st.session_state.pi_prev is None:
@@ -277,19 +277,19 @@ def operating_point(pi_expected):
     else:
         pi_ = pi_expected
         Y, _ = h.find_line_intersection(IS_slope, IS_intercept, MP_slope,
-                                        r_init - lambda_p * 100.0 + lambda_i * pi_)
-    r = MP_slope * Y + (r_init - lambda_p * 100.0 + lambda_i * pi_)
+                                        r_init - lambda_p * c.Y_potential + lambda_i * pi_)
+    r = MP_slope * Y + (r_init - lambda_p * c.Y_potential + lambda_i * pi_)
     return Y, pi_, r
 
 
 # Current (animated) operating point and the period-1 short-run jump.
 Y_cur, pi_cur, r_cur = operating_point(pi_e_cur)
 Y_shock, pi_shock, r_shock = operating_point(pi_0)
-MP_intercept_cur   = r_init - lambda_p * 100.0 + lambda_i * pi_cur
-MP_intercept_shock = r_init - lambda_p * 100.0 + lambda_i * pi_shock
+MP_intercept_cur   = r_init - lambda_p * c.Y_potential + lambda_i * pi_cur
+MP_intercept_shock = r_init - lambda_p * c.Y_potential + lambda_i * pi_shock
 
 # Convergence check: stable if γ < 2·Ȳ·|AD_slope|
-convergence_ok = (gamma < 2 * abs(AD_slope) / GAP) if AD_slope != 0 else True
+convergence_ok = (gamma < 2 * abs(AD_slope)) if AD_slope != 0 else True
 
 # ―――― Medium: resolve combined text ――――――――――――――――
 if level == 'Medium':
@@ -399,7 +399,7 @@ show_long = phase in ("adjusting", "run_paused", "done")
 
 # Pre-shock resting point: default POLICY (ω, r′), the user's structural parameters.
 init_IS = (-1.0 / phi, OMEGA_BASE / phi)
-init_MP = (MP_slope, RP_BASE - lambda_p * 100.0 + lambda_i * PI_BASELINE)
+init_MP = (MP_slope, RP_BASE - lambda_p * c.Y_potential + lambda_i * PI_BASELINE)
 init_AD = (_AD_SLOPE_BASE, _AD_INT_BASE)
 init_IA = (0.0, PI_BASELINE)
 
