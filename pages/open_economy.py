@@ -28,7 +28,6 @@ h.session_init(
     oe_pi_prev=None,
     oe_wr_prev=None,        # real-exchange-rate state (fixed peg without sterilization)
     oe_iter_counter=0,
-    oe_peg_broke=False,     # unsterilised peg amplified until the model left its range
     oe_iteration_df=pd.DataFrame(columns=["Iteration", "Output", "Inflation", "RealFX", "Rate"]),
     oe_locked_df=None,
 )
@@ -52,7 +51,6 @@ def reset():
     st.session_state.oe_pi_prev = None
     st.session_state.oe_wr_prev = None
     st.session_state.oe_iter_counter = 0
-    st.session_state.oe_peg_broke = False
     st.session_state.oe_iteration_df = pd.DataFrame(columns=["Iteration", "Output", "Inflation", "RealFX", "Rate"])
 
 
@@ -402,7 +400,6 @@ if continue_clicked and phase == "short_term_paused":
 # "Remember this run" is kept, so the replay is drawn against it.
 if play_clicked and phase in ("idle", "done"):
     st.session_state.oe_phase = "short_term_paused"
-    st.session_state.oe_peg_broke = False
     st.session_state.oe_pi_prev = pi_0
     st.session_state.oe_wr_prev = WR_BASELINE
     st.session_state.oe_iter_counter = 2
@@ -604,15 +601,6 @@ with tab1:
                        f"the other way, but only through the slow drift of prices, and never catches "
                        f"up. This is the mechanism behind the Eurozone's divergence.")
 
-        if st.session_state.oe_peg_broke:
-            st.error(f"🛑 **The peg breaks.** Far from potential a linear model describes nothing, so "
-                     f"the run is stopped at an explicit breaking point: output more than "
-                     f"{h.OE_BREAK_GAP:.0f}% from potential, inflation more than {h.OE_BREAK_PI:.0f} "
-                     f"points from the foreign rate, or the real exchange rate more than "
-                     f"{h.OE_BREAK_WR * 100:.0f}% from its initial value. That is the regime's own "
-                     f"result, not a glitch: the bank must either bear the rate the peg demands "
-                     f"(France, 1992) or let the peg go (the UK on Black Wednesday). A smaller shock "
-                     f"takes longer to get there and shows more of the path.")
 
         if level != 'Easy':
             if monetary_neutralised:
@@ -650,12 +638,10 @@ with tab1:
         st.session_state.oe_wr_prev = _wr_next
         st.session_state.oe_iter_counter += 1
 
-        # An unsterilised peg amplifies without limit, so stop the run at the edge
-        # of the range the model describes
-        if peg_divergent and h.oe_out_of_range(P, _Y_next, _pi_next, _wr_next):
-            st.session_state.oe_peg_broke = True
-            st.session_state.oe_phase = "done"
-        elif st.session_state.oe_iter_counter >= iteration_count:
+        # The unsterilised peg amplifies without limit and is left to do so: the run
+        # ends on the iteration count like every other regime, however large the
+        # numbers get.
+        if st.session_state.oe_iter_counter >= iteration_count:
             st.session_state.oe_phase = "done"
 
         time.sleep(sim_speed)

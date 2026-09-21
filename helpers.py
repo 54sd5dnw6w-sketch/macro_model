@@ -234,13 +234,19 @@ def add_curve_set(plotly_fig, key, x_min, x_max, initial, short, long_=None,
     name = key if label is None else label
     solid, pale = CURVE_COLORS[key]
 
+    # A right-edge label sits past the end of the line and needs no clearance; a
+    # left-edge one starts ON the line and runs across it, so a lone label there is
+    # lifted by the same nudge the live label of a pair gets.
+    solo_offset = LABEL_NUDGE if label_position == 'left' else 0
+
     def _nm(index=""):
         return f"{name}{index}"
 
     if not show_initial and not show_long:
         return add_model_curve(plotly_fig, *initial, x_min, x_max, name=_nm(),
                                color=solid, line_width=c.standard_line_width,
-                               label_position=label_position)
+                               label_position=label_position,
+                               label_offset=solo_offset)
 
     if show_initial:
         add_model_curve(plotly_fig, *initial, x_min, x_max, name=_nm(IDX_INITIAL),
@@ -328,20 +334,6 @@ def oe_peg_root(p):
     if disc < 0:
         return det ** 0.5                      # complex pair, modulus √det
     return (abs(tr) + disc ** 0.5) / 2.0
-
-
-# Breaking point of a diverging peg: a display guard, not a model equation. The
-# "peg breaks" message quotes these same numbers, so they are named once here.
-OE_BREAK_GAP, OE_BREAK_PI, OE_BREAK_WR = 8.0, 10.0, 0.33
-
-
-def oe_out_of_range(p, Y, pi, wr):
-    """Display guard, not a model equation: the unsterilised peg amplifies without
-    limit, and past these bounds a linear IS curve describes nothing. Changes no
-    path, only where the line stops."""
-    return (abs(output_gap(Y, p.Ybar)) > OE_BREAK_GAP
-            or abs(pi - p.pi_foreign) > OE_BREAK_PI
-            or abs(wr / oe_baseline_wr(p) - 1.0) > OE_BREAK_WR)
 
 
 def oe_operating_point(p, regime, pi, wr_state):
