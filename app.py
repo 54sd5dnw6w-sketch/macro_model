@@ -1,6 +1,6 @@
 import streamlit as st
 
-
+# ―――― Main ――――――――――――――――
 pages_ = [
     st.Page("pages/closed_economy.py", title="Closed Economy", icon="🏛️", default=True),
     st.Page("pages/open_economy.py",   title="Open Economy",   icon="🌍"),

@@ -26,9 +26,6 @@ def lock_run():
 def clear_lock():
     st.session_state.locked_df = None
 
-
-# Pause/resume mid-run. Callbacks, not return values: a click arriving while the
-# animation sleeps is applied before the next script run, so no step is lost.
 def pause_run():
     if st.session_state.phase == "adjusting":
         st.session_state.phase = "run_paused"
@@ -39,29 +36,24 @@ def resume_run():
         st.session_state.phase = "adjusting"
 
 
+
 st.set_page_config(layout="wide", initial_sidebar_state="expanded")
 
 # ―――― Default parameters ――――――――――――――――
-# Y is an index at Ȳ = 100 and the gap Ỹ = 100·(Y−Ȳ)/Ȳ is in percentage points.
-# r' = r* − λ_I·π* and ω = Ȳ + φ·r* are what rest the economy at Y = 100, π = 2, r = 2.
 PHI_BASE, OMEGA_BASE = 1.0, 102.0
 RP_BASE, LP_BASE, LI_BASE, GAMMA_BASE = 1.0, 0.5, 0.5, 0.4
 
-# Period 0 at the default parameters. Recomputed after the sidebar with whatever
-# structural parameters the user set; the Easy level never changes them.
 _AD_SLOPE_BASE = (-1.0 / PHI_BASE - LP_BASE) / LI_BASE
 _AD_INT_BASE   = (OMEGA_BASE / PHI_BASE - RP_BASE + LP_BASE * c.Y_potential) / LI_BASE
 PI_BASELINE = _AD_SLOPE_BASE * c.Y_potential + _AD_INT_BASE                      # → 2.0
 R_BASELINE  = RP_BASE + LI_BASE * PI_BASELINE                                    # → 2.0
 
 # ―――― Shock sizes (Easy mode) ――――――――――――――――
-# A 1.5 % of GDP demand swing, a 100 bp policy move, a 1.5 pp price shock.
 DEMAND_SHOCK, MONETARY_SHOCK, INFL_SHOCK = 1.5, 1.0, 1.5
 
-# Half a slider step, so one click always registers. The same thresholds pick the
-# descriptive text, so no setting can be active without a description.
 OMEGA_HI, OMEGA_LO = OMEGA_BASE + 0.1, OMEGA_BASE - 0.1
 RINIT_HI, RINIT_LO = RP_BASE + 0.05, RP_BASE - 0.05
+
 
 # ―――― Sidebar ――――――――――――――――
 st.sidebar.header("Closed Economy")
@@ -74,10 +66,7 @@ with st.sidebar:
     is_run_paused = phase == "run_paused"      # held mid-run by the user
     busy = is_running or is_paused or is_run_paused
 
-    level = st.selectbox('Control Level', options=['Easy', 'Medium', 'Advanced'],
-                         disabled=busy, on_change=reset)
-
-
+    level = st.selectbox('Control Level', options=['Easy', 'Medium', 'Advanced'],disabled=busy, on_change=reset)
     show_phillips = st.toggle("Show the IA as a Phillips Curve", value=False, disabled=busy) if level == 'Advanced' else False
 
     # ―――― Parameter Inputs ――――――――――――――――
@@ -142,7 +131,7 @@ with st.sidebar:
         if inflation_shock > 0:   pi_text = c.pi_text_inf
         elif inflation_shock < 0: pi_text = c.pi_text_def
         else:                     pi_text = ''
-        # text_to_show resolved after derived params (needs Y_shock, pi_eq)
+
 
     elif level == 'Advanced':
         st.markdown('##### For IS Curve')
@@ -182,7 +171,6 @@ with st.sidebar:
                               help=r"IA: $\pi_{t+1} = \pi_t + \gamma \tilde{Y}_t + \eta$ — a price shock added "
                                    r"in every period.")
 
-
     # Play / Reset buttons
     st.sidebar.markdown("<hr style='margin: 2px 0; border: none; border-top: 1px solid #ccc;'>", unsafe_allow_html=True)
 
@@ -204,11 +192,6 @@ with st.sidebar:
     with bcol2:
         reset_clicked = st.button("↺ Reset", on_click=reset, width="stretch", disabled=is_running)
 
-
-    # One slot, written on every rerun. Each animation pass ends in st.rerun(),
-    # which aborts the script before Streamlit prunes elements the new run did not
-    # re-render — so a status box from the previous phase would linger on screen.
-    # Writing the slot unconditionally clears whatever the last phase put there.
     status_slot = st.empty()
     continue_clicked = False
     if is_paused:
@@ -230,8 +213,8 @@ with st.sidebar:
 iteration_count = st.session_state.get("setting_iterations", c.iteration_count)
 sim_speed       = st.session_state.get("setting_speed", c.speed)
 
+
 # ―――― Derived Model Parameters ――――――――――――――――
-# Ỹ = Y − Ȳ is already in points, so a coefficient on the gap is a slope in Y
 IS_slope = -1 / phi
 IS_intercept = omega / phi
 MP_slope = lambda_p
@@ -241,23 +224,15 @@ pi_eq = AD_slope * c.Y_potential + AD_intercept   # long-run equilibrium inflati
 r_eq = MP_slope * c.Y_potential + (r_init - lambda_p * c.Y_potential + lambda_i * pi_eq)   # rate at that point
 
 # ―――― Period 0: the pre-shock resting point ――――――――――――――――
-# Re-derived with the user's structural parameters (φ, λ_P, λ_I) at DEFAULT policy
-# (ω, r′), so period 0 really is a rest point whatever φ and λ are set to.
 _AD_SLOPE_BASE = (-1.0 / phi - lambda_p) / lambda_i
 _AD_INT_BASE   = (OMEGA_BASE / phi - RP_BASE + lambda_p * c.Y_potential) / lambda_i
 PI_BASELINE = _AD_SLOPE_BASE * c.Y_potential + _AD_INT_BASE
 R_BASELINE  = RP_BASE + lambda_i * PI_BASELINE
 
-# Anchor π₀ to the baseline plus the price shock alone, so demand and monetary
-# settings never move the starting inflation.
 if level in ('Medium', 'Advanced'):
     pi_0_override = PI_BASELINE + inflation_shock
 
-# Inflation entering period 1. With the Phillips curve on this is π^e, and the
-# realised period-1 inflation moves once the output gap feeds through.
 pi_0 = pi_0_override if pi_0_override is not None else pi_eq
-
-# Slope of the Phillips curve π = π^e + (γ/Ȳ)·Ỹ
 pc_slope = gamma
 
 # pi_e_cur: expected inflation carried into the current animated period (π^e).
@@ -290,6 +265,7 @@ MP_intercept_shock = r_init - lambda_p * c.Y_potential + lambda_i * pi_shock
 
 # Convergence check: stable if γ < 2·Ȳ·|AD_slope|
 convergence_ok = (gamma < 2 * abs(AD_slope)) if AD_slope != 0 else True
+
 
 # ―――― Medium: resolve combined text ――――――――――――――――
 if level == 'Medium':
@@ -371,8 +347,6 @@ if continue_clicked and phase == "short_term_paused":
     st.rerun()
 
 # ―――― Play: initialize period 0 and period 1 ――――――――――――――――
-# Also fires from "done" so Play restarts a finished run. A saved comparison run
-# is kept, so the replay is drawn against it.
 if play_clicked and phase in ("idle", "done"):
     st.session_state.phase = "short_term_paused"
     st.session_state.pi_prev = pi_0
@@ -385,15 +359,14 @@ if play_clicked and phase in ("idle", "done"):
 
 phase = st.session_state.phase  # re-read after possible update
 
+
 # ―――― Plot bounds ――――――――――――――――
-# Sized from the largest gap the run reaches, with a floor so a small shock has room.
 MIN_HALF_WINDOW = 2.0
 const = max(MIN_HALF_WINDOW,
             1.6 * max(abs(Y_shock - c.Y_potential), abs(Y_cur - c.Y_potential)))
 x_lo, x_hi = c.Y_potential - const, c.Y_potential + const
 
 # ―――― Curve positions in each phase ――――――――――――――――
-# initial = period 0, short = the period-1 impact, long = where the curve is now.
 show_initial = phase == "short_term_paused"
 show_long = phase in ("adjusting", "run_paused", "done")
 
@@ -432,7 +405,6 @@ with tab2:
     st.markdown(c.markdown_text)
 
 with tab1:
-    # Same shape as the open-economy page, so the two read as one app
     cols = st.columns([1.7, 1], gap="small", vertical_alignment="top")
     diagrams = cols[0].container(border=True, height="stretch")
     h.panel_header("Diagrams", diagrams)
@@ -473,8 +445,6 @@ with tab1:
 
     # ―――― Advanced: equation display ――――――――――――――――
     if level == 'Advanced':
-        # Distance from the NEW equilibrium, not the size of a price shock — a
-        # demand or monetary shock moves π* without touching π₀
         shock_size = pi_0 - pi_eq
         shock_label = f"+{shock_size:.1f}" if shock_size >= 0 else f"{shock_size:.1f}"
         if show_phillips:
@@ -522,7 +492,6 @@ with tab1:
         h.panel_header("Over time")
 
         # ―――― Y / Periods chart ――――――――――――――――
-        # Only the bottom chart shows the "Period" title — the three share one x-axis.
         output_fig = px.scatter(st.session_state.iteration_df, x="Iteration", y="Output")
         output_fig.update_traces(mode="lines", marker=dict(size=5))
 

@@ -14,15 +14,12 @@ def session_init(**kwargs):
             st.session_state[key] = value
 
 
-
-
 def panel_header(text, column_to_plot=st):
     """Small-caps label at the top of a panel."""
     column_to_plot.markdown(
         f"<div style='font-size:11px; font-weight:600; letter-spacing:.09em; "
         f"text-transform:uppercase; color:#9AA0A6; margin:-4px 0 8px 0;'>{text}</div>",
         unsafe_allow_html=True)
-
 
 # ―――― Linear Math ――――――――――――――――
 def find_line_intersection(slope_1, intercept_1, slope_2, intercept_2):
@@ -32,8 +29,6 @@ def find_line_intersection(slope_1, intercept_1, slope_2, intercept_2):
     x = (intercept_2 - intercept_1) / (slope_1 - slope_2)
     y = slope_1 * x + intercept_1
     return x, y
-
-
 
 
 # ―――― Plot helpers ――――――――――――――――
@@ -57,9 +52,7 @@ def add_line_to_plot(plotly_fig, slope, intercept, x_min=0, x_max=10, n_points=1
         )
     )
 
-    # 'left' keeps the label inside the plot so it does not widen the left margin.
-    # Base shift 0 in both branches, so a nudged pair straddles the curve evenly;
-    # a standalone label that wants clearance passes its own label_offset.
+    # 'left' keeps the label inside the plot so it does not widen the left margin. Base shift 0 in both branches, so a nudged pair straddles the curve evenly; a standalone label that wants clearance passes its own label_offset.
     if label_position == 'left':
         label_x, label_y, label_anchor, label_yshift = x[0], y[0], "left", 0
     else:
@@ -75,7 +68,6 @@ def add_line_to_plot(plotly_fig, slope, intercept, x_min=0, x_max=10, n_points=1
         yshift=label_yshift,
         font=dict(color=color)  # match line color
     )
-
     return df
 
 def add_vertical_line(plotly_fig, x_value, y_min=None, y_max=None, color="#000000", dash="dash", name="Vertical Line", name_position='top', line_width=None, label_offset=0):
@@ -212,11 +204,9 @@ CURVE_COLORS = {
     'FX': ("#E45756", "#F5B8B7"),
 }
 
-# Pixels the two visible labels are pushed apart, so they stay readable when the
-# curves coincide. Always applied — the axis scale is not known at draw time.
+# Pixels the two visible labels are pushed apart, so they stay readable when the curves coincide. Always applied — the axis scale is not known at draw time.
 LABEL_NUDGE = 11
 
-# <sub> rather than plain Unicode: there is no subscript ∞ character
 IDX_INITIAL, IDX_SHORT, IDX_LONG = "<sub>0</sub>", "<sub>1</sub>", "<sub>∞</sub>"
 
 
@@ -234,9 +224,7 @@ def add_curve_set(plotly_fig, key, x_min, x_max, initial, short, long_=None,
     name = key if label is None else label
     solid, pale = CURVE_COLORS[key]
 
-    # A right-edge label sits past the end of the line and needs no clearance; a
-    # left-edge one starts ON the line and runs across it, so a lone label there is
-    # lifted by the same nudge the live label of a pair gets.
+    # A right-edge label sits past the end of the line and needs no clearance; a left-edge one starts ON the line and runs across it, so a lone label there is lifted by the same nudge the live label of a pair gets.
     solo_offset = LABEL_NUDGE if label_position == 'left' else 0
 
     def _nm(index=""):
@@ -265,25 +253,12 @@ def add_curve_set(plotly_fig, key, x_min, x_max, initial, short, long_=None,
 
 
 # ―――― Units ―――――――――――――――――――――――――――――――――
-# Y and wʳ are indices whose potential level is Ȳ, so one unit of Y is one per cent
-# of potential and the gap Ỹ = Y − Ȳ is already in the same points as r and π.
-# That is the thesis's (3.4) with potential divided out, so no factor of 100 is
-# carried on any slope in Y. The 100s that remain below convert a per-cent rate
-# into a fraction (PPP, and the peg's eigenvalue) and are not Ȳ.
-
 def output_gap(Y, Ybar):
     """Output gap Ỹ, in the same points as r and π."""
     return Y - Ybar
 
 
 # ―――― Open-economy model ―――――――――――――――――――――――――――――――――――――――――――――――――――
-#   IS   Y = ω − φ·r + ψ·wʳ
-#   MP   r = r' + λ_P·Ỹ + λ_I·π      (Ỹ = Y − Ȳ)
-#   FX   1+r = (1+rᵃ)·wʳ,ᵉ₊₁/wʳ
-#   IA   π₊₁ = π + γ·Ỹ + η   (η = the one-off imported-inflation shock, on π₀ only)
-#   PPP  wʳ = wʳ₋₁·(1+πᵃ)/(1+π)   — one law: within-period response and drift both
-
-
 OE_FLOAT, OE_PEG, OE_PEG_STER = 'float', 'hard', 'ster'
 
 
@@ -368,7 +343,6 @@ def oe_wr_next(p, regime, wr, pi_next, Y_next=None):
 
 def oe_next_inflation(p, pi, Y):
     """IA curve:  π₊₁ = π + γ·Ỹ.
-
     η, the exogenous inflation shock of the thesis's (3.10), is applied once to
     π₀ by the page rather than carried as a term here — it is zero in every other
     period, so the update itself is the plain output-gap rule."""
@@ -401,7 +375,6 @@ def oe_is_intercept(p, wr):
 
 def oe_longrun(p, regime):
     """(π*, r*, wʳ*) where the economy comes to rest.
-
     Under either peg wʳ only stops moving at π = πᵃ; under a float the Taylor rule
     sets π* instead. For the unsterilised peg this is where the economy WOULD rest,
     not where it goes — the rest point is unstable (oe_peg_root > 1)."""
@@ -421,7 +394,6 @@ SPEED_LABELS = {"Slow": 0.2, "Normal": 0.04, "Fast": 0.02, "Very Fast": 0.01}
 
 def settings_controls(key_prefix="", stacked=False):
     """Simulation settings, shared by the Settings page and the in-page popover.
-
     `key_prefix` keeps the widget keys distinct between the two; `stacked` puts the
     inputs one above the other for a narrow popover."""
     current_speed = st.session_state.get("setting_speed", c.speed)

@@ -1,6 +1,4 @@
-# Letters to copy: 𝜓 ç 𝜔
-
-
+# ―――― Main ―――――――――――――――――――――――――――――――――
 markdown_text = r"""
 ## Closed Economy — Equations
 
@@ -106,8 +104,6 @@ $$
 """
 
 
-# r = r' + \lambda_P \tilde{Y} + \lambda_I \pi \text{ with } r' > 0, \lambda_P \ge 0, \lambda_I \ge 0.
-
 tabs_options = ['📊 Time Model', '🏠 Home', '🧾 Glossary']  #'📊 Data'
 
 standard_line_width = 3
@@ -207,8 +203,7 @@ placeholder_shock = """
 </div>
 """
 
-# ---------- Fiscal Policy (omega) ----------
-# The thresholds that pick these texts live in closed_economy.py (OMEGA_HI/LO)
+# ―――― Fiscal Policy (omega) ―――――――――――――――――――――――――――――――――
 omega_text_exp = """
 <div style="font-size:17px; font-weight:700; color:#222;">
     Expansionary Demand Shock (↑ω) 🏛️
@@ -230,7 +225,7 @@ omega_text_res = """
 """
 
 
-# ---------- Monetary Policy (r) ----------
+# ―――― Monetary Policy (r) ―――――――――――――――――――――――――――――――――
 r_text_con = """
 <div style="font-size:17px; font-weight:700; color:#222;">
     Contractionary Monetary Policy (↑r') 💰
@@ -254,7 +249,7 @@ r_text_exp = """
 """
 
 
-# ---------- Inflation Shock (pi) ----------
+# ―――― Inflation Shock (pi) ―――――――――――――――――――――――――――――――――
 pi_text_inf = """
 <div style="font-size:17px; font-weight:700; color:#222;">
     Upward Inflation Shock (↑π₀) 📈
@@ -295,9 +290,6 @@ empty_placeholder_moderate_level_shock = """
 
 # ―――― Open-economy consensus model ――――――――――――――――
 # ―――― Easy-mode shock panel ――――――――――――――――
-# One description per (shock family, regime), assembled by oe_shock_panel().
-# Direction words are substituted, so a shock and its mirror cannot disagree.
-
 OE_SHOCK_META = {
     # shock name                      → (family, direction, emoji)
     'Expansionary Fiscal Shock':      ('fiscal', +1, '🏛️'),
@@ -392,8 +384,6 @@ OE_STORY = {
 }
 
 
-# Medium level: one line per kind of setting changed. Kinds a pop-up already
-# covers have no entry here, so nothing is said twice.
 OE_MEDIUM_NOTE = {
     ('demand', 'float'): "The exchange rate cancels a change in demand out completely — nothing on "
                          "the charts moves except wʳ.",
@@ -417,8 +407,6 @@ OE_MEDIUM_NOTE[('imported', 'hard')] = OE_MEDIUM_NOTE[('imported', 'float')]
 OE_MEDIUM_NOTE[('imported', 'ster')] = OE_MEDIUM_NOTE[('imported', 'float')]
 
 
-# What the charts actually show, checked against the simulation — under a float a
-# line can end up not moving at all, and the text has to say so.
 OE_CHART = {
     ('fiscal', 'float'):
         "<b>nothing moves except wʳ.</b> IS does shift {right_left}, but the currency "
@@ -673,15 +661,10 @@ $\varphi > 0$, so the gap widens every period instead of closing.
 """
 
 
-# One triangle per regime: the two corners it reaches are joined, the one it gives
-# up is crossed out.
 TRINITY_SVG = '<svg viewBox="0 0 900 300" width="900" height="300" xmlns="http://www.w3.org/2000/svg" font-family="system-ui, -apple-system, sans-serif">\n<g transform="translate(0,0)">\n<text x="150" y="24" text-anchor="middle" font-size="13" font-weight="600" fill="#555">Flexible</text>\n<line x1="150" y1="78" x2="58" y2="220" stroke="#DDDDDD" stroke-width="1.5" stroke-dasharray="4 4" />\n<line x1="58" y1="220" x2="242" y2="220" stroke="#4C78A8" stroke-width="3" />\n<line x1="150" y1="78" x2="242" y2="220" stroke="#DDDDDD" stroke-width="1.5" stroke-dasharray="4 4" />\n<circle cx="150" cy="78" r="7" fill="#FFFFFF" stroke="#CCCCCC" stroke-width="1.5" />\n<path d="M146,74 L154,82 M154,74 L146,82" stroke="#E45756" stroke-width="1.8" stroke-linecap="round" />\n<circle cx="58" cy="220" r="7" fill="#4C78A8" />\n<circle cx="242" cy="220" r="7" fill="#4C78A8" />\n<text x="150" y="48" text-anchor="middle" font-size="11" fill="#BBBBBB">Stable exchange<tspan x="150" dy="13">rate</tspan></text>\n<text x="58" y="244" text-anchor="middle" font-size="11" fill="#666666">Free movement<tspan x="58" dy="13">of money</tspan></text>\n<text x="242" y="244" text-anchor="middle" font-size="11" fill="#666666">Own monetary<tspan x="242" dy="13">policy</tspan></text>\n<text x="150" y="288" text-anchor="middle" font-size="11" fill="#999">the currency absorbs the shocks</text>\n</g>\n<g transform="translate(300,0)">\n<text x="150" y="24" text-anchor="middle" font-size="13" font-weight="600" fill="#555">Fixed – no sterilisation</text>\n<line x1="150" y1="78" x2="58" y2="220" stroke="#4C78A8" stroke-width="3" />\n<line x1="58" y1="220" x2="242" y2="220" stroke="#DDDDDD" stroke-width="1.5" stroke-dasharray="4 4" />\n<line x1="150" y1="78" x2="242" y2="220" stroke="#DDDDDD" stroke-width="1.5" stroke-dasharray="4 4" />\n<circle cx="150" cy="78" r="7" fill="#4C78A8" />\n<circle cx="58" cy="220" r="7" fill="#4C78A8" />\n<circle cx="242" cy="220" r="7" fill="#FFFFFF" stroke="#CCCCCC" stroke-width="1.5" />\n<path d="M238,216 L246,224 M246,216 L238,224" stroke="#E45756" stroke-width="1.8" stroke-linecap="round" />\n<text x="150" y="48" text-anchor="middle" font-size="11" fill="#666666">Stable exchange<tspan x="150" dy="13">rate</tspan></text>\n<text x="58" y="244" text-anchor="middle" font-size="11" fill="#666666">Free movement<tspan x="58" dy="13">of money</tspan></text>\n<text x="242" y="244" text-anchor="middle" font-size="11" fill="#BBBBBB">Own monetary<tspan x="242" dy="13">policy</tspan></text>\n<text x="150" y="288" text-anchor="middle" font-size="11" fill="#999">the world sets the interest rate</text>\n</g>\n<g transform="translate(600,0)">\n<text x="150" y="24" text-anchor="middle" font-size="13" font-weight="600" fill="#555">Fixed – with sterilisation</text>\n<line x1="150" y1="78" x2="58" y2="220" stroke="#DDDDDD" stroke-width="1.5" stroke-dasharray="4 4" />\n<line x1="58" y1="220" x2="242" y2="220" stroke="#DDDDDD" stroke-width="1.5" stroke-dasharray="4 4" />\n<line x1="150" y1="78" x2="242" y2="220" stroke="#4C78A8" stroke-width="3" />\n<circle cx="150" cy="78" r="7" fill="#4C78A8" />\n<circle cx="58" cy="220" r="7" fill="#FFFFFF" stroke="#CCCCCC" stroke-width="1.5" />\n<path d="M54,216 L62,224 M62,216 L54,224" stroke="#E45756" stroke-width="1.8" stroke-linecap="round" />\n<circle cx="242" cy="220" r="7" fill="#4C78A8" />\n<text x="150" y="48" text-anchor="middle" font-size="11" fill="#666666">Stable exchange<tspan x="150" dy="13">rate</tspan></text>\n<text x="58" y="244" text-anchor="middle" font-size="11" fill="#BBBBBB">Free movement<tspan x="58" dy="13">of money</tspan></text>\n<text x="242" y="244" text-anchor="middle" font-size="11" fill="#666666">Own monetary<tspan x="242" dy="13">policy</tspan></text>\n<text x="150" y="288" text-anchor="middle" font-size="11" fill="#999">capital controls hold it together</text>\n</g>\n</svg>'
 
 
 # ―――― Pop-ups ―――――――――――――――――――――――――――――――――――
-# Shown only at Medium/Advanced, where the panel lists settings instead of telling
-# a story, so a policy the regime switches off still gets flagged.
-
 monetary_neutralised_text = """🏦 **Monetary policy has no effect here.** Holding the exchange rate
 fixed pulls the domestic interest rate back to the world rate, so the change in r'
 never reaches the economy."""
