@@ -103,8 +103,6 @@ $$
 \qquad
 r^{*} = r' + \lambda_I \pi^{*}
 $$
-
-The run converges while $\gamma < 2\,|\text{AD slope}|$.
 """
 
 
@@ -314,14 +312,14 @@ OE_SHOCK_META = {
 
 OE_REGIME_LABEL = {
     'Flexible': '🌊 Flexible',
-    'Fixed – no sterilization': '🔒 Fixed – no sterilization',
-    'Fixed – with sterilization': '🛡️ Fixed – with sterilization',
+    'Fixed – no sterilisation': '🔒 Fixed – no sterilisation',
+    'Fixed – with sterilisation': '🛡️ Fixed – with sterilisation',
 }
 
 # What the shock is, before the regime enters
 OE_LEAD = {
     'fiscal': "The government spends {more_less}, which shifts the IS-curve to the {right_left} (ω {up_down}).",
-    'monetary': "The central bank takes a {looser_tighter} stance ({down_up} r').",
+    'monetary': "The central bank switches to {looser_tighter} monetary policy (MP shifts {down_up}).",
     'foreign': "The rest of the world moves to a {higher_lower} interest rate ({up_down} rᵃ).",
     'imported': "Import prices {jump_drop} once and feed straight into domestic prices — the one shock "
                 "that moves inflation without an output gap first.",
@@ -343,7 +341,7 @@ OE_STORY = {
         "back, but only through the slow drift of the price level, so it never catches up.",
     ('fiscal', 'ster'):
         "The exchange rate still cannot move, so output {rises_falls} — but the bank moves its own interest "
-        "rate against the shock, so the effect is smaller than without sterilization. Trade then closes the "
+        "rate against the shock, so the effect is smaller than without sterilisation. Trade then closes the "
         "gap: domestic prices {outrun_lag} foreign ones (wʳ {down_up}) and output returns to potential.",
 
     ('monetary', 'float'):
@@ -433,7 +431,7 @@ OE_CHART = {
         "wʳ drifts {down_up} by roughly the inflation gap each period, which is all the "
         "pull-back there is.",
     ('fiscal', 'ster'):
-        "IS shifts {right_left} and Y jumps, by less than without sterilization. r follows the "
+        "IS shifts {right_left} and Y jumps, by less than without sterilisation. r follows the "
         "bank's own rule up the MP line — there is no FX line here to hold it down. wʳ is flat "
         "on impact and drifts {down_up} later.",
 
@@ -446,7 +444,7 @@ OE_CHART = {
         "in r' is undone before it ever reaches the diagram.",
     ('monetary', 'ster'):
         "MP shifts {down_up} and the point slides along IS, so Y {rises_falls} and r goes with it — "
-        "the bank keeps its own rate, which is what sterilizing buys. IS itself stays put, and wʳ "
+        "the bank keeps its own rate, which is what sterilising buys. IS itself stays put, and wʳ "
         "is flat until inflation leaves the world rate.",
 
     ('foreign', 'float'):
@@ -459,7 +457,7 @@ OE_CHART = {
         "keeps sliding and Y does not come back. wʳ inches {up_down} against it.",
     ('foreign', 'ster'):
         "<b>nothing moves on either diagram.</b> Y, π, wʳ and r all stay exactly where they were: "
-        "the foreign rate reaches the economy only through FX, and sterilizing absorbs that "
+        "the foreign rate reaches the economy only through FX, and sterilising absorbs that "
         "relation into the reserve flow. rᵃ changes, the bank's balance sheet absorbs it, and the "
         "diagram never sees it.",
 
@@ -474,7 +472,7 @@ OE_CHART = {
         "{stronger_weaker} currency.",
     ('imported', 'ster'):
         "the IA line jumps {up_down} and output lands {below_above} potential, but <b>IS does not "
-        "move and wʳ is flat on impact</b> — with the flows sterilized the exchange rate only drifts "
+        "move and wʳ is flat on impact</b> — with the flows sterilised the exchange rate only drifts "
         "later. r moves with the bank's own rule.",
 }
 
@@ -505,8 +503,8 @@ def _direction_words(up):
     )
 
 
-REGIME_KEY = {'Flexible': 'float', 'Fixed – no sterilization': 'hard',
-              'Fixed – with sterilization': 'ster'}
+REGIME_KEY = {'Flexible': 'float', 'Fixed – no sterilisation': 'hard',
+              'Fixed – with sterilisation': 'ster'}
 
 
 def oe_panel(title, regime, body, emoji=''):
@@ -616,7 +614,7 @@ A country would like a **stable exchange rate**, **free movement of capital** an
 
 
 THEORY_REST = r"""
-| | Flexible | Fixed – no sterilization | Fixed – with sterilization |
+| | Flexible | Fixed – no sterilisation | Fixed – with sterilisation |
 |---|---|---|---|
 | **Gives up** | the stable exchange rate | its own monetary policy | free movement of capital |
 | **Free variable** | $w^r$ | the interest rate | the stock of reserves |
@@ -654,14 +652,14 @@ $$
 \pi_t = \frac{r^a - r' + \lambda_P}{\lambda_I} \;-\; \frac{\lambda_P}{\lambda_I}\,Y_t
 $$
 
-**AD, fixed with sterilization** — IS $\cap$ MP (3.14)
+**AD, fixed with sterilisation** — IS $\cap$ MP (3.14)
 
 $$
 \pi_t = \frac{\omega - \varphi r' + \varphi\lambda_P + \psi w^r_t}{\varphi\lambda_I}
 \;-\; \frac{1 + \varphi\lambda_P}{\varphi\lambda_I}\,Y_t
 $$
 
-**AD, fixed without sterilization** — IS $\cap$ FX (3.15)
+**AD, fixed without sterilisation** — IS $\cap$ FX (3.15)
 
 $$
 \pi_t = \frac{-\omega + \varphi r^a + \varphi\pi^a - \psi w^r_t}{\varphi}
@@ -677,7 +675,7 @@ $\varphi > 0$, so the gap widens every period instead of closing.
 
 # One triangle per regime: the two corners it reaches are joined, the one it gives
 # up is crossed out.
-TRINITY_SVG = '<svg viewBox="0 0 900 300" width="900" height="300" xmlns="http://www.w3.org/2000/svg" font-family="system-ui, -apple-system, sans-serif">\n<g transform="translate(0,0)">\n<text x="150" y="24" text-anchor="middle" font-size="13" font-weight="600" fill="#555">Flexible</text>\n<line x1="150" y1="78" x2="58" y2="220" stroke="#DDDDDD" stroke-width="1.5" stroke-dasharray="4 4" />\n<line x1="58" y1="220" x2="242" y2="220" stroke="#4C78A8" stroke-width="3" />\n<line x1="150" y1="78" x2="242" y2="220" stroke="#DDDDDD" stroke-width="1.5" stroke-dasharray="4 4" />\n<circle cx="150" cy="78" r="7" fill="#FFFFFF" stroke="#CCCCCC" stroke-width="1.5" />\n<path d="M146,74 L154,82 M154,74 L146,82" stroke="#E45756" stroke-width="1.8" stroke-linecap="round" />\n<circle cx="58" cy="220" r="7" fill="#4C78A8" />\n<circle cx="242" cy="220" r="7" fill="#4C78A8" />\n<text x="150" y="48" text-anchor="middle" font-size="11" fill="#BBBBBB">Stable exchange<tspan x="150" dy="13">rate</tspan></text>\n<text x="58" y="244" text-anchor="middle" font-size="11" fill="#666666">Free movement<tspan x="58" dy="13">of money</tspan></text>\n<text x="242" y="244" text-anchor="middle" font-size="11" fill="#666666">Own monetary<tspan x="242" dy="13">policy</tspan></text>\n<text x="150" y="288" text-anchor="middle" font-size="11" fill="#999">the currency absorbs the shocks</text>\n</g>\n<g transform="translate(300,0)">\n<text x="150" y="24" text-anchor="middle" font-size="13" font-weight="600" fill="#555">Fixed – no sterilization</text>\n<line x1="150" y1="78" x2="58" y2="220" stroke="#4C78A8" stroke-width="3" />\n<line x1="58" y1="220" x2="242" y2="220" stroke="#DDDDDD" stroke-width="1.5" stroke-dasharray="4 4" />\n<line x1="150" y1="78" x2="242" y2="220" stroke="#DDDDDD" stroke-width="1.5" stroke-dasharray="4 4" />\n<circle cx="150" cy="78" r="7" fill="#4C78A8" />\n<circle cx="58" cy="220" r="7" fill="#4C78A8" />\n<circle cx="242" cy="220" r="7" fill="#FFFFFF" stroke="#CCCCCC" stroke-width="1.5" />\n<path d="M238,216 L246,224 M246,216 L238,224" stroke="#E45756" stroke-width="1.8" stroke-linecap="round" />\n<text x="150" y="48" text-anchor="middle" font-size="11" fill="#666666">Stable exchange<tspan x="150" dy="13">rate</tspan></text>\n<text x="58" y="244" text-anchor="middle" font-size="11" fill="#666666">Free movement<tspan x="58" dy="13">of money</tspan></text>\n<text x="242" y="244" text-anchor="middle" font-size="11" fill="#BBBBBB">Own monetary<tspan x="242" dy="13">policy</tspan></text>\n<text x="150" y="288" text-anchor="middle" font-size="11" fill="#999">the world sets the interest rate</text>\n</g>\n<g transform="translate(600,0)">\n<text x="150" y="24" text-anchor="middle" font-size="13" font-weight="600" fill="#555">Fixed – with sterilization</text>\n<line x1="150" y1="78" x2="58" y2="220" stroke="#DDDDDD" stroke-width="1.5" stroke-dasharray="4 4" />\n<line x1="58" y1="220" x2="242" y2="220" stroke="#DDDDDD" stroke-width="1.5" stroke-dasharray="4 4" />\n<line x1="150" y1="78" x2="242" y2="220" stroke="#4C78A8" stroke-width="3" />\n<circle cx="150" cy="78" r="7" fill="#4C78A8" />\n<circle cx="58" cy="220" r="7" fill="#FFFFFF" stroke="#CCCCCC" stroke-width="1.5" />\n<path d="M54,216 L62,224 M62,216 L54,224" stroke="#E45756" stroke-width="1.8" stroke-linecap="round" />\n<circle cx="242" cy="220" r="7" fill="#4C78A8" />\n<text x="150" y="48" text-anchor="middle" font-size="11" fill="#666666">Stable exchange<tspan x="150" dy="13">rate</tspan></text>\n<text x="58" y="244" text-anchor="middle" font-size="11" fill="#BBBBBB">Free movement<tspan x="58" dy="13">of money</tspan></text>\n<text x="242" y="244" text-anchor="middle" font-size="11" fill="#666666">Own monetary<tspan x="242" dy="13">policy</tspan></text>\n<text x="150" y="288" text-anchor="middle" font-size="11" fill="#999">capital controls hold it together</text>\n</g>\n</svg>'
+TRINITY_SVG = '<svg viewBox="0 0 900 300" width="900" height="300" xmlns="http://www.w3.org/2000/svg" font-family="system-ui, -apple-system, sans-serif">\n<g transform="translate(0,0)">\n<text x="150" y="24" text-anchor="middle" font-size="13" font-weight="600" fill="#555">Flexible</text>\n<line x1="150" y1="78" x2="58" y2="220" stroke="#DDDDDD" stroke-width="1.5" stroke-dasharray="4 4" />\n<line x1="58" y1="220" x2="242" y2="220" stroke="#4C78A8" stroke-width="3" />\n<line x1="150" y1="78" x2="242" y2="220" stroke="#DDDDDD" stroke-width="1.5" stroke-dasharray="4 4" />\n<circle cx="150" cy="78" r="7" fill="#FFFFFF" stroke="#CCCCCC" stroke-width="1.5" />\n<path d="M146,74 L154,82 M154,74 L146,82" stroke="#E45756" stroke-width="1.8" stroke-linecap="round" />\n<circle cx="58" cy="220" r="7" fill="#4C78A8" />\n<circle cx="242" cy="220" r="7" fill="#4C78A8" />\n<text x="150" y="48" text-anchor="middle" font-size="11" fill="#BBBBBB">Stable exchange<tspan x="150" dy="13">rate</tspan></text>\n<text x="58" y="244" text-anchor="middle" font-size="11" fill="#666666">Free movement<tspan x="58" dy="13">of money</tspan></text>\n<text x="242" y="244" text-anchor="middle" font-size="11" fill="#666666">Own monetary<tspan x="242" dy="13">policy</tspan></text>\n<text x="150" y="288" text-anchor="middle" font-size="11" fill="#999">the currency absorbs the shocks</text>\n</g>\n<g transform="translate(300,0)">\n<text x="150" y="24" text-anchor="middle" font-size="13" font-weight="600" fill="#555">Fixed – no sterilisation</text>\n<line x1="150" y1="78" x2="58" y2="220" stroke="#4C78A8" stroke-width="3" />\n<line x1="58" y1="220" x2="242" y2="220" stroke="#DDDDDD" stroke-width="1.5" stroke-dasharray="4 4" />\n<line x1="150" y1="78" x2="242" y2="220" stroke="#DDDDDD" stroke-width="1.5" stroke-dasharray="4 4" />\n<circle cx="150" cy="78" r="7" fill="#4C78A8" />\n<circle cx="58" cy="220" r="7" fill="#4C78A8" />\n<circle cx="242" cy="220" r="7" fill="#FFFFFF" stroke="#CCCCCC" stroke-width="1.5" />\n<path d="M238,216 L246,224 M246,216 L238,224" stroke="#E45756" stroke-width="1.8" stroke-linecap="round" />\n<text x="150" y="48" text-anchor="middle" font-size="11" fill="#666666">Stable exchange<tspan x="150" dy="13">rate</tspan></text>\n<text x="58" y="244" text-anchor="middle" font-size="11" fill="#666666">Free movement<tspan x="58" dy="13">of money</tspan></text>\n<text x="242" y="244" text-anchor="middle" font-size="11" fill="#BBBBBB">Own monetary<tspan x="242" dy="13">policy</tspan></text>\n<text x="150" y="288" text-anchor="middle" font-size="11" fill="#999">the world sets the interest rate</text>\n</g>\n<g transform="translate(600,0)">\n<text x="150" y="24" text-anchor="middle" font-size="13" font-weight="600" fill="#555">Fixed – with sterilisation</text>\n<line x1="150" y1="78" x2="58" y2="220" stroke="#DDDDDD" stroke-width="1.5" stroke-dasharray="4 4" />\n<line x1="58" y1="220" x2="242" y2="220" stroke="#DDDDDD" stroke-width="1.5" stroke-dasharray="4 4" />\n<line x1="150" y1="78" x2="242" y2="220" stroke="#4C78A8" stroke-width="3" />\n<circle cx="150" cy="78" r="7" fill="#4C78A8" />\n<circle cx="58" cy="220" r="7" fill="#FFFFFF" stroke="#CCCCCC" stroke-width="1.5" />\n<path d="M54,216 L62,224 M62,216 L54,224" stroke="#E45756" stroke-width="1.8" stroke-linecap="round" />\n<circle cx="242" cy="220" r="7" fill="#4C78A8" />\n<text x="150" y="48" text-anchor="middle" font-size="11" fill="#666666">Stable exchange<tspan x="150" dy="13">rate</tspan></text>\n<text x="58" y="244" text-anchor="middle" font-size="11" fill="#BBBBBB">Free movement<tspan x="58" dy="13">of money</tspan></text>\n<text x="242" y="244" text-anchor="middle" font-size="11" fill="#666666">Own monetary<tspan x="242" dy="13">policy</tspan></text>\n<text x="150" y="288" text-anchor="middle" font-size="11" fill="#999">capital controls hold it together</text>\n</g>\n</svg>'
 
 
 # ―――― Pop-ups ―――――――――――――――――――――――――――――――――――

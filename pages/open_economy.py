@@ -26,7 +26,7 @@ FOREIGN_SHOCK, IMPORTED_SHOCK = 0.5, 1.0
 h.session_init(
     oe_phase="idle",        # idle | short_term_paused | adjusting | run_paused | done
     oe_pi_prev=None,
-    oe_wr_prev=None,        # real-exchange-rate state (fixed peg without sterilization)
+    oe_wr_prev=None,        # real-exchange-rate state (fixed peg without sterilisation)
     oe_iter_counter=0,
     oe_iteration_df=pd.DataFrame(columns=["Iteration", "Output", "Inflation", "RealFX", "Rate"]),
     oe_locked_df=None,
@@ -102,15 +102,15 @@ with st.sidebar:
                          disabled=busy, on_change=reset, key="oe_level")
 
     regime = st.selectbox('Exchange-rate regime',
-                          options=['Flexible', 'Fixed – no sterilization', 'Fixed – with sterilization'],
+                          options=['Flexible', 'Fixed – no sterilisation', 'Fixed – with sterilisation'],
                           disabled=busy, on_change=reset, key="oe_regime",
                           help=("Flexible: the currency is free to move, which cancels out demand "
                                 "changes but lets interest-rate changes work. "
-                                "Fixed – no sterilization: the currency is held, so demand changes "
+                                "Fixed – no sterilisation: the currency is held, so demand changes "
                                 "have their full effect, monetary policy has none, and the interest "
                                 "rate is left to the FX market — where it moves the wrong way and "
                                 "amplifies the shock. "
-                                "Fixed – with sterilization: the currency is held and the bank offsets "
+                                "Fixed – with sterilisation: the currency is held and the bank offsets "
                                 "the money flows, so it keeps its own interest rate — for as long as "
                                 "its reserves last."))
 
@@ -269,20 +269,20 @@ MP_slope = lambda_p                          # Ỹ = Y − Ȳ is in points alrea
 # flexible    — r = rᵃ, AD is MP∩FX, so ω drops out of AD
 # no steril.  — MP is abandoned, r = rᵃ + (πᵃ − π), AD is IS∩FX
 # steril.     — the bank keeps its rule, AD is IS∩MP
-fixed_regime = regime in ('Fixed – no sterilization', 'Fixed – with sterilization')
-peg_no_steril = (regime == 'Fixed – no sterilization')
-peg_steril = (regime == 'Fixed – with sterilization')
+fixed_regime = regime in ('Fixed – no sterilisation', 'Fixed – with sterilisation')
+peg_no_steril = (regime == 'Fixed – no sterilisation')
+peg_steril = (regime == 'Fixed – with sterilisation')
 ppp_regime = fixed_regime           # ANY nominal peg forces π → πᵃ (the peg identity)
 oe_regime = h.OE_PEG if peg_no_steril else (h.OE_PEG_STER if peg_steril else h.OE_FLOAT)
 
-# Without sterilization the MP curve is not used, so r' does nothing. Keep what the
+# Without sterilisation the MP curve is not used, so r' does nothing. Keep what the
 # user picked in r_init_selected — the sidebar panel reads that, not the override.
 r_init_selected = r_init
 monetary_neutralised = peg_no_steril and (r_init != RP_BASE)
 if peg_no_steril:
     r_init = RP_BASE
 
-# Under sterilization the foreign rate never reaches the domestic economy.
+# Under sterilisation the foreign rate never reaches the domestic economy.
 foreign_neutralised = peg_steril and (r_foreign != RA_BASE)
 
 P = h.OEParams(omega=omega, phi=phi, psi=psi, r_init=r_init, lambda_p=lambda_p,
@@ -306,7 +306,11 @@ peg_unsustainable = peg_steril and abs(peg_lr_rate - r_foreign) > 1e-6
 
 # Growth factor per period of the unsterilised peg; always > 1, so the UI can say
 # the shock is amplified rather than pretend the economy comes back.
-peg_divergent = peg_no_steril
+# Shown only once something actually moves the economy off its rest point. r_init
+# is already reset to RP_BASE here, so a monetary shock (which does nothing) does not count.
+shock_applied = (omega != OMEGA_BASE or r_init != RP_BASE or r_foreign != RA_BASE
+                 or inflation_shock != 0.0)
+peg_divergent = peg_no_steril and shock_applied
 peg_root = h.oe_peg_root(P) if peg_no_steril else 1.0
 
 # Where the run ends up, numbers only — the panel above tells the story in words.
@@ -583,23 +587,32 @@ with tab1:
         h.panel_header("What is happening")
         # Pop-ups: only what the description panel below does not already say
         if peg_unsustainable:
-            st.warning(f"⚠️ **This peg needs capital controls.** The bank holds r = {peg_lr_rate:.2f} "
-                       f"while the world pays rᵃ = {r_foreign:.2f}. Capital keeps crossing the border "
-                       f"on that gap and the bank absorbs it in reserves, which drain (or pile up) "
-                       f"without limit — that reserve flow is the free variable, which is why no FX "
-                       f"line is drawn here. Sterilisation is the corner of the trinity that gives up "
-                       f"**free movement of capital**. Without controls the bank must eventually "
-                       f"release the interest rate (→ **Fixed – no sterilization**) or the currency "
-                       f"(→ **Flexible**).")
+            _flow = ("Capital flows **out**, and the bank defends the currency with foreign "
+                     "reserves, which **decline** every period"
+                     if peg_lr_rate < r_foreign else
+                     "Capital flows **in**, and the bank holds the currency down by buying foreign "
+                     "reserves, which **accumulate** every period and earn less than the domestic "
+                     "loans they replace")
+            st.warning(f"⚠️ **This peg holds only for as long as the reserves last.** The domestic "
+                       f"rate is r = {peg_lr_rate:.2f}, the foreign rate rᵃ = {r_foreign:.2f}. "
+                       f"{_flow}. Sterilisation offsets the effect on the money supply by changing "
+                       f"central-bank loans, so r stays where the bank's rule puts it and the gap "
+                       f"never closes. This is how the regime gives up free capital movement: the "
+                       f"reserves absorb the flows. The charts converge only because the model "
+                       f"treats reserves as unlimited.\n\n"
+                       f"**How it ends:** in reality the bank must enforce this with capital "
+                       f"controls or abandon the peg (→ **Flexible**). Stopping sterilisation "
+                       f"would end the reserve flow, but in this model it makes the economy "
+                       f"unstable (→ **Fixed – no sterilisation**).")
 
-        if peg_divergent and phase != "idle":
-            st.warning(f"⚠️ **This shock feeds on itself.** With the nominal rate pegged (i = iᵃ) the "
-                       f"Taylor rule is gone and the FX market sets r = rᵃ + (πᵃ − 𝜋). A slump pulls "
-                       f"inflation below the world rate, so the real rate **rises** and the slump "
-                       f"deepens — a boom does the reverse. Hence the upward-sloping AD, and a gap "
-                       f"that grows about {(peg_root - 1) * 100:.0f}% a period. Competitiveness pulls "
-                       f"the other way, but only through the slow drift of prices, and never catches "
-                       f"up. This is the mechanism behind the Eurozone's divergence.")
+        if peg_divergent:
+            st.error("""🔴 **This peg is unstable: the economy does not return to potential while it holds.**
+
+Under an unsterilised peg, the central bank holds the exchange rate fixed by buying or selling foreign reserves and lets these interventions change the money supply. The nominal interest rate is therefore tied to the foreign one, so the real rate is set by the FX market, r = rᵃ + (πᵃ − π), rather than by the bank's own policy rule.
+
+The cost is monetary autonomy. Higher inflation now lowers the real interest rate, so policy amplifies booms and deepens slumps instead of dampening them. The real exchange rate works against this, but it responds with a delay and overshoots, so the output gap grows over time instead of closing.
+
+In this model the regime is therefore not self-correcting. In practice, pegs of this kind survive only when they are credible enough to anchor inflation expectations at the foreign rate, which this model does not capture.""")
 
 
         if level != 'Easy':
